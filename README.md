@@ -11,6 +11,8 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 - **Smart Player Management**: Automatic promotion from waitlist when someone cancels
 - **Notification System**: Tagged messages when players move between main list and waitlist
 - **Automatic Formatting**: Numbered lists with player names and skill levels
+- **Calendar Integration**: Direct links to add games to Google Calendar
+- **Location Links**: Clickable Google Maps links for easy navigation
 - **Multi-timezone Support**: Configured for Dubai timezone
 - **Cancellation Support**: Games can be marked as cancelled
 - **Robust Error Handling**: Automatic retry with exponential backoff for API errors
@@ -139,6 +141,37 @@ Players can register for games by selecting their skill level:
 ```
 
 _Note: No notifications are sent when players cancel from waitlist_
+
+## Calendar & Location Integration
+
+### Google Calendar Links
+
+Each game message includes a direct link to add the event to Google Calendar with:
+
+- **Correct timing**: Automatically converted from Dubai timezone to UTC
+- **Event title**: "Padel - [Club Name]"
+- **Location**: Club name for easy reference
+
+### Interactive Maps
+
+Club names are clickable links that open Google Maps:
+
+- **SANDDUNE PADEL CLUB Al Qouz**: [Maps Link](https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc)
+- **Oxygen Padel Sport Academy**: [Maps Link](https://maps.app.goo.gl/cH1EZrrpbuYVWsMY6?g_st=ipc)
+
+### Adding New Locations
+
+To add a new club location, update the `CLUB_LOCATIONS` object in `src/app/lib/telegram/constants.ts`:
+
+```typescript
+export const CLUB_LOCATIONS = {
+  "SANDDUNE PADEL CLUB Al Qouz":
+    "https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc",
+  "Oxygen Padel Sport Academy":
+    "https://maps.app.goo.gl/cH1EZrrpbuYVWsMY6?g_st=ipc",
+  "New Club Name": "https://maps.app.goo.gl/your-new-link",
+} as const;
+```
 
 ## Customizing Game Schedule
 
