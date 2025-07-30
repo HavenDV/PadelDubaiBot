@@ -43,7 +43,7 @@ Content-Type: application/json
         "id": -123456789
       },
       "message_id": 456,
-      "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: <a href=\"https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc\">SANDDUNE PADEL CLUB Al Qouz</a>\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\n📅 <a href=\"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Padel%20-%20SANDDUNE%20PADEL%20CLUB%20Al%20Qouz&dates=20250107T040000Z/20250107T053000Z&location=SANDDUNE%20PADEL%20CLUB%20Al%20Qouz\">Добавить в Google Calendar</a>\n\nЗаписавшиеся игроки:"
+      "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: <a href=\"https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc\">SANDDUNE PADEL CLUB Al Qouz</a>\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\n📅 <a href=\"https://calendar.google.com/calendar/render?action=TEMPLATE&text=Padel%20-%20SANDDUNE%20PADEL%20CLUB%20Al%20Qouz&dates=20250107T040000Z/20250107T053000Z&location=SANDDUNE%20PADEL%20CLUB%20Al%20Qouz\">Добавить в Google Calendar</a>\n\nЗаписавшиеся игроки:\n\n⏳ Waitlist:\n_Пусто_"
     },
     "data": "skill_D+"
   }

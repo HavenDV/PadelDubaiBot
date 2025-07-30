@@ -130,6 +130,7 @@ Players can register for games by selecting their skill level:
 
 - **Main Game**: Maximum 4 players per game
 - **Waitlist**: Players 5+ automatically go to waitlist
+- **Always Visible**: Waitlist section always shown, displays "_Пусто_" when empty
 - **Automatic Promotion**: When someone cancels, first waitlist player moves to main game
 - **Notifications**: Tagged messages notify both canceling and promoted players
 

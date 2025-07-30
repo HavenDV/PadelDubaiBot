@@ -196,14 +196,16 @@ export class MessageUtils {
       }
     }
 
-    // Add waitlist if there are players waiting
+    // Add waitlist section (always show, even if empty)
+    updatedMessage += "\n\n⏳ <b>Waitlist:</b>";
     if (waitlist.size > 0) {
-      updatedMessage += "\n\n⏳ <b>Waitlist:</b>";
       let waitCounter = 1;
       for (const { displayName, level } of waitlist.values()) {
         updatedMessage += `\n${waitCounter}. ${displayName} (${level})`;
         waitCounter++;
       }
+    } else {
+      updatedMessage += "\n_Пусто_";
     }
 
     return updatedMessage;

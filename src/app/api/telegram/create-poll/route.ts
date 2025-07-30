@@ -71,14 +71,13 @@ function getWeeklyGames(): GameInfo[] {
       club: "SANDDUNE PADEL CLUB Al Qouz",
       price: "65 aed/чел (комплимент от клуба - бельгийская вафля и кофе)🫶🏻",
       courts: 2,
-      note: "Забронировано 2 корта!",
     },
     {
       day: "Четверг",
       date: dates.thursday,
       time: "08:00-09:30",
       club: "Oxygen Padel Sport Academy",
-      price: "70 aed/чел",
+      price: "55 aed/чел",
       courts: 1,
     },
     {
