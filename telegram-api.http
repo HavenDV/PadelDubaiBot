@@ -26,7 +26,7 @@ Content-Type: application/json
   }
 }
 
-### Test skill level registration (will go to main list)
+### Test skill level registration (links should be preserved)
 POST http://localhost:3000/api/telegram/webhook
 Content-Type: application/json
 

@@ -16,17 +16,24 @@ export class MessageUtils {
   ): { updatedMessage: string; notification?: string } {
     // Split the message into parts
     const lines = currentText.split("\n");
-    const baseMessageEndIndex = lines.findIndex(
-      (line) =>
-        line.includes("Записавшиеся игроки:") ||
-        line.includes("Игра отменена. Waitlist:")
-    );
+
+    // Find where the player list starts (after the calendar link)
+    let baseMessageEndIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        lines[i].includes("Записавшиеся игроки:") ||
+        lines[i].includes("Игра отменена. Waitlist:")
+      ) {
+        baseMessageEndIndex = i;
+        break;
+      }
+    }
 
     if (baseMessageEndIndex === -1) {
       return { updatedMessage: currentText }; // Fallback if message format is unexpected
     }
 
-    // Get the base message part
+    // Get the base message part (everything up to and including the "Записавшиеся игроки:" line)
     const baseMessage = lines.slice(0, baseMessageEndIndex + 1).join("\n");
 
     // Parse existing registrations and waitlist
@@ -230,11 +237,18 @@ export class MessageUtils {
    */
   static getRegisteredUsers(messageText: string): UserRegistration[] {
     const lines = messageText.split("\n");
-    const baseMessageEndIndex = lines.findIndex(
-      (line) =>
-        line.includes("Записавшиеся игроки:") ||
-        line.includes("Игра отменена. Waitlist:")
-    );
+
+    // Find where the player list starts (after the calendar link)
+    let baseMessageEndIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        lines[i].includes("Записавшиеся игроки:") ||
+        lines[i].includes("Игра отменена. Waitlist:")
+      ) {
+        baseMessageEndIndex = i;
+        break;
+      }
+    }
 
     if (baseMessageEndIndex === -1) {
       return [];
