@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app/api/telegram/webhook/route.ts": { "maxDuration": 60 }
+  },
+  "regions": ["dxb1", "bom1", "fra1"],
+  "crons": [
+    {
+      "path": "/api/telegram/create-poll",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
