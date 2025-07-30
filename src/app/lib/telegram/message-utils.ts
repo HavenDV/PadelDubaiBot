@@ -7,6 +7,127 @@ export interface UserRegistration {
 
 export class MessageUtils {
   /**
+   * Restores HTML formatting that might be lost in Telegram webhook
+   */
+  private static restoreHTMLFormatting(text: string): string {
+    // Only restore formatting if it's not already present
+    let formattedText = text;
+
+    // Restore title formatting (only if not already bold)
+    if (!formattedText.includes("🎾 <b>")) {
+      formattedText = formattedText.replace(/^🎾 (.+)$/gm, "🎾 <b>$1</b>");
+    }
+
+    // Restore field labels (only if not already bold)
+    if (!formattedText.includes("📍 <b>Место:</b>")) {
+      formattedText = formattedText.replace(/📍 Место:/g, "📍 <b>Место:</b>");
+    }
+    if (!formattedText.includes("💵 <b>Цена:</b>")) {
+      formattedText = formattedText.replace(/💵 Цена:/g, "💵 <b>Цена:</b>");
+    }
+    if (!formattedText.includes("🏟️ <b>Забронировано кортов:</b>")) {
+      formattedText = formattedText.replace(
+        /🏟️ Забронировано кортов:/g,
+        "🏟️ <b>Забронировано кортов:</b>"
+      );
+    }
+    if (!formattedText.includes("<b>Записавшиеся игроки:</b>")) {
+      formattedText = formattedText.replace(
+        /Записавшиеся игроки:/g,
+        "<b>Записавшиеся игроки:</b>"
+      );
+    }
+    if (!formattedText.includes("<b>Игра отменена. Waitlist:</b>")) {
+      formattedText = formattedText.replace(
+        /Игра отменена\. Waitlist:/g,
+        "<b>Игра отменена. Waitlist:</b>"
+      );
+    }
+    if (!formattedText.includes("⏳ <b>Waitlist:</b>")) {
+      formattedText = formattedText.replace(
+        /⏳ Waitlist:/g,
+        "⏳ <b>Waitlist:</b>"
+      );
+    }
+    if (!formattedText.includes("❗️<b>ОТМЕНА</b>❗️")) {
+      formattedText = formattedText.replace(
+        /❗️ОТМЕНА❗️/g,
+        "❗️<b>ОТМЕНА</b>❗️"
+      );
+    }
+
+    // Try to restore map links if we can detect the club name
+    if (
+      formattedText.includes("SANDDUNE PADEL CLUB Al Qouz") &&
+      !formattedText.includes("<a href=")
+    ) {
+      formattedText = formattedText.replace(
+        "SANDDUNE PADEL CLUB Al Qouz",
+        '<a href="https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc">SANDDUNE PADEL CLUB Al Qouz</a>'
+      );
+    }
+
+    if (
+      formattedText.includes("Oxygen Padel Sport Academy") &&
+      !formattedText.includes("<a href=")
+    ) {
+      formattedText = formattedText.replace(
+        "Oxygen Padel Sport Academy",
+        '<a href="https://maps.app.goo.gl/cH1EZrrpbuYVWsMY6?g_st=ipc">Oxygen Padel Sport Academy</a>'
+      );
+    }
+
+    // Try to restore calendar link if missing
+    if (
+      formattedText.includes("Добавить в Google Calendar") &&
+      !formattedText.includes("calendar.google.com")
+    ) {
+      // Extract date and time for calendar link
+      const dateTimeMatch = formattedText.match(
+        /🎾[\s\S]*?(\d{2}\.\d{2})[\s\S]*?(\d{1,2}:\d{2}-\d{1,2}:\d{2})/
+      );
+      const clubMatch = formattedText.match(
+        /📍[\s\S]*?>(.*?)<\/a>|📍[\s\S]*?:\s*(.+?)(?=\n|💵)/
+      );
+
+      if (dateTimeMatch && clubMatch) {
+        const [, ,] = dateTimeMatch;
+        let club = (clubMatch[1] || clubMatch[2] || "").trim();
+
+        // Clean up club name - extract just the club name
+        if (club.includes("SANDDUNE PADEL CLUB")) {
+          club = "SANDDUNE PADEL CLUB Al Qouz";
+        } else if (club.includes("Oxygen Padel")) {
+          club = "Oxygen Padel Sport Academy";
+        } else {
+          // Remove HTML tags if any
+          club = club.replace(/<[^>]*>/g, "").trim();
+        }
+
+        // Generate a basic calendar link
+        const title = encodeURIComponent(`Padel - ${club}`);
+        const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`;
+
+        formattedText = formattedText.replace(
+          "Добавить в Google Calendar",
+          `<a href="${calendarUrl}">Добавить в Google Calendar</a>`
+        );
+      } else {
+        // Fallback: create a basic calendar link
+        const title = encodeURIComponent("Padel Game");
+        const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`;
+
+        formattedText = formattedText.replace(
+          "Добавить в Google Calendar",
+          `<a href="${calendarUrl}">Добавить в Google Calendar</a>`
+        );
+      }
+    }
+
+    return formattedText;
+  }
+
+  /**
    * Updates a padel game message by adding or updating user registrations
    */
   static updateMessageWithUserSelection(
@@ -34,7 +155,10 @@ export class MessageUtils {
     }
 
     // Get the base message part (everything up to and including the "Записавшиеся игроки:" line)
-    const baseMessage = lines.slice(0, baseMessageEndIndex + 1).join("\n");
+    let baseMessage = lines.slice(0, baseMessageEndIndex + 1).join("\n");
+
+    // Restore HTML formatting that might have been lost in Telegram webhook
+    baseMessage = this.restoreHTMLFormatting(baseMessage);
 
     // Parse existing registrations and waitlist
     const { registrations, waitlist } = this.parseRegistrationsAndWaitlist(
@@ -46,11 +170,17 @@ export class MessageUtils {
     let notification: string | undefined;
 
     // Handle user selection
-    if (skillLevel === "not_coming") {
-      // User is canceling
-      const wasInMain = registrations.has(key);
-      const wasInWaitlist = waitlist.has(key);
+    const wasInMain = registrations.has(key);
+    const wasInWaitlist = waitlist.has(key);
 
+    // Check if this is a cancellation (either explicit "not_coming" or clicking the same skill level again)
+    const isExplicitCancellation = skillLevel === "not_coming";
+    const isSameSkillCancellation =
+      (wasInMain && registrations.get(key)?.level === skillLevel) ||
+      (wasInWaitlist && waitlist.get(key)?.level === skillLevel);
+
+    if (isExplicitCancellation || isSameSkillCancellation) {
+      // User is canceling
       if (wasInMain) {
         registrations.delete(key);
 
@@ -75,11 +205,8 @@ export class MessageUtils {
       }
     } else {
       // User is registering
-      const wasInMain = registrations.has(key);
-      const wasInWaitlist = waitlist.has(key);
-
       if (wasInMain || wasInWaitlist) {
-        // Update existing registration
+        // Update existing registration with new skill level
         if (wasInMain) {
           registrations.set(key, { displayName, level: skillLevel });
         } else {
@@ -206,10 +333,8 @@ export class MessageUtils {
     // Add waitlist section (always show, even if empty)
     updatedMessage += "\n\n⏳ <b>Waitlist:</b>";
     if (waitlist.size > 0) {
-      let waitCounter = 1;
       for (const { displayName, level } of waitlist.values()) {
-        updatedMessage += `\n${waitCounter}. ${displayName} (${level})`;
-        waitCounter++;
+        updatedMessage += `\n🎾 ${displayName} (${level})`;
       }
     } else {
       updatedMessage += "\n_Пусто_";

@@ -47,7 +47,7 @@ export const generateCalendarLinks = (gameInfo: {
   const [endHour, endMinute] = endTime.split(":");
   endDate.setHours(parseInt(endHour), parseInt(endMinute));
 
-  // Convert to UTC for calendar URLs
+  // Convert to UTC for calendar URLs (Dubai is UTC+4, so we subtract 4 hours)
   const startUTC = new Date(startDate.getTime() - 4 * 60 * 60 * 1000); // Dubai is UTC+4
   const endUTC = new Date(endDate.getTime() - 4 * 60 * 60 * 1000);
 
