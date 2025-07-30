@@ -154,15 +154,20 @@ export class MessageUtils {
   }
 
   /**
-   * Gets the current date range for the week
+   * Gets the date range for the upcoming week (next Monday to Sunday)
    */
   static getCurrentWeekDateRange(): string {
     const now = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - now.getDay() + 1);
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    // Calculate days until next Monday (if today is Monday, get next Monday)
+    const daysUntilNextMonday = currentDay === 1 ? 7 : (8 - currentDay) % 7;
+
+    const nextMonday = new Date(now);
+    nextMonday.setDate(now.getDate() + daysUntilNextMonday);
+
+    const nextSunday = new Date(nextMonday);
+    nextSunday.setDate(nextMonday.getDate() + 6);
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString("ru-RU", {
@@ -172,6 +177,6 @@ export class MessageUtils {
       });
     };
 
-    return `${formatDate(monday)}-${formatDate(sunday)}`;
+    return `${formatDate(nextMonday)}-${formatDate(nextSunday)}`;
   }
 }

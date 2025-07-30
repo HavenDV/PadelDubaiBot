@@ -10,35 +10,87 @@ import {
 
 export const runtime = "edge";
 
-// Sample weekly schedule data - in real use, this could come from a database or external API
-const WEEKLY_GAMES = [
-  {
-    day: "Вторник",
-    date: "29.07",
-    time: "8:00-09:30",
-    club: "SANDDUNE PADEL CLUB Al Qouz",
-    price: "65 aed/чел (комплимент от клуба - бельгийская вафля и кофе)🫶🏻",
-    courts: 2,
-    note: "Забронировано 2 корта!",
-  },
-  {
-    day: "Четверг",
-    date: "31.07",
-    time: "08:00-09:30",
-    club: "Oxygen Padel Sport Academy",
-    price: "70 aed/чел",
-    courts: 1,
-    cancelled: true,
-  },
-  {
-    day: "Суббота",
-    date: "02.08",
-    time: "11:00-12:30",
-    club: "Oxygen Padel Sport Academy",
-    price: "90 aed/чел",
-    courts: 1,
-  },
-];
+interface GameInfo {
+  day: string;
+  date: string;
+  time: string;
+  club: string;
+  price: string;
+  courts: number;
+  note?: string;
+  cancelled?: boolean;
+}
+
+// Generate dates for the upcoming week
+function getUpcomingWeekDates() {
+  const now = new Date();
+  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Calculate days until next Monday (if today is Monday, get next Monday)
+  const daysUntilNextMonday = currentDay === 1 ? 7 : (8 - currentDay) % 7;
+
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + daysUntilNextMonday);
+
+  const formatDate = (date: Date) => {
+    return date
+      .toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "Asia/Dubai",
+      })
+      .replace(/\./g, ".");
+  };
+
+  // Tuesday = Monday + 1, Thursday = Monday + 3, Saturday = Monday + 5
+  const tuesday = new Date(nextMonday);
+  tuesday.setDate(nextMonday.getDate() + 1);
+
+  const thursday = new Date(nextMonday);
+  thursday.setDate(nextMonday.getDate() + 3);
+
+  const saturday = new Date(nextMonday);
+  saturday.setDate(nextMonday.getDate() + 5);
+
+  return {
+    tuesday: formatDate(tuesday),
+    thursday: formatDate(thursday),
+    saturday: formatDate(saturday),
+  };
+}
+
+// Generate weekly schedule data dynamically
+function getWeeklyGames(): GameInfo[] {
+  const dates = getUpcomingWeekDates();
+
+  return [
+    {
+      day: "Вторник",
+      date: dates.tuesday,
+      time: "8:00-09:30",
+      club: "SANDDUNE PADEL CLUB Al Qouz",
+      price: "65 aed/чел (комплимент от клуба - бельгийская вафля и кофе)🫶🏻",
+      courts: 2,
+      note: "Забронировано 2 корта!",
+    },
+    {
+      day: "Четверг",
+      date: dates.thursday,
+      time: "08:00-09:30",
+      club: "Oxygen Padel Sport Academy",
+      price: "70 aed/чел",
+      courts: 1,
+    },
+    {
+      day: "Суббота",
+      date: dates.saturday,
+      time: "11:00-12:30",
+      club: "Oxygen Padel Sport Academy",
+      price: "90 aed/чел",
+      courts: 1,
+    },
+  ];
+}
 
 export async function GET() {
   try {
@@ -67,8 +119,9 @@ export async function GET() {
 
     // Send individual game messages
     const gameResults: TelegramResponse[] = [];
+    const weeklyGames = getWeeklyGames();
 
-    for (const game of WEEKLY_GAMES) {
+    for (const game of weeklyGames) {
       const gameMessage = GAME_MESSAGE_TEMPLATE(game);
 
       const gameResult = await TelegramAPI.sendMessage({

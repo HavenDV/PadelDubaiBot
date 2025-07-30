@@ -121,23 +121,33 @@ Players can register for games by selecting their skill level:
 
 ## Customizing Game Schedule
 
-To update the weekly games, modify the `WEEKLY_GAMES` array in `src/app/api/telegram/create-poll/route.ts`:
+The bot automatically generates dates for the upcoming week. To update the weekly games template, modify the `getWeeklyGames()` function in `src/app/api/telegram/create-poll/route.ts`:
 
 ```typescript
-const WEEKLY_GAMES = [
-  {
-    day: "Вторник",
-    date: "29.07",
-    time: "8:00-09:30",
-    club: "SANDDUNE PADEL CLUB Al Qouz",
-    price: "65 aed/чел",
-    courts: 2,
-    note: "Optional note",
-    cancelled: false, // Set to true to mark as cancelled
-  },
-  // Add more games...
-];
+function getWeeklyGames() {
+  const dates = getUpcomingWeekDates();
+
+  return [
+    {
+      day: "Вторник",
+      date: dates.tuesday, // Automatically calculated
+      time: "8:00-09:30",
+      club: "SANDDUNE PADEL CLUB Al Qouz",
+      price: "65 aed/чел",
+      courts: 2,
+      note: "Optional note",
+      cancelled: false, // Set to true to mark as cancelled
+    },
+    // Add more games...
+  ];
+}
 ```
+
+**Dynamic Date Generation**: The bot automatically calculates dates for the upcoming week:
+
+- Tuesday = Next Monday + 1 day
+- Thursday = Next Monday + 3 days
+- Saturday = Next Monday + 5 days
 
 ## AI Integration
 
