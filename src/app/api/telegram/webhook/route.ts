@@ -27,14 +27,14 @@ export async function POST(req: NextRequest) {
 
     // Prepare updated message text
     const currentText = callbackQuery.message.text;
-    const updatedText = MessageUtils.updateMessageWithUserSelection(
+    const result = MessageUtils.updateMessageWithUserSelection(
       currentText,
       displayName,
       selectedLevel
     );
 
     // Run answerCallbackQuery and editMessageText concurrently
-    await Promise.all([
+    const promises = [
       TelegramAPI.answerCallbackQuery({
         callback_query_id: callbackQuery.id,
         text:
@@ -45,14 +45,28 @@ export async function POST(req: NextRequest) {
       TelegramAPI.editMessageText({
         chat_id: chatId,
         message_id: messageId,
-        text: updatedText,
+        text: result.updatedMessage,
         parse_mode: "HTML",
         disable_web_page_preview: true,
         reply_markup: {
           inline_keyboard: SKILL_LEVEL_BUTTONS,
         },
       }),
-    ]);
+    ];
+
+    // If there's a notification, send it as a separate message
+    if (result.notification) {
+      promises.push(
+        TelegramAPI.sendMessage({
+          chat_id: chatId,
+          text: result.notification,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+        })
+      );
+    }
+
+    await Promise.all(promises);
 
     return NextResponse.json({ ok: true });
   }

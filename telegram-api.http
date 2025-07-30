@@ -26,7 +26,7 @@ Content-Type: application/json
   }
 }
 
-### Test skill level registration
+### Test skill level registration (will go to main list)
 POST http://localhost:3000/api/telegram/webhook
 Content-Type: application/json
 
@@ -46,6 +46,75 @@ Content-Type: application/json
       "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: SANDDUNE PADEL CLUB Al Qouz\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\nЗаписавшиеся игроки:"
     },
     "data": "skill_D+"
+  }
+}
+
+### Test registration when game is full (will go to waitlist)
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "test_callback_id_2",
+    "from": {
+      "id": 123457,
+      "username": "fifthplayer",
+      "first_name": "Fifth"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: SANDDUNE PADEL CLUB Al Qouz\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\nЗаписавшиеся игроки:\n\n1. @player1 (D+)\n2. @player2 (D)\n3. @player3 (D+)\n4. @player4 (C-)"
+    },
+    "data": "skill_D"
+  }
+}
+
+### Test cancellation from main game (will move waitlist player to main game + notification)
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "test_callback_id_3",
+    "from": {
+      "id": 123458,
+      "username": "player2",
+      "first_name": "Player2"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: SANDDUNE PADEL CLUB Al Qouz\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\nЗаписавшиеся игроки:\n\n1. @player1 (D+)\n2. @player2 (D)\n3. @player3 (D+)\n4. @player4 (C-)\n\n⏳ Waitlist:\n1. @fifthplayer (D)"
+    },
+    "data": "skill_not_coming"
+  }
+}
+
+### Test cancellation from waitlist (no notification)
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "test_callback_id_4",
+    "from": {
+      "id": 123459,
+      "username": "fifthplayer",
+      "first_name": "Fifth"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 Вторник, 07.01, 8:00-09:30\n\n📍 Место: SANDDUNE PADEL CLUB Al Qouz\n💵 Цена: 65 aed/чел\n🏟️ Забронировано кортов: 2\n\nЗаписавшиеся игроки:\n\n1. @player1 (D+)\n2. @player2 (D)\n3. @player3 (D+)\n4. @player4 (C-)\n\n⏳ Waitlist:\n1. @fifthplayer (D)\n2. @sixthplayer (D+)"
+    },
+    "data": "skill_not_coming"
   }
 }
 
