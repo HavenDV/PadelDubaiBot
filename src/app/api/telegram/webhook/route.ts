@@ -59,10 +59,10 @@ export async function POST(req: NextRequest) {
 
   // Handle regular messages mentioning the bot
   const msg = update.message;
-  const isDirectMention = msg?.text?.includes("@padeldubaibot");
+  const isDirectMention = msg?.text?.includes("@padel_dubai_bot");
   const isReplyToBot =
-    msg?.reply_to_message?.from?.username === "padeldubaibot" ||
-    msg?.reply_to_message?.via_bot?.username === "padeldubaibot";
+    msg?.reply_to_message?.from?.username === "padel_dubai_bot" ||
+    msg?.reply_to_message?.via_bot?.username === "padel_dubai_bot";
 
   // Do not reply to a pinned message
   if (msg?.pinned_message) {

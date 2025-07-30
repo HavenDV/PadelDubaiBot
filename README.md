@@ -107,7 +107,7 @@ Built on Next.js 15 with:
 ## Bot Commands
 
 - Users click skill level buttons to register for padel games
-- Mention `@padeldubaibot` for AI-generated responses
+- Mention `@padel_dubai_bot` for AI-generated responses
 - Reply to bot messages for contextual humor responses
 
 ## Registration System
