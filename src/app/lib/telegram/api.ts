@@ -11,6 +11,10 @@ export interface TelegramResponse {
   };
   error_code?: number;
   description?: string;
+  parameters?: {
+    retry_after?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface SendMessageParams {
@@ -60,52 +64,96 @@ export class TelegramAPI {
     return `https://api.telegram.org/bot${this.botToken}`;
   }
 
+  private static async delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private static async makeRequest(
+    url: string,
+    params: unknown,
+    retries = 3
+  ): Promise<TelegramResponse> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+
+        const result = await response.json();
+
+        // Handle rate limiting (429)
+        if (response.status === 429) {
+          const retryAfter = result.parameters?.retry_after || 1;
+          console.warn(
+            `Rate limited. Retrying after ${retryAfter}s (attempt ${attempt}/${retries})`
+          );
+
+          if (attempt < retries) {
+            await this.delay(retryAfter * 1000);
+            continue;
+          }
+        }
+
+        // Handle other errors
+        if (!response.ok) {
+          console.error(`Telegram API error (${response.status}):`, result);
+
+          if (attempt < retries && this.isRetryableError(response.status)) {
+            const backoffDelay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff
+            console.warn(
+              `Retrying in ${backoffDelay}ms (attempt ${attempt}/${retries})`
+            );
+            await this.delay(backoffDelay);
+            continue;
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error(`Network error on attempt ${attempt}:`, error);
+
+        if (attempt < retries) {
+          const backoffDelay = Math.pow(2, attempt - 1) * 1000;
+          await this.delay(backoffDelay);
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    // This should never be reached, but TypeScript needs it
+    throw new Error("Max retries exceeded");
+  }
+
+  private static isRetryableError(status: number): boolean {
+    // Retry on server errors and rate limiting
+    return status >= 500 || status === 429;
+  }
+
   static async sendMessage(
     params: SendMessageParams
   ): Promise<TelegramResponse> {
-    const response = await fetch(`${this.baseUrl}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-
-    return response.json();
+    return this.makeRequest(`${this.baseUrl}/sendMessage`, params);
   }
 
   static async editMessageText(
     params: EditMessageParams
   ): Promise<TelegramResponse> {
-    const response = await fetch(`${this.baseUrl}/editMessageText`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-
-    return response.json();
+    return this.makeRequest(`${this.baseUrl}/editMessageText`, params);
   }
 
   static async answerCallbackQuery(
     params: AnswerCallbackQueryParams
   ): Promise<TelegramResponse> {
-    const response = await fetch(`${this.baseUrl}/answerCallbackQuery`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-
-    return response.json();
+    return this.makeRequest(`${this.baseUrl}/answerCallbackQuery`, params);
   }
 
-  // NEW CODE: pinChatMessage method
   static async pinChatMessage(
     params: PinMessageParams
   ): Promise<TelegramResponse> {
-    const response = await fetch(`${this.baseUrl}/pinChatMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-
-    return response.json();
+    return this.makeRequest(`${this.baseUrl}/pinChatMessage`, params);
   }
 }

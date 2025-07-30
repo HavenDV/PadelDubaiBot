@@ -66,9 +66,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await Promise.all(promises);
-
-    return NextResponse.json({ ok: true });
+    try {
+      await Promise.all(promises);
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      console.error("Error handling callback query:", error);
+      // Still return success to Telegram to avoid retries
+      return NextResponse.json({ ok: true });
+    }
   }
 
   // Handle regular messages mentioning the bot

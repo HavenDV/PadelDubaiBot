@@ -146,7 +146,7 @@ export async function GET() {
       }
 
       // Small delay between messages to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     console.log(`Padel schedule sent at ${timeString} for week ${weekRange}`);

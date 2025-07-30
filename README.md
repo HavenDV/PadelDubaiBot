@@ -13,6 +13,8 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 - **Automatic Formatting**: Numbered lists with player names and skill levels
 - **Multi-timezone Support**: Configured for Dubai timezone
 - **Cancellation Support**: Games can be marked as cancelled
+- **Robust Error Handling**: Automatic retry with exponential backoff for API errors
+- **Rate Limit Protection**: Handles Telegram's 429 errors with proper delays
 - **AI-Powered Responses**: OpenAI integration for generating responses when the bot is mentioned
 
 ## Setup
@@ -167,6 +169,27 @@ function getWeeklyGames() {
 - Tuesday = Next Monday + 1 day
 - Thursday = Next Monday + 3 days
 - Saturday = Next Monday + 5 days
+
+## Error Handling & Resilience
+
+The bot includes robust error handling for common Telegram API issues:
+
+### Rate Limiting (429 Errors)
+
+- **Automatic Retry**: Respects `retry_after` parameter from Telegram
+- **Exponential Backoff**: Progressive delays for subsequent retries
+- **Max Retries**: Up to 3 attempts before giving up
+
+### Network Errors
+
+- **Retry Logic**: Automatic retry for network timeouts and server errors
+- **Graceful Degradation**: Bot continues working even if some operations fail
+- **Comprehensive Logging**: All errors are logged for debugging
+
+### Message Delays
+
+- **500ms delays** between consecutive messages to avoid rate limits
+- **Smart batching** of operations where possible
 
 ## AI Integration
 
