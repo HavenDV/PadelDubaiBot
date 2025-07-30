@@ -2,22 +2,24 @@
 
 export interface UserRegistration {
   userName: string;
-  selectedTime: string;
+  skillLevel: string;
 }
 
 export class MessageUtils {
   /**
-   * Updates a voting message by adding or updating user registrations
+   * Updates a padel game message by adding or updating user registrations
    */
   static updateMessageWithUserSelection(
     currentText: string,
     displayName: string,
-    selectedTime: string
+    skillLevel: string
   ): string {
     // Split the message into parts
     const lines = currentText.split("\n");
-    const baseMessageEndIndex = lines.findIndex((line) =>
-      line.includes("Сегодня с нами:")
+    const baseMessageEndIndex = lines.findIndex(
+      (line) =>
+        line.includes("Записавшиеся игроки:") ||
+        line.includes("Игра отменена. Waitlist:")
     );
 
     if (baseMessageEndIndex === -1) {
@@ -36,10 +38,10 @@ export class MessageUtils {
     const key = this.normalizeName(displayName);
 
     // Update or add user registration
-    if (selectedTime === "not_coming") {
+    if (skillLevel === "not_coming") {
       registrations.delete(key);
     } else {
-      registrations.set(key, { displayName, time: selectedTime });
+      registrations.set(key, { displayName, level: skillLevel });
     }
 
     // Build the updated message
@@ -52,24 +54,24 @@ export class MessageUtils {
   private static parseExistingRegistrations(
     lines: string[],
     baseMessageEndIndex: number
-  ): Map<string, { displayName: string; time: string }> {
+  ): Map<string, { displayName: string; level: string }> {
     const registrations = new Map<
       string,
-      { displayName: string; time: string }
+      { displayName: string; level: string }
     >();
     const existingLines = lines.slice(baseMessageEndIndex + 1);
 
     // Parse existing registrations
     for (const line of existingLines) {
       if (line.trim()) {
-        // Match patterns like "👤 <a href=...>@nick</a> (Время: 20:30)" or "👤 @nick (Время: 20:30)"
-        const timeMatch = line.match(/^(?:👤\s*)?(.+?)\s*\(Время:\s*(.+?)\)$/);
-        if (timeMatch) {
-          const [, rawName, time] = timeMatch;
+        // Match patterns like "🎾 <a href=...>@nick</a> (D+)" or "🎾 @nick (D+)" or numbered entries like "1. Name (D+)"
+        const levelMatch = line.match(/^(?:\d+\.\s+|🎾\s*)?(.+?)\s*\((.+?)\)$/);
+        if (levelMatch) {
+          const [, rawName, level] = levelMatch;
           const key = this.normalizeName(rawName.trim());
           registrations.set(key, {
             displayName: rawName.trim(),
-            time: time.trim(),
+            level: level.trim(),
           });
         }
       }
@@ -97,14 +99,16 @@ export class MessageUtils {
    */
   private static buildUpdatedMessage(
     baseMessage: string,
-    registrations: Map<string, { displayName: string; time: string }>
+    registrations: Map<string, { displayName: string; level: string }>
   ): string {
     let updatedMessage = baseMessage;
 
     if (registrations.size > 0) {
       updatedMessage += "\n";
-      for (const { displayName, time } of registrations.values()) {
-        updatedMessage += `\n👤 ${displayName} (Время: ${time})`;
+      let counter = 1;
+      for (const { displayName, level } of registrations.values()) {
+        updatedMessage += `\n${counter}. ${displayName} (${level})`;
+        counter++;
       }
     }
 
@@ -116,8 +120,10 @@ export class MessageUtils {
    */
   static getRegisteredUsers(messageText: string): UserRegistration[] {
     const lines = messageText.split("\n");
-    const baseMessageEndIndex = lines.findIndex((line) =>
-      line.includes("Сегодня с нами:")
+    const baseMessageEndIndex = lines.findIndex(
+      (line) =>
+        line.includes("Записавшиеся игроки:") ||
+        line.includes("Игра отменена. Waitlist:")
     );
 
     if (baseMessageEndIndex === -1) {
@@ -129,21 +135,43 @@ export class MessageUtils {
       baseMessageEndIndex
     );
 
-    return Array.from(registrations.values()).map(({ displayName, time }) => ({
+    return Array.from(registrations.values()).map(({ displayName, level }) => ({
       userName: displayName,
-      selectedTime: time,
+      skillLevel: level,
     }));
   }
 
   /**
-   * Gets the current time string in Moscow timezone
+   * Gets the current time string in Dubai timezone
    */
-  static getCurrentMoscowTime(): string {
+  static getCurrentDubaiTime(): string {
     const now = new Date();
-    return now.toLocaleTimeString("ru-RU", {
-      timeZone: "Europe/Moscow",
+    return now.toLocaleTimeString("en-US", {
+      timeZone: "Asia/Dubai",
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  /**
+   * Gets the current date range for the week
+   */
+  static getCurrentWeekDateRange(): string {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - now.getDay() + 1);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "Asia/Dubai",
+      });
+    };
+
+    return `${formatDate(monday)}-${formatDate(sunday)}`;
   }
 }

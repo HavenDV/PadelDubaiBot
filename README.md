@@ -1,12 +1,16 @@
-# LaFamilia Bot
+# PadelDubaiBot 🏓
 
-A Telegram bot for the LaFamilia mafia club built with Next.js 15 and deployed on Vercel.
+A Telegram bot for organizing Padel games in Dubai with weekly schedules and skill-based registration system. Built with Next.js 15 and deployed on Vercel.
 
 ## Features
 
-- **Daily Voting Polls**: Automated daily messages asking members to select their preferred game time
-- **Interactive Time Selection**: Real-time message updates when users click time selection buttons
-- **AI-Powered Humor**: OpenAI integration for generating jokes when the bot is mentioned
+- **Weekly Schedule**: Automatically posts weekly padel game schedule every Monday at 8 AM (Dubai time)
+- **Individual Game Messages**: Each game gets its own message with registration buttons
+- **Skill-Based Registration**: Players can register with their skill level (D-, D, D+, C-)
+- **Automatic Formatting**: Numbered lists with player names and skill levels
+- **Multi-timezone Support**: Configured for Dubai timezone
+- **Cancellation Support**: Games can be marked as cancelled
+- **AI-Powered Responses**: OpenAI integration for generating responses when the bot is mentioned
 
 ## Setup
 
@@ -67,7 +71,7 @@ Deploy to Vercel with the included `vercel.json` configuration:
   "crons": [
     {
       "path": "/api/telegram/create-poll",
-      "schedule": "0 8 * * *"
+      "schedule": "0 8 * * 1"
     }
   ]
 }
@@ -77,7 +81,7 @@ Deploy to Vercel with the included `vercel.json` configuration:
 
 1. **Environment Variables**: Set the required variables in Vercel dashboard
 2. **Webhook Timeout**: 60-second timeout for processing Telegram updates
-3. **Cron Jobs**: Daily voting messages sent at 8 AM Moscow time (`0 8 * * *`)
+3. **Cron Jobs**: Weekly schedule messages sent at 8 AM Dubai time every Monday (`0 8 * * 1`)
 4. **Edge Runtime**: Zero cold-start latency for instant responses
 
 #### Telegram Bot Setup:
@@ -97,14 +101,43 @@ Built on Next.js 15 with:
 - **Edge Runtime**: Zero cold-start for instant responses
 - **Telegram Bot API**: Type-safe wrapper for all bot operations
 - **OpenAI Integration**: GPT-powered humor generation in Russian
-- **Vercel Cron**: Automated daily scheduling
+- **Vercel Cron**: Automated weekly scheduling
 - **Message State Management**: Complex parsing for user registration tracking
 
 ## Bot Commands
 
-- Users click time buttons to register for mafia games
-- Mention `@lafamilias_bot` for AI-generated jokes
+- Users click skill level buttons to register for padel games
+- Mention `@padeldubaibot` for AI-generated responses
 - Reply to bot messages for contextual humor responses
+
+## Registration System
+
+Players can register for games by selecting their skill level:
+
+- **D- (Beginner)**: New to padel
+- **D (Intermediate)**: Basic skills
+- **D+ (Advanced)**: Good technique
+- **C- (Expert)**: High skill level
+
+## Customizing Game Schedule
+
+To update the weekly games, modify the `WEEKLY_GAMES` array in `src/app/api/telegram/create-poll/route.ts`:
+
+```typescript
+const WEEKLY_GAMES = [
+  {
+    day: "Вторник",
+    date: "29.07",
+    time: "8:00-09:30",
+    club: "SANDDUNE PADEL CLUB Al Qouz",
+    price: "65 aed/чел",
+    courts: 2,
+    note: "Optional note",
+    cancelled: false, // Set to true to mark as cancelled
+  },
+  // Add more games...
+];
+```
 
 ## AI Integration
 

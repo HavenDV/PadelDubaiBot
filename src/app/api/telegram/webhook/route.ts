@@ -5,7 +5,7 @@ export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import {
   TelegramAPI,
-  TIME_BUTTONS,
+  SKILL_LEVEL_BUTTONS,
   CALLBACK_MESSAGES,
   MessageUtils,
 } from "@/app/lib/telegram";
@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
   const update = await req.json();
   const callbackQuery = update.callback_query;
 
-  // Handle button callbacks for time selection
-  if (callbackQuery && callbackQuery.data?.startsWith("time_")) {
+  // Handle button callbacks for skill level selection
+  if (callbackQuery && callbackQuery.data?.startsWith("skill_")) {
     const chatId = callbackQuery.message.chat.id;
     const messageId = callbackQuery.message.message_id;
-    const selectedTime = callbackQuery.data.replace("time_", "");
+    const selectedLevel = callbackQuery.data.replace("skill_", "");
     const user = callbackQuery.from;
     const displayName = user.username
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const updatedText = MessageUtils.updateMessageWithUserSelection(
       currentText,
       displayName,
-      selectedTime
+      selectedLevel
     );
 
     // Run answerCallbackQuery and editMessageText concurrently
@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
       TelegramAPI.answerCallbackQuery({
         callback_query_id: callbackQuery.id,
         text:
-          selectedTime === "not_coming"
+          selectedLevel === "not_coming"
             ? CALLBACK_MESSAGES.NOT_COMING
-            : CALLBACK_MESSAGES.REGISTERED(selectedTime),
+            : CALLBACK_MESSAGES.REGISTERED(selectedLevel),
       }),
       TelegramAPI.editMessageText({
         chat_id: chatId,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         parse_mode: "HTML",
         disable_web_page_preview: true,
         reply_markup: {
-          inline_keyboard: TIME_BUTTONS,
+          inline_keyboard: SKILL_LEVEL_BUTTONS,
         },
       }),
     ]);
@@ -59,10 +59,10 @@ export async function POST(req: NextRequest) {
 
   // Handle regular messages mentioning the bot
   const msg = update.message;
-  const isDirectMention = msg?.text?.includes("@lafamilias_bot");
+  const isDirectMention = msg?.text?.includes("@padeldubaibot");
   const isReplyToBot =
-    msg?.reply_to_message?.from?.username === "lafamilias_bot" ||
-    msg?.reply_to_message?.via_bot?.username === "lafamilias_bot";
+    msg?.reply_to_message?.from?.username === "padeldubaibot" ||
+    msg?.reply_to_message?.via_bot?.username === "padeldubaibot";
 
   // Do not reply to a pinned message
   if (msg?.pinned_message) {

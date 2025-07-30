@@ -1,40 +1,46 @@
-// Telegram voting constants
-export const TIME_BUTTONS = [
+// Telegram padel constants
+export const SKILL_LEVEL_BUTTONS = [
   [
-    { text: "19:00", callback_data: "time_19:00" },
-    { text: "19:30", callback_data: "time_19:30" },
-    { text: "20:00", callback_data: "time_20:00" },
+    { text: "D- (Beginner)", callback_data: "skill_D-" },
+    { text: "D (Intermediate)", callback_data: "skill_D" },
   ],
   [
-    { text: "20:30", callback_data: "time_20:30" },
-    { text: "21:00", callback_data: "time_21:00" },
-    { text: "21:30", callback_data: "time_21:30" },
+    { text: "D+ (Advanced)", callback_data: "skill_D+" },
+    { text: "C- (Expert)", callback_data: "skill_C-" },
   ],
-  [
-    { text: "22:00", callback_data: "time_22:00" },
-    { text: "22:30", callback_data: "time_22:30" },
-    { text: "23:00", callback_data: "time_23:00" },
-  ],
-  [{ text: "Не приду", callback_data: "time_not_coming" }],
+  [{ text: "❌ Не приду", callback_data: "skill_not_coming" }],
 ];
 
-export const VOTING_MESSAGE_TEMPLATE = `🎭 <b>Вечерняя Мафия</b> 🎭
+// Weekly schedule template for the main message
+export const WEEKLY_SCHEDULE_TEMPLATE = `🏓 <b>Расписание Padel на неделю</b> 🏓
 
-Друзья, всех приветствую! 🎉
+Друзья, привет! ❗️
 
-Сегодня вечером собираемся на наши игры в мафию и будем рады видеть каждого! 🕵️‍♂️🕵️‍♀️
+Ниже расписание игр на эту неделю. Для каждой игры будет отдельное сообщение с записью.
 
-Если вы новичок — не переживайте, всему научим! 😉
+Выберите подходящие вам игры и укажите ваш уровень! 🎾`;
 
-🕰️ <b>Время</b>: с 19:00 до 01:00
-📍 <b>Место</b>: Gashisha lounge
-🅿️ Valet parking
+// Template for individual game messages
+export const GAME_MESSAGE_TEMPLATE = (gameInfo: {
+  day: string;
+  date: string;
+  time: string;
+  club: string;
+  price: string;
+  courts: number;
+  note?: string;
+  cancelled?: boolean;
+}) => `🎾 <b>${gameInfo.day}, ${gameInfo.date}, ${gameInfo.time}</b>
 
-Для участия нажмите на удобное вам время ниже ⏰
+📍 <b>Место:</b> ${gameInfo.club}
+💵 <b>Цена:</b> ${gameInfo.price}
+🏟️ <b>Забронировано кортов:</b> ${gameInfo.courts}${
+  gameInfo.note ? `\n\n${gameInfo.note}` : ""
+}${gameInfo.cancelled ? "\n\n❗️<b>ОТМЕНА</b>❗️" : ""}
 
-Сегодня с нами:`;
+${gameInfo.cancelled ? "Игра отменена. Waitlist:" : "Записавшиеся игроки:"}`;
 
 export const CALLBACK_MESSAGES = {
-  NOT_COMING: "Жаль, что не сможете прийти!",
-  REGISTERED: (time: string) => `Записал на ${time}!`,
+  NOT_COMING: "Жаль, что не сможете прийти на эту игру!",
+  REGISTERED: (level: string) => `Записал вас с уровнем ${level}!`,
 } as const;
