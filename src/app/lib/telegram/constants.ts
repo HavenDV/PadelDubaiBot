@@ -156,7 +156,7 @@ export const AdminUtils = {
    * Checks if a user ID is in the admin list
    */
   isAdmin: (userId: number): boolean => {
-    return ADMIN_USER_IDS.includes(userId as any);
+    return (ADMIN_USER_IDS as readonly number[]).includes(userId);
   },
 
   /**

@@ -5,7 +5,6 @@ export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import {
   TelegramAPI,
-  SKILL_LEVEL_BUTTONS,
   AdminUtils,
   CALLBACK_MESSAGES,
   WELCOME_MESSAGE_TEMPLATE,

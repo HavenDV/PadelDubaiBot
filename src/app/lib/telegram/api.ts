@@ -24,7 +24,9 @@ export interface SendMessageParams {
   disable_web_page_preview?: boolean;
   reply_to_message_id?: number;
   reply_markup?: {
-    inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+    inline_keyboard: ReadonlyArray<
+      ReadonlyArray<{ readonly text: string; readonly callback_data: string }>
+    >;
   };
 }
 
@@ -35,13 +37,18 @@ export interface EditMessageParams {
   parse_mode?: string;
   disable_web_page_preview?: boolean;
   reply_markup?: {
-    inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+    inline_keyboard: ReadonlyArray<
+      ReadonlyArray<{ readonly text: string; readonly callback_data: string }>
+    >;
   };
 }
 
 export interface AnswerCallbackQueryParams {
   callback_query_id: string;
   text?: string;
+  show_alert?: boolean;
+  url?: string;
+  cache_time?: number;
 }
 
 // NEW CODE: parameters for pinChatMessage
