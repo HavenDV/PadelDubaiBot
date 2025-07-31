@@ -311,6 +311,20 @@ export class MessageUtils {
   }
 
   /**
+   * Parses the number of courts from the base message text
+   */
+  private static getCourtsFromMessage(text: string): number {
+    const match = text.match(/Забронировано кортов:(?:<\/b>)?\s*(\d+)/);
+    if (match) {
+      const parsed = parseInt(match[1], 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    return 1; // default if not found
+  }
+
+  /**
    * Builds the updated message with user registrations and waitlist
    */
   private static buildUpdatedMessageWithWaitlist(
@@ -319,15 +333,19 @@ export class MessageUtils {
     waitlist: Map<string, { displayName: string; level: string }>
   ): string {
     let updatedMessage = baseMessage;
+    const courts = this.getCourtsFromMessage(baseMessage);
+    const maxPlayers = courts * 4;
 
-    // Add main players (max 4)
-    if (registrations.size > 0) {
-      updatedMessage += "\n";
-      let counter = 1;
-      for (const { displayName, level } of registrations.values()) {
-        updatedMessage += `\n${counter}. ${displayName} (${level})`;
-        counter++;
-      }
+    updatedMessage += "\n";
+    let counter = 1;
+    for (const { displayName, level } of registrations.values()) {
+      updatedMessage += `\n${counter}. ${displayName} (${level})`;
+      counter++;
+    }
+
+    // Fill remaining slots with placeholders
+    for (let i = counter; i <= maxPlayers; i++) {
+      updatedMessage += `\n${i}. -`;
     }
 
     // Add waitlist section (always show, even if empty)
@@ -337,7 +355,7 @@ export class MessageUtils {
         updatedMessage += `\n🎾 ${displayName} (${level})`;
       }
     } else {
-      updatedMessage += "\n_Пусто_";
+      updatedMessage += "\n---";
     }
 
     return updatedMessage;

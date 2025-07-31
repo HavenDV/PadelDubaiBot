@@ -124,7 +124,11 @@ export const GAME_MESSAGE_TEMPLATE = (gameInfo: {
 
 📅 <a href="${calendar.google}">Добавить в Google Calendar</a>
 
-${gameInfo.cancelled ? "Игра отменена. Waitlist:" : "Записавшиеся игроки:"}`;
+${gameInfo.cancelled ? "Игра отменена. Waitlist:" : "Записавшиеся игроки:"}
+${Array.from({ length: gameInfo.courts * 4 }, (_, i) => `${i + 1}. -`).join("\n")}
+
+⏳ <b>Waitlist:</b>
+---`;
 };
 
 export const CALLBACK_MESSAGES = {

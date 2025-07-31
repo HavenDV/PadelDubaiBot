@@ -19,7 +19,7 @@ describe("Core Bot Functionality Tests", () => {
 Записавшиеся игроки:
 
 ⏳ Waitlist:
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         messageWithoutHTML,
@@ -101,7 +101,7 @@ _Пусто_`;
       const emptyGameMessage = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         emptyGameMessage,
@@ -117,7 +117,7 @@ _Пусто_`;
       let currentMessage = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       // Add 3 players
       for (let i = 1; i <= 3; i++) {
@@ -140,13 +140,13 @@ _Пусто_`;
         `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`,
+---`,
         "@player",
         "D"
       );
 
       expect(result.updatedMessage).toContain("⏳ <b>Waitlist:</b>");
-      expect(result.updatedMessage).toContain("_Пусто_");
+      expect(result.updatedMessage).toContain("---");
     });
 
     test("should handle player cancellation from main list", () => {
@@ -157,7 +157,7 @@ _Пусто_`,
 3. @player3 (D+)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       // Cancel player2
       const result = MessageUtils.updateMessageWithUserSelection(
@@ -234,7 +234,7 @@ _Пусто_`;
       const message = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const specialUsernames = [
         "@тест_user",
@@ -260,7 +260,7 @@ _Пусто_`;
       const message = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const startTime = Date.now();
 
@@ -281,7 +281,7 @@ _Пусто_`;
 💵 Цена: 65 aed/чел
 Записавшиеся игроки:
 ⏳ Waitlist:
-_Пусто_`;
+---`;
 
       const startTime = Date.now();
 
@@ -316,7 +316,7 @@ _Пусто_`;
 1. @player1 (D+)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
     test("should parse game time correctly", () => {
       const tomorrow = new Date();
@@ -441,7 +441,7 @@ _Пусто_`;
 2. @player2 (D)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const cancelledMessage = MessageUtils.cancelGame(gameMessage);
 
@@ -467,7 +467,7 @@ _Пусто_`;
 1. @player1 (D+)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const restoredMessage = MessageUtils.restoreGame(cancelledMessage);
 
@@ -503,7 +503,7 @@ _Пусто_`;
 <b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const stats = MessageUtils.getGameStats(emptyGameMessage);
 
