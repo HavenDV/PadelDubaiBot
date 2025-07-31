@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   TelegramAPI,
   SKILL_LEVEL_BUTTONS,
+  AdminUtils,
   CALLBACK_MESSAGES,
   WELCOME_MESSAGE_TEMPLATE,
   MessageUtils,
@@ -15,6 +16,89 @@ import { OpenAIUtils } from "@/app/lib/openai";
 export async function POST(req: NextRequest) {
   const update = await req.json();
   const callbackQuery = update.callback_query;
+
+  // Handle admin-only callbacks
+  if (callbackQuery && callbackQuery.data?.startsWith("admin_")) {
+    const chatId = callbackQuery.message.chat.id;
+    const messageId = callbackQuery.message.message_id;
+    const adminAction = callbackQuery.data.replace("admin_", "");
+    const user = callbackQuery.from;
+
+    // Check if user is admin
+    if (!AdminUtils.isAdmin(user.id)) {
+      try {
+        await TelegramAPI.answerCallbackQuery({
+          callback_query_id: callbackQuery.id,
+          text: CALLBACK_MESSAGES.ADMIN_UNAUTHORIZED,
+          show_alert: true,
+        });
+        return NextResponse.json({ ok: true });
+      } catch (error) {
+        console.error("Error sending admin unauthorized message:", error);
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    // Handle admin actions
+    const currentText = callbackQuery.message.text;
+    let updatedMessage = currentText;
+    let responseText = "";
+
+    try {
+      switch (adminAction) {
+        case "cancel_game":
+          updatedMessage = MessageUtils.cancelGame(currentText);
+          responseText = CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED;
+          break;
+
+        case "restore_game":
+          updatedMessage = MessageUtils.restoreGame(currentText);
+          responseText = CALLBACK_MESSAGES.ADMIN_GAME_RESTORED;
+          break;
+
+        case "game_stats":
+          const stats = MessageUtils.getGameStats(currentText);
+          responseText = CALLBACK_MESSAGES.ADMIN_GAME_STATS(
+            stats.registeredCount,
+            stats.waitlistCount
+          );
+          // For stats, we don't update the message, just show the stats
+          await TelegramAPI.answerCallbackQuery({
+            callback_query_id: callbackQuery.id,
+            text: responseText,
+            show_alert: true,
+          });
+          return NextResponse.json({ ok: true });
+
+        default:
+          responseText = "❌ Неизвестная административная команда.";
+      }
+
+      // Update message and send response
+      const promises = [
+        TelegramAPI.answerCallbackQuery({
+          callback_query_id: callbackQuery.id,
+          text: responseText,
+        }),
+        TelegramAPI.editMessageText({
+          chat_id: chatId,
+          message_id: messageId,
+          text: updatedMessage,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          reply_markup: {
+            inline_keyboard: AdminUtils.getButtonsForUser(user.id),
+          },
+        }),
+      ];
+
+      await Promise.all(promises);
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      console.error("Error handling admin callback:", error);
+      return NextResponse.json({ ok: true });
+    }
+  }
 
   // Handle button callbacks for skill level selection
   if (callbackQuery && callbackQuery.data?.startsWith("skill_")) {
@@ -87,7 +171,7 @@ export async function POST(req: NextRequest) {
         parse_mode: "HTML",
         disable_web_page_preview: true,
         reply_markup: {
-          inline_keyboard: SKILL_LEVEL_BUTTONS,
+          inline_keyboard: AdminUtils.getButtonsForUser(user.id),
         },
       }),
     ];

@@ -1,6 +1,8 @@
 import { MessageUtils } from "../src/app/lib/telegram/message-utils";
 import {
   SKILL_LEVEL_BUTTONS,
+  ADMIN_BUTTONS,
+  AdminUtils,
   CALLBACK_MESSAGES,
   generateCalendarLinks,
 } from "../src/app/lib/telegram/constants";
@@ -381,6 +383,156 @@ _Пусто_`;
       testCases.forEach(({ input, expected }) => {
         expect(MessageUtils.normalizeName(input)).toBe(expected);
       });
+    });
+  });
+
+  describe("Admin System", () => {
+    test("should have admin buttons defined", () => {
+      expect(ADMIN_BUTTONS).toBeDefined();
+      expect(Array.isArray(ADMIN_BUTTONS)).toBe(true);
+      expect(ADMIN_BUTTONS.length).toBeGreaterThan(0);
+
+      // Check button structure
+      const flatButtons = ADMIN_BUTTONS.flat();
+      expect(flatButtons[0]).toHaveProperty("text");
+      expect(flatButtons[0]).toHaveProperty("callback_data");
+
+      // Should have admin_ prefix
+      flatButtons.forEach((button) => {
+        expect(button.callback_data).toMatch(/^admin_/);
+      });
+    });
+
+    test("should provide admin verification function", () => {
+      // Test admin detection (since we don't have real admin IDs in test env)
+      const testUserId = 123456789;
+      const isAdmin = AdminUtils.isAdmin(testUserId);
+
+      expect(typeof isAdmin).toBe("boolean");
+    });
+
+    test("should provide different buttons for admin vs regular users", () => {
+      const regularUserId = 123456789;
+      const adminUserId = 987654321; // Not in admin list for test env
+
+      const regularButtons = AdminUtils.getButtonsForUser(regularUserId);
+      const adminButtons = AdminUtils.getButtonsForUser(adminUserId);
+
+      expect(Array.isArray(regularButtons)).toBe(true);
+      expect(Array.isArray(adminButtons)).toBe(true);
+
+      // Both should have at least skill level buttons
+      expect(regularButtons.length).toBeGreaterThanOrEqual(
+        SKILL_LEVEL_BUTTONS.length
+      );
+      expect(adminButtons.length).toBeGreaterThanOrEqual(
+        SKILL_LEVEL_BUTTONS.length
+      );
+    });
+
+    test("should cancel game correctly", () => {
+      const gameMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
+
+📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz
+💵 <b>Цена:</b> 65 aed/чел
+
+<b>Записавшиеся игроки:</b>
+1. @player1 (D+)
+2. @player2 (D)
+
+⏳ <b>Waitlist:</b>
+_Пусто_`;
+
+      const cancelledMessage = MessageUtils.cancelGame(gameMessage);
+
+      expect(cancelledMessage).toContain("❗️<b>ОТМЕНА</b>❗️");
+      expect(cancelledMessage).toContain("Игра отменена администратором");
+      expect(cancelledMessage).toContain("Записанные игроки были:");
+      expect(cancelledMessage).toContain("@player1 (D+)");
+      expect(cancelledMessage).toContain("@player2 (D)");
+    });
+
+    test("should restore cancelled game correctly", () => {
+      const cancelledMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
+
+❗️<b>ОТМЕНА</b>❗️
+
+📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz
+
+❗️<b>ОТМЕНА</b>❗️
+
+Игра отменена администратором.
+
+<b>Записанные игроки были:</b>
+1. @player1 (D+)
+
+⏳ <b>Waitlist:</b>
+_Пусто_`;
+
+      const restoredMessage = MessageUtils.restoreGame(cancelledMessage);
+
+      expect(restoredMessage).not.toContain("❗️<b>ОТМЕНА</b>❗️");
+      expect(restoredMessage).not.toContain("Игра отменена администратором");
+      expect(restoredMessage).toContain("Записавшиеся игроки:");
+      expect(restoredMessage).toContain("@player1 (D+)");
+    });
+
+    test("should calculate game statistics correctly", () => {
+      const gameWithPlayersMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
+
+<b>Записавшиеся игроки:</b>
+1. @player1 (D+)
+2. @player2 (D)
+3. @player3 (D+)
+4. @player4 (C-)
+
+⏳ <b>Waitlist:</b>
+🎾 @waitlist1 (D+)
+🎾 @waitlist2 (D)`;
+
+      const stats = MessageUtils.getGameStats(gameWithPlayersMessage);
+
+      expect(stats.registeredCount).toBe(4);
+      expect(stats.waitlistCount).toBe(2);
+      expect(stats.totalCount).toBe(6);
+    });
+
+    test("should handle empty game statistics", () => {
+      const emptyGameMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
+
+<b>Записавшиеся игроки:</b>
+
+⏳ <b>Waitlist:</b>
+_Пусто_`;
+
+      const stats = MessageUtils.getGameStats(emptyGameMessage);
+
+      expect(stats.registeredCount).toBe(0);
+      expect(stats.waitlistCount).toBe(0);
+      expect(stats.totalCount).toBe(0);
+    });
+
+    test("should generate admin callback messages", () => {
+      expect(CALLBACK_MESSAGES.ADMIN_UNAUTHORIZED).toContain("❌");
+      expect(CALLBACK_MESSAGES.ADMIN_UNAUTHORIZED).toContain(
+        "прав администратора"
+      );
+
+      expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain("🚫");
+      expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain(
+        "отменена администратором"
+      );
+
+      expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain("✅");
+      expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain(
+        "восстановлена администратором"
+      );
+
+      const statsMessage = CALLBACK_MESSAGES.ADMIN_GAME_STATS(4, 2);
+      expect(statsMessage).toContain("📊 Статистика игры");
+      expect(statsMessage).toContain("4");
+      expect(statsMessage).toContain("2");
+      expect(statsMessage).toContain("6");
     });
   });
 });

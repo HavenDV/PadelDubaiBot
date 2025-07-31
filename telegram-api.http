@@ -118,6 +118,75 @@ Content-Type: application/json
   }
 }
 
+### Test admin game cancellation (admin user only)
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "admin_test_callback",
+    "from": {
+      "id": 123456789,
+      "username": "admin_user",
+      "first_name": "Admin"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 <b>Вторник, 07.01, 8:00-09:30</b>\n\n📍 <b>Место:</b> <a href=\"https://maps.app.goo.gl/test\">SANDDUNE PADEL CLUB Al Qouz</a>\n💵 <b>Цена:</b> 65 aed/чел\n🏟️ <b>Забронировано кортов:</b> 2\n\n📅 <a href=\"https://calendar.google.com/test\">Добавить в Google Calendar</a>\n\n<b>Записавшиеся игроки:</b>\n\n1. @player1 (D+)\n2. @player2 (D)\n\n⏳ <b>Waitlist:</b>\n_Пусто_"
+    },
+    "data": "admin_cancel_game"
+  }
+}
+
+### Test admin unauthorized access (non-admin user)
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "non_admin_test_callback",
+    "from": {
+      "id": 999999999,
+      "username": "regular_user",
+      "first_name": "Regular"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 <b>Вторник, 07.01, 8:00-09:30</b>\n\n<b>Записавшиеся игроки:</b>\n\n1. @player1 (D+)\n\n⏳ <b>Waitlist:</b>\n_Пусто_"
+    },
+    "data": "admin_cancel_game"
+  }
+}
+
+### Test admin game statistics
+POST http://localhost:3000/api/telegram/webhook
+Content-Type: application/json
+
+{
+  "callback_query": {
+    "id": "admin_stats_callback",
+    "from": {
+      "id": 123456789,
+      "username": "admin_user",
+      "first_name": "Admin"
+    },
+    "message": {
+      "chat": {
+        "id": -123456789
+      },
+      "message_id": 456,
+      "text": "🎾 <b>Вторник, 07.01, 8:00-09:30</b>\n\n<b>Записавшиеся игроки:</b>\n\n1. @player1 (D+)\n2. @player2 (D)\n3. @player3 (D+)\n4. @player4 (C-)\n\n⏳ <b>Waitlist:</b>\n🎾 @waitlist1 (D+)\n🎾 @waitlist2 (D)"
+    },
+    "data": "admin_game_stats"
+  }
+}
+
 ### Test weekly schedule creation
 
 GET http://localhost:3000/api/telegram/create-poll

@@ -19,6 +19,7 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 - **Rate Limit Protection**: Handles Telegram's 429 errors with proper delays
 - **Welcome Messages**: Automatic personalized welcome messages for new group members
 - **Penalty System**: Warns about sanctions for cancellations less than 24 hours before game time
+- **Admin Controls**: Admin-only buttons for game cancellation, restoration, and statistics
 - **AI-Powered Responses**: OpenAI integration for generating responses when the bot is mentioned
 
 ## Setup
@@ -220,6 +221,87 @@ When a late cancellation is attempted, players see:
 - **Timezone Handling**: Properly handles Dubai (UTC+4) timezone conversion
 - **Error Handling**: Gracefully handles malformed messages
 - **Performance**: Efficient parsing with minimal overhead
+
+## Admin Controls
+
+The bot includes a comprehensive admin system that allows designated administrators to manage games and view statistics.
+
+### Admin Setup
+
+1. **Add Admin User IDs**: Update `ADMIN_USER_IDS` in `src/app/lib/telegram/constants.ts`
+
+   ```typescript
+   export const ADMIN_USER_IDS = [
+     123456789, // Replace with actual Telegram user IDs
+     987654321, // Add more admin IDs as needed
+   ] as const;
+   ```
+
+2. **Get User IDs**: To find Telegram user IDs:
+   - Use `@userinfobot` in Telegram
+   - Check browser developer tools when using Telegram Web
+   - Use the Telegram API `getMe` method
+
+### Admin Features
+
+#### **Admin-Only Buttons**
+
+Admins see additional buttons below the skill level buttons:
+
+- **🚫 Отменить игру**: Cancel a game (marks as cancelled, preserves player list)
+- **✅ Восстановить игру**: Restore a cancelled game
+- **📊 Статистика игры**: View game statistics (player count, waitlist count)
+
+#### **Game Cancellation**
+
+When an admin cancels a game:
+
+- Game is marked with `❗️ОТМЕНА❗️` indicators
+- Player registration is disabled
+- Original player list is preserved as "Записанные игроки были:"
+- Admin buttons remain available for restoration
+
+#### **Game Restoration**
+
+Cancelled games can be restored:
+
+- Removes all cancellation markers
+- Re-enables player registration
+- Restores original "Записавшиеся игроки:" header
+
+#### **Game Statistics**
+
+Admins can view real-time statistics:
+
+```
+📊 Статистика игры:
+
+👥 Записано игроков: 4
+⏳ В waitlist: 2
+📈 Всего участников: 6
+```
+
+### Security Features
+
+- **User ID Verification**: Only users with IDs in `ADMIN_USER_IDS` can use admin functions
+- **Access Control**: Non-admins see unauthorized message when attempting admin actions
+- **Button Visibility**: Admin buttons only appear for verified admins
+- **Graceful Fallback**: System continues working if admin verification fails
+
+### Admin Workflow Example
+
+1. **Game Creation**: Cron job creates game with regular skill level buttons
+2. **Admin Interaction**: Admin users see additional admin buttons
+3. **Game Management**: Admin can cancel/restore games as needed
+4. **Statistics**: Real-time stats available via admin buttons
+5. **Player Management**: Regular players only see skill level buttons
+
+### Technical Implementation
+
+- **Admin Detection**: `AdminUtils.isAdmin(userId)` verifies admin status
+- **Dynamic Buttons**: `AdminUtils.getButtonsForUser(userId)` returns appropriate button set
+- **Message Management**: Admin actions update game messages while preserving formatting
+- **Error Handling**: Robust error handling for admin operations
 
 ## Calendar & Location Integration
 

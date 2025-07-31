@@ -494,4 +494,98 @@ export class MessageUtils {
 
     return { isLate, hoursRemaining };
   }
+
+  /**
+   * Cancels a game by updating the message to show cancellation status
+   */
+  static cancelGame(messageText: string): string {
+    // Replace the main status line to indicate cancellation
+    let updatedMessage = messageText;
+
+    // Update the players section header
+    if (updatedMessage.includes("Записавшиеся игроки:")) {
+      updatedMessage = updatedMessage.replace(
+        "Записавшиеся игроки:",
+        "❗️<b>ОТМЕНА</b>❗️\n\nИгра отменена администратором.\n\n<b>Записанные игроки были:</b>"
+      );
+    }
+
+    // Add cancellation marker to the game title if not already present
+    if (!updatedMessage.includes("❗️<b>ОТМЕНА</b>❗️")) {
+      updatedMessage = updatedMessage.replace(
+        /^🎾 (<b>.*?<\/b>)/m,
+        "🎾 $1\n\n❗️<b>ОТМЕНА</b>❗️"
+      );
+    }
+
+    return updatedMessage;
+  }
+
+  /**
+   * Restores a cancelled game by removing cancellation markers
+   */
+  static restoreGame(messageText: string): string {
+    let updatedMessage = messageText;
+
+    // Remove cancellation markers from title
+    updatedMessage = updatedMessage.replace(/\n\n❗️<b>ОТМЕНА<\/b>❗️/g, "");
+    updatedMessage = updatedMessage.replace(/❗️<b>ОТМЕНА<\/b>❗️\n\n/g, "");
+
+    // Remove cancellation text and restore players section
+    updatedMessage = updatedMessage.replace(
+      /❗️<b>ОТМЕНА<\/b>❗️\n\nИгра отменена администратором\.\n\n<b>Записанные игроки были:<\/b>/g,
+      "<b>Записавшиеся игроки:</b>"
+    );
+
+    // Fallback: just remove the cancellation text if pattern doesn't match exactly
+    updatedMessage = updatedMessage.replace(
+      /Игра отменена администратором\.\n\n/g,
+      ""
+    );
+    updatedMessage = updatedMessage.replace(
+      /<b>Записанные игроки были:<\/b>/g,
+      "<b>Записавшиеся игроки:</b>"
+    );
+
+    return updatedMessage;
+  }
+
+  /**
+   * Gets game statistics (player count, waitlist count)
+   */
+  static getGameStats(messageText: string): {
+    registeredCount: number;
+    waitlistCount: number;
+    totalCount: number;
+  } {
+    const lines = messageText.split("\n");
+
+    // Find where the player list starts
+    let baseMessageEndIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        lines[i].includes("Записавшиеся игроки:") ||
+        lines[i].includes("Записанные игроки были:") ||
+        lines[i].includes("Игра отменена. Waitlist:")
+      ) {
+        baseMessageEndIndex = i;
+        break;
+      }
+    }
+
+    if (baseMessageEndIndex === -1) {
+      return { registeredCount: 0, waitlistCount: 0, totalCount: 0 };
+    }
+
+    const { registrations, waitlist } = this.parseRegistrationsAndWaitlist(
+      lines,
+      baseMessageEndIndex
+    );
+
+    const registeredCount = registrations.size;
+    const waitlistCount = waitlist.size;
+    const totalCount = registeredCount + waitlistCount;
+
+    return { registeredCount, waitlistCount, totalCount };
+  }
 }

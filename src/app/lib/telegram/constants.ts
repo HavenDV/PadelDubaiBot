@@ -1,3 +1,17 @@
+// Admin user configuration - add Telegram user IDs of admins
+export const ADMIN_USER_IDS = [
+  // Add admin Telegram user IDs here (numbers, not usernames)
+  // Example: 123456789, 987654321
+  482553595, 1328022980,
+] as const;
+
+// Admin-only buttons for game management
+export const ADMIN_BUTTONS = [
+  [{ text: "🚫 Отменить игру", callback_data: "admin_cancel_game" }],
+  [{ text: "✅ Восстановить игру", callback_data: "admin_restore_game" }],
+  [{ text: "📊 Статистика игры", callback_data: "admin_game_stats" }],
+] as const;
+
 // Telegram padel constants - using official grading system
 export const SKILL_LEVEL_BUTTONS = [
   [{ text: "E (First time)", callback_data: "skill_E" }],
@@ -125,4 +139,37 @@ export const CALLBACK_MESSAGES = {
 Подробности в правилах участия в группе.
 
 Вы все еще хотите отменить участие?`,
+  // Admin callback messages
+  ADMIN_UNAUTHORIZED:
+    "❌ У вас нет прав администратора для выполнения этого действия.",
+  ADMIN_GAME_CANCELLED: "🚫 Игра была отменена администратором.",
+  ADMIN_GAME_RESTORED: "✅ Игра была восстановлена администратором.",
+  ADMIN_GAME_STATS: (registeredCount: number, waitlistCount: number) =>
+    `📊 Статистика игры:\n\n👥 Записано игроков: ${registeredCount}\n⏳ В waitlist: ${waitlistCount}\n📈 Всего участников: ${
+      registeredCount + waitlistCount
+    }`,
+} as const;
+
+// Admin utility functions
+export const AdminUtils = {
+  /**
+   * Checks if a user ID is in the admin list
+   */
+  isAdmin: (userId: number): boolean => {
+    return ADMIN_USER_IDS.includes(userId as any);
+  },
+
+  /**
+   * Gets combined buttons (skill level + admin buttons for admins)
+   */
+  getButtonsForUser: (userId: number) => {
+    const baseButtons = [...SKILL_LEVEL_BUTTONS];
+
+    if (AdminUtils.isAdmin(userId)) {
+      // Add admin buttons below skill level buttons
+      return [...baseButtons, ...ADMIN_BUTTONS];
+    }
+
+    return baseButtons;
+  },
 } as const;
