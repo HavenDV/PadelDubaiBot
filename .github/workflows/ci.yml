@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  # Add your GitHub username(s) and Vercel team member usernames here
+  VERCEL_TEAM_MEMBERS: "HavenDV"
+
+jobs:
+  test-and-build:
+    # Run tests and build for all PRs and main branch pushes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check if user is Vercel team member
+        id: check_user
+        run: |
+          ACTOR="${{ github.actor }}"
+          TEAM_MEMBERS="${{ env.VERCEL_TEAM_MEMBERS }}"
+
+          if [[ ",$TEAM_MEMBERS," == *",$ACTOR,"* ]]; then
+            echo "is_team_member=true" >> $GITHUB_OUTPUT
+            echo "User $ACTOR is a Vercel team member - deployment will be handled by Vercel integration"
+          else
+            echo "is_team_member=false" >> $GITHUB_OUTPUT
+            echo "User $ACTOR is external contributor - will deploy via GitHub Actions"
+          fi
+
+      - name: Build project
+        if: steps.check_user.outputs.is_team_member == 'false'
+        run: npm run build
+
+      - name: Deploy to Vercel (Production)
+        if: steps.check_user.outputs.is_team_member == 'false'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          working-directory: ./
