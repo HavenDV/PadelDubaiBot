@@ -6,7 +6,7 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 
 - **Weekly Schedule**: Automatically posts weekly padel game schedule every Monday at 8 AM (Dubai time)
 - **Individual Game Messages**: Each game gets its own message with registration buttons
-- **Skill-Based Registration**: Players can register with their skill level (D-, D, D+, C-)
+- **Skill-Based Registration**: Players can register with their official skill level (E, D, D+, C-, C, C+)
 - **Automatic Waitlist**: When 4+ players register, additional players go to waitlist
 - **Smart Player Management**: Automatic promotion from waitlist when someone cancels
 - **Notification System**: Tagged messages when players move between main list and waitlist
@@ -119,12 +119,14 @@ Built on Next.js 15 with:
 
 ## Registration System
 
-Players can register for games by selecting their skill level:
+Players can register for games by selecting their official skill level:
 
-- **D- (Beginner)**: New to padel
-- **D (Intermediate)**: Basic skills
-- **D+ (Advanced)**: Good technique
-- **C- (Expert)**: High skill level
+- **E (First time)**: Complete beginner, first time playing padel
+- **D (Learning rallies)**: Starting to play rallies and understand positioning
+- **D+ (Control direction)**: Can control direction and understand rules
+- **C- (Defense & attack)**: Moving between defense and attack positions
+- **C (Defense to attack)**: Transitioning from defense to attack to finish points
+- **C+ (Change pace & play)**: Advanced strategies, changing pace and play variations
 
 ### Waitlist System
 

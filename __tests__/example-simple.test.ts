@@ -93,7 +93,7 @@ _Пусто_`;
         btn.callback_data?.startsWith("skill_")
       );
 
-      expect(skillButtons.length).toBeGreaterThanOrEqual(4); // D-, D, D+, C-
+      expect(skillButtons.length).toBeGreaterThanOrEqual(6); // E, D, D+, C-, C, C+
     });
 
     test("should generate valid calendar links", () => {

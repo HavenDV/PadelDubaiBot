@@ -20,7 +20,7 @@ This directory contains a well-organized test suite following Next.js and Jest b
 
 - **Purpose**: Tests for Telegram constants, templates, and helper functions
 - **Status**: ✅ 14/14 tests passing
-- **Coverage**: Skill level buttons, club locations, calendar links, message templates
+  - **Coverage**: Skill level buttons (E, D, D+, C-, C, C+), club locations, calendar links, message templates
 
 ### `integration-workflow.test.ts`
 

@@ -18,14 +18,17 @@ describe("Telegram Constants and Helpers", () => {
         (btn) => btn.callback_data && btn.callback_data.startsWith("skill_")
       );
 
-      // Should have at least the 4 skill levels
-      expect(skillButtons.length).toBeGreaterThanOrEqual(4);
+      // Should have exactly 7 buttons (6 skill levels + 1 cancel)
+      expect(skillButtons.length).toBe(7);
 
       // Check specific skill levels exist
       const skillTexts = skillButtons.map((btn) => btn.text);
-      expect(skillTexts.some((text) => text.includes("D-"))).toBe(true);
-      expect(skillTexts.some((text) => text.includes("D+"))).toBe(true);
-      expect(skillTexts.some((text) => text.includes("C-"))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("E ("))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("D ("))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("D+ ("))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("C- ("))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("C ("))).toBe(true);
+      expect(skillTexts.some((text) => text.includes("C+ ("))).toBe(true);
     });
 
     test("should have proper callback data format for skill buttons", () => {
@@ -38,7 +41,8 @@ describe("Telegram Constants and Helpers", () => {
       );
 
       skillButtons.forEach((button) => {
-        expect(button.callback_data).toMatch(/^skill_[DC][+-]?$/);
+        // Allow for regular skill levels (E, D, D+, C-, C, C+)
+        expect(button.callback_data).toMatch(/^skill_([EDC][+-]?)$/);
       });
     });
 
