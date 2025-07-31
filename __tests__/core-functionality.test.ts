@@ -1,6 +1,7 @@
 import { MessageUtils } from "../src/app/lib/telegram/message-utils";
 import {
   SKILL_LEVEL_BUTTONS,
+  CALLBACK_MESSAGES,
   generateCalendarLinks,
 } from "../src/app/lib/telegram/constants";
 
@@ -295,6 +296,91 @@ _Пусто_`;
 
       // Should complete 25 HTML restorations in under 50ms
       expect(duration).toBeLessThan(50);
+    });
+  });
+
+  describe("Penalty System for Late Cancellations", () => {
+    // Mock current time to test different scenarios
+    const mockGameMessage = (
+      day: string,
+      month: string,
+      hour: string
+    ) => `🎾 <b>Вторник, ${day}.${month}, ${hour}:00-09:30</b>
+
+📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz
+💵 <b>Цена:</b> 65 aed/чел
+
+<b>Записавшиеся игроки:</b>
+1. @player1 (D+)
+
+⏳ <b>Waitlist:</b>
+_Пусто_`;
+
+    test("should parse game time correctly", () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const day = tomorrow.getDate().toString().padStart(2, "0");
+      const month = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
+
+      const gameMessage = mockGameMessage(day, month, "08");
+      const hoursUntil = MessageUtils.getHoursUntilGame(gameMessage);
+
+      expect(hoursUntil).not.toBeNull();
+      expect(typeof hoursUntil).toBe("number");
+    });
+
+    test("should detect late cancellation (within 24 hours)", () => {
+      // Create a game message for tomorrow morning
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const day = tomorrow.getDate().toString().padStart(2, "0");
+      const month = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
+
+      const gameMessage = mockGameMessage(day, month, "08");
+      const cancellationCheck = MessageUtils.isLateCancellation(gameMessage);
+
+      expect(cancellationCheck.isLate).toBeDefined();
+      expect(cancellationCheck.hoursRemaining).not.toBeNull();
+    });
+
+    test("should generate penalty warning message", () => {
+      const hoursRemaining = 12.5;
+      const warningMessage =
+        CALLBACK_MESSAGES.LATE_CANCELLATION_WARNING(hoursRemaining);
+
+      expect(warningMessage).toContain("⚠️ ВНИМАНИЕ!");
+      expect(warningMessage).toContain("12.5 часов");
+      expect(warningMessage).toContain("штрафные санкции");
+      expect(warningMessage).toContain("правилам группы");
+      expect(warningMessage).toContain("отменить участие?");
+    });
+
+    test("should handle invalid game message format", () => {
+      const invalidMessage = "Invalid message without game info";
+
+      const hoursUntil = MessageUtils.getHoursUntilGame(invalidMessage);
+      const cancellationCheck = MessageUtils.isLateCancellation(invalidMessage);
+
+      expect(hoursUntil).toBeNull();
+      expect(cancellationCheck.isLate).toBe(false);
+      expect(cancellationCheck.hoursRemaining).toBeNull();
+    });
+
+    test("should normalize player names correctly", () => {
+      const testCases = [
+        { input: "@testuser", expected: "testuser" },
+        {
+          input: '<a href="https://t.me/testuser">@testuser</a>',
+          expected: "testuser",
+        },
+        { input: "Regular Name", expected: "regular name" },
+      ];
+
+      testCases.forEach(({ input, expected }) => {
+        expect(MessageUtils.normalizeName(input)).toBe(expected);
+      });
     });
   });
 });

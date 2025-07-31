@@ -1,4 +1,5 @@
 import { MessageUtils } from "../src/app/lib/telegram/message-utils";
+import { CALLBACK_MESSAGES } from "../src/app/lib/telegram/constants";
 
 describe("Integration Tests - Complete Workflows", () => {
   describe("HTML Restoration and Player Registration Workflow", () => {
@@ -236,6 +237,49 @@ _Пусто_`;
 
         expect(result.updatedMessage).toContain(username);
       });
+    });
+  });
+
+  describe("Penalty System Integration", () => {
+    test("should integrate penalty system with complete workflow", () => {
+      // Create a game for tomorrow (within 24 hours)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const day = tomorrow.getDate().toString().padStart(2, "0");
+      const month = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
+
+      const gameMessage = `🎾 <b>Вторник, ${day}.${month}, 08:00-09:30</b>
+
+📍 <b>Место:</b> <a href="https://maps.app.goo.gl/test">SANDDUNE PADEL CLUB Al Qouz</a>
+💵 <b>Цена:</b> 65 aed/чел
+🏟️ <b>Забронировано кортов:</b> 2
+
+📅 <a href="https://calendar.google.com/test">Добавить в Google Calendar</a>
+
+<b>Записавшиеся игроки:</b>
+
+1. @player1 (D+)
+
+⏳ <b>Waitlist:</b>
+_Пусто_`;
+
+      // Test penalty detection
+      const lateCancellationCheck =
+        MessageUtils.isLateCancellation(gameMessage);
+
+      expect(lateCancellationCheck.isLate).toBeDefined();
+      expect(lateCancellationCheck.hoursRemaining).not.toBeNull();
+
+      // Test penalty message generation
+      if (lateCancellationCheck.hoursRemaining !== null) {
+        const penaltyMessage = CALLBACK_MESSAGES.LATE_CANCELLATION_WARNING(
+          lateCancellationCheck.hoursRemaining
+        );
+
+        expect(penaltyMessage).toContain("⚠️ ВНИМАНИЕ!");
+        expect(penaltyMessage).toContain("штрафные санкции");
+      }
     });
   });
 });

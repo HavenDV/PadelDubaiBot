@@ -26,8 +26,45 @@ export async function POST(req: NextRequest) {
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
       : user.first_name || "Unknown";
 
-    // Prepare updated message text
+    // Check for late cancellation penalty
     const currentText = callbackQuery.message.text;
+
+    // Check if this is a cancellation and if it's within 24 hours
+    const isCancellation =
+      selectedLevel === "not_coming" ||
+      MessageUtils.getRegisteredUsers(currentText).some(
+        (user) =>
+          MessageUtils.normalizeName(user.userName) ===
+            MessageUtils.normalizeName(displayName) &&
+          user.skillLevel === selectedLevel
+      );
+
+    if (isCancellation) {
+      const lateCancellationCheck =
+        MessageUtils.isLateCancellation(currentText);
+
+      if (
+        lateCancellationCheck.isLate &&
+        lateCancellationCheck.hoursRemaining !== null
+      ) {
+        // Send penalty warning instead of processing cancellation
+        try {
+          await TelegramAPI.answerCallbackQuery({
+            callback_query_id: callbackQuery.id,
+            text: CALLBACK_MESSAGES.LATE_CANCELLATION_WARNING(
+              lateCancellationCheck.hoursRemaining
+            ),
+            show_alert: true, // Show as popup alert
+          });
+          return NextResponse.json({ ok: true });
+        } catch (error) {
+          console.error("Error sending penalty warning:", error);
+          return NextResponse.json({ ok: true });
+        }
+      }
+    }
+
+    // Prepare updated message text
     const result = MessageUtils.updateMessageWithUserSelection(
       currentText,
       displayName,

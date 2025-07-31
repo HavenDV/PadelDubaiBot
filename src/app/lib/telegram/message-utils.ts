@@ -297,7 +297,7 @@ export class MessageUtils {
   }
 
   /** Normalizes a display name to a unique key (prefer username without @) */
-  private static normalizeName(name: string): string {
+  static normalizeName(name: string): string {
     // If anchor markup: extract username part
     const anchorMatch = name.match(/<a[^>]+\/([^"'>]+)"[^>]*>/);
     if (anchorMatch) return anchorMatch[1].toLowerCase();
@@ -427,5 +427,71 @@ export class MessageUtils {
     };
 
     return `${formatDate(nextMonday)}-${formatDate(nextSunday)}`;
+  }
+
+  /**
+   * Parses game date and time from message and calculates hours remaining until game
+   */
+  static getHoursUntilGame(messageText: string): number | null {
+    try {
+      // Extract date and time from message like "🎾 Вторник, 07.01, 8:00-09:30"
+      const gameTimeMatch = messageText.match(
+        /🎾[\s\S]*?(\d{2}\.\d{2})[\s\S]*?(\d{1,2}:\d{2})-\d{1,2}:\d{2}/
+      );
+
+      if (!gameTimeMatch) {
+        return null;
+      }
+
+      const [, dateStr, startTimeStr] = gameTimeMatch;
+      const [day, month] = dateStr.split(".");
+      const [hours, minutes] = startTimeStr.split(":");
+
+      // Current year (games are typically scheduled for current year)
+      const currentYear = new Date().getFullYear();
+
+      // Create game date in Dubai timezone
+      const gameDate = new Date(
+        currentYear,
+        parseInt(month) - 1, // Month is 0-based
+        parseInt(day),
+        parseInt(hours),
+        parseInt(minutes)
+      );
+
+      // Get current time in Dubai timezone
+      const now = new Date();
+      const nowInDubai = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Dubai" })
+      );
+
+      // Calculate difference in hours
+      const diffInMs = gameDate.getTime() - nowInDubai.getTime();
+      const diffInHours = diffInMs / (1000 * 60 * 60);
+
+      return diffInHours;
+    } catch (error) {
+      console.error("Error parsing game time:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Checks if cancellation is within 24 hours of game time
+   */
+  static isLateCancellation(messageText: string): {
+    isLate: boolean;
+    hoursRemaining: number | null;
+  } {
+    const hoursRemaining = this.getHoursUntilGame(messageText);
+
+    if (hoursRemaining === null) {
+      return { isLate: false, hoursRemaining: null };
+    }
+
+    // Consider it a late cancellation if less than 24 hours remain
+    const isLate = hoursRemaining > 0 && hoursRemaining < 24;
+
+    return { isLate, hoursRemaining };
   }
 }

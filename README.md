@@ -18,6 +18,7 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 - **Robust Error Handling**: Automatic retry with exponential backoff for API errors
 - **Rate Limit Protection**: Handles Telegram's 429 errors with proper delays
 - **Welcome Messages**: Automatic personalized welcome messages for new group members
+- **Penalty System**: Warns about sanctions for cancellations less than 24 hours before game time
 - **AI-Powered Responses**: OpenAI integration for generating responses when the bot is mentioned
 
 ## Setup
@@ -179,6 +180,46 @@ When new members join the Telegram group, the bot automatically sends them a per
 
 До встречи на корте! 🏆
 ```
+
+## Penalty System for Late Cancellations
+
+The bot automatically detects when players try to cancel less than 24 hours before game time and warns them about penalty sanctions.
+
+### How It Works
+
+1. **Time Detection**: Bot parses game date and time from the message
+2. **Cancellation Check**: When player clicks to cancel (❌ Не приду or same skill level), calculates time remaining
+3. **24-Hour Rule**: If less than 24 hours remain, shows penalty warning instead of processing cancellation
+4. **Warning Message**: Displays popup alert with penalty information
+
+### Penalty Warning Message
+
+When a late cancellation is attempted, players see:
+
+```
+⚠️ ВНИМАНИЕ! До игры осталось [X] часов.
+
+Согласно правилам группы, отмена менее чем за 24 часа до игры влечет штрафные санкции.
+
+Подробности в правилах участия в группе.
+
+Вы все еще хотите отменить участие?
+```
+
+### Features
+
+- **Automatic Detection**: No manual intervention required
+- **Precise Timing**: Calculates exact hours remaining using Dubai timezone
+- **Clear Warning**: Shows remaining time and references group rules
+- **Prevention Focus**: Warning shown instead of immediate cancellation
+- **Flexible Implementation**: Can be easily modified for different time thresholds
+
+### Technical Details
+
+- **Time Parsing**: Extracts date/time from game messages using regex
+- **Timezone Handling**: Properly handles Dubai (UTC+4) timezone conversion
+- **Error Handling**: Gracefully handles malformed messages
+- **Performance**: Efficient parsing with minimal overhead
 
 ## Calendar & Location Integration
 
