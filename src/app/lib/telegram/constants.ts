@@ -1,17 +1,11 @@
 // Telegram padel constants - using official grading system
 export const SKILL_LEVEL_BUTTONS = [
-  [
-    { text: "E (First time)", callback_data: "skill_E" },
-    { text: "D (Beginner)", callback_data: "skill_D" },
-  ],
-  [
-    { text: "D+ (Control direction, know rules)", callback_data: "skill_D+" },
-    { text: "C- (Defense & attack)", callback_data: "skill_C-" },
-  ],
-  [
-    { text: "C (Defense to attack)", callback_data: "skill_C" },
-    { text: "C+ (Change pace & play)", callback_data: "skill_C+" },
-  ],
+  [{ text: "E (First time)", callback_data: "skill_E" }],
+  [{ text: "D (Beginner)", callback_data: "skill_D" }],
+  [{ text: "D+ (Control direction, know rules)", callback_data: "skill_D+" }],
+  [{ text: "C- (Defense & attack)", callback_data: "skill_C-" }],
+  [{ text: "C (Defense to attack)", callback_data: "skill_C" }],
+  [{ text: "C+ (Change pace & play)", callback_data: "skill_C+" }],
   [{ text: "❌ Не приду", callback_data: "skill_not_coming" }],
 ];
 
