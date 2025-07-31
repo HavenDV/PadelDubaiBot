@@ -534,5 +534,125 @@ _Пусто_`;
       expect(statsMessage).toContain("2");
       expect(statsMessage).toContain("6");
     });
+
+    test("should create admin control message for private chat", () => {
+      const gameMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
+
+📍 <b>Место:</b> <a href="https://maps.app.goo.gl/test">SANDDUNE PADEL CLUB Al Qouz</a>
+💵 <b>Цена:</b> 65 aed/чел
+
+<b>Записавшиеся игроки:</b>
+1. @player1 (D+)
+2. @player2 (D)
+
+⏳ <b>Waitlist:</b>
+🎾 @waitlist1 (D+)`;
+
+      const chatId = -123456789;
+      const messageId = 456;
+
+      const adminMessage = MessageUtils.createAdminControlMessage(
+        gameMessage,
+        chatId,
+        messageId
+      );
+
+      expect(adminMessage).toContain("🔧 <b>Панель администратора</b>");
+      expect(adminMessage).toContain("Вторник, 07.01, 8:00-09:30");
+      expect(adminMessage).toContain("SANDDUNE PADEL CLUB Al Qouz");
+      expect(adminMessage).toContain("Записано: 2");
+      expect(adminMessage).toContain("Waitlist: 1");
+      expect(adminMessage).toContain("Всего: 3");
+      expect(adminMessage).toContain(`Chat ID: ${chatId}`);
+      expect(adminMessage).toContain(`Message ID: ${messageId}`);
+    });
+
+    test("should extract game reference from admin control message", () => {
+      const adminMessage = `🔧 Панель администратора
+
+🎾 Игра: Вторник, 07.01, 8:00-09:30
+📍 Место: SANDDUNE PADEL CLUB Al Qouz
+
+📊 Статистика:
+👥 Записано: 2
+⏳ Waitlist: 1
+📈 Всего: 3
+
+🔗 Связанное сообщение:
+Chat ID: -123456789
+Message ID: 456
+
+Используйте кнопки ниже для управления игрой:`;
+
+      const reference = MessageUtils.extractGameReference(adminMessage);
+
+      expect(reference).toBeDefined();
+      expect(reference?.chatId).toBe(-123456789);
+      expect(reference?.messageId).toBe(456);
+    });
+
+    test("should handle invalid admin control message", () => {
+      const invalidMessage = "Invalid admin message without references";
+
+      const reference = MessageUtils.extractGameReference(invalidMessage);
+
+      expect(reference).toBeNull();
+    });
+
+    test("should return only skill level buttons for all users now", () => {
+      const regularUserId = 123456789;
+      const adminUserId = 482553595; // Real admin ID from constants
+
+      const regularButtons = AdminUtils.getButtonsForUser(regularUserId);
+      const adminButtons = AdminUtils.getButtonsForUser(adminUserId);
+
+      // Both should return the same (only skill level buttons)
+      expect(regularButtons).toEqual(adminButtons);
+      expect(regularButtons.length).toBe(SKILL_LEVEL_BUTTONS.length);
+    });
+
+    test("should provide separate admin buttons for private messages", () => {
+      const adminButtons = AdminUtils.getAdminButtons();
+
+      expect(Array.isArray(adminButtons)).toBe(true);
+      expect(adminButtons.length).toBe(ADMIN_BUTTONS.length);
+
+      const flatButtons = adminButtons.flat();
+      flatButtons.forEach((button) => {
+        expect(button.callback_data).toMatch(/^admin_/);
+      });
+    });
+
+    test("should create admin control message with proper game reference", () => {
+      const gameMessage = `🎾 <b>Понедельник, 06.01, 20:00-21:30</b>
+
+📍 <b>Место:</b> <a href="https://maps.app.goo.gl/test">SANDDUNE PADEL CLUB Al Qouz</a>
+💵 <b>Цена:</b> 65 aed/чел
+
+<b>Записавшиеся игроки:</b>
+
+⏳ <b>Waitlist:</b>`;
+
+      const chatId = -1001234567890;
+      const messageId = 123;
+
+      const adminMessage = MessageUtils.createAdminControlMessage(
+        gameMessage,
+        chatId,
+        messageId
+      );
+
+      // Should contain all required elements
+      expect(adminMessage).toContain("🔧 <b>Панель администратора</b>");
+      expect(adminMessage).toContain("Понедельник, 06.01, 20:00-21:30");
+      expect(adminMessage).toContain("SANDDUNE PADEL CLUB Al Qouz");
+      expect(adminMessage).toContain(`Chat ID: ${chatId}`);
+      expect(adminMessage).toContain(`Message ID: ${messageId}`);
+
+      // Should extract reference correctly
+      const reference = MessageUtils.extractGameReference(adminMessage);
+      expect(reference?.chatId).toBe(chatId);
+      expect(reference?.messageId).toBe(messageId);
+    });
   });
 });

@@ -588,4 +588,61 @@ export class MessageUtils {
 
     return { registeredCount, waitlistCount, totalCount };
   }
+
+  /**
+   * Creates a private admin control message for a game
+   */
+  static createAdminControlMessage(
+    gameMessage: string,
+    chatId: number,
+    messageId: number
+  ): string {
+    // Extract game title and basic info
+    const titleMatch = gameMessage.match(/🎾 <b>(.+?)<\/b>/);
+    const locationMatch = gameMessage.match(/📍 <b>Место:<\/b> (.+?)(?=\n|💵)/);
+
+    const title = titleMatch ? titleMatch[1] : "Неизвестная игра";
+    const location = locationMatch
+      ? locationMatch[1].replace(/<[^>]*>/g, "")
+      : "Неизвестное место";
+
+    // Get current statistics
+    const stats = this.getGameStats(gameMessage);
+
+    return `🔧 <b>Панель администратора</b>
+
+🎾 <b>Игра:</b> ${title}
+📍 <b>Место:</b> ${location}
+
+📊 <b>Статистика:</b>
+👥 Записано: ${stats.registeredCount}
+⏳ Waitlist: ${stats.waitlistCount}
+📈 Всего: ${stats.totalCount}
+
+🔗 <b>Связанное сообщение:</b>
+Chat ID: ${chatId}
+Message ID: ${messageId}
+
+<i>Используйте кнопки ниже для управления игрой:</i>`;
+  }
+
+  /**
+   * Extracts game reference data from admin control message
+   */
+  static extractGameReference(adminMessage: string): {
+    chatId: number;
+    messageId: number;
+  } | null {
+    const chatIdMatch = adminMessage.match(/Chat ID: (-?\d+)/);
+    const messageIdMatch = adminMessage.match(/Message ID: (\d+)/);
+
+    if (chatIdMatch && messageIdMatch) {
+      return {
+        chatId: parseInt(chatIdMatch[1]),
+        messageId: parseInt(messageIdMatch[1]),
+      };
+    }
+
+    return null;
+  }
 }

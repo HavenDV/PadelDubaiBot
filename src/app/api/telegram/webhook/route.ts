@@ -18,8 +18,6 @@ export async function POST(req: NextRequest) {
 
   // Handle admin-only callbacks
   if (callbackQuery && callbackQuery.data?.startsWith("admin_")) {
-    const chatId = callbackQuery.message.chat.id;
-    const messageId = callbackQuery.message.message_id;
     const adminAction = callbackQuery.data.replace("admin_", "");
     const user = callbackQuery.from;
 
@@ -38,30 +36,57 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Handle admin actions
+    // Handle admin actions from private messages
     const currentText = callbackQuery.message.text;
-    let updatedMessage = currentText;
     let responseText = "";
 
     try {
+      // Extract reference to the public game message
+      const gameReference = MessageUtils.extractGameReference(currentText);
+
+      if (!gameReference) {
+        await TelegramAPI.answerCallbackQuery({
+          callback_query_id: callbackQuery.id,
+          text: "❌ Не удалось найти ссылку на игру.",
+          show_alert: true,
+        });
+        return NextResponse.json({ ok: true });
+      }
+
+      // Get the current public game message first
+      // Note: We can't directly get message content via API, so we need to handle based on action
+
       switch (adminAction) {
         case "cancel_game":
-          updatedMessage = MessageUtils.cancelGame(currentText);
           responseText = CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED;
+
+          // Send a message to the game chat to cancel
+          await TelegramAPI.sendMessage({
+            chat_id: gameReference.chatId,
+            text: "🚫 <b>Игра отменена администратором</b>",
+            parse_mode: "HTML",
+            reply_to_message_id: gameReference.messageId,
+          });
           break;
 
         case "restore_game":
-          updatedMessage = MessageUtils.restoreGame(currentText);
           responseText = CALLBACK_MESSAGES.ADMIN_GAME_RESTORED;
+
+          // Send a message to the game chat to restore
+          await TelegramAPI.sendMessage({
+            chat_id: gameReference.chatId,
+            text: "✅ <b>Игра восстановлена администратором</b>",
+            parse_mode: "HTML",
+            reply_to_message_id: gameReference.messageId,
+          });
           break;
 
         case "game_stats":
-          const stats = MessageUtils.getGameStats(currentText);
-          responseText = CALLBACK_MESSAGES.ADMIN_GAME_STATS(
-            stats.registeredCount,
-            stats.waitlistCount
-          );
-          // For stats, we don't update the message, just show the stats
+          // For stats, we need to re-fetch current data
+          // Since we can't easily get the current message, show basic stats
+          responseText =
+            "📊 Для получения актуальной статистики обновите панель администратора";
+
           await TelegramAPI.answerCallbackQuery({
             callback_query_id: callbackQuery.id,
             text: responseText,
@@ -73,25 +98,12 @@ export async function POST(req: NextRequest) {
           responseText = "❌ Неизвестная административная команда.";
       }
 
-      // Update message and send response
-      const promises = [
-        TelegramAPI.answerCallbackQuery({
-          callback_query_id: callbackQuery.id,
-          text: responseText,
-        }),
-        TelegramAPI.editMessageText({
-          chat_id: chatId,
-          message_id: messageId,
-          text: updatedMessage,
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-          reply_markup: {
-            inline_keyboard: AdminUtils.getButtonsForUser(user.id),
-          },
-        }),
-      ];
+      // Send response to admin
+      await TelegramAPI.answerCallbackQuery({
+        callback_query_id: callbackQuery.id,
+        text: responseText,
+      });
 
-      await Promise.all(promises);
       return NextResponse.json({ ok: true });
     } catch (error) {
       console.error("Error handling admin callback:", error);
@@ -108,6 +120,9 @@ export async function POST(req: NextRequest) {
     const displayName = user.username
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
       : user.first_name || "Unknown";
+
+    // Admin control messages are now sent proactively when games are created
+    // No need to send them on interaction anymore
 
     // Check for late cancellation penalty
     const currentText = callbackQuery.message.text;

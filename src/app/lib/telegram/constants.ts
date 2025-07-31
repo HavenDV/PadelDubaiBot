@@ -160,16 +160,18 @@ export const AdminUtils = {
   },
 
   /**
-   * Gets combined buttons (skill level + admin buttons for admins)
+   * Gets skill level buttons only (admin controls are sent privately)
    */
-  getButtonsForUser: (userId: number) => {
-    const baseButtons = [...SKILL_LEVEL_BUTTONS];
+  getButtonsForUser: (_userId: number) => {
+    // Always return only skill level buttons for public messages
+    // Admin controls are handled via private messages
+    return [...SKILL_LEVEL_BUTTONS];
+  },
 
-    if (AdminUtils.isAdmin(userId)) {
-      // Add admin buttons below skill level buttons
-      return [...baseButtons, ...ADMIN_BUTTONS];
-    }
-
-    return baseButtons;
+  /**
+   * Gets admin control buttons for private messages
+   */
+  getAdminButtons: () => {
+    return [...ADMIN_BUTTONS];
   },
 } as const;

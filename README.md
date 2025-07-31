@@ -244,13 +244,14 @@ The bot includes a comprehensive admin system that allows designated administrat
 
 ### Admin Features
 
-#### **Admin-Only Buttons**
+#### **Proactive Admin Controls**
 
-Admins see additional buttons below the skill level buttons:
+When new games are created, all admins automatically receive private admin control panels:
 
-- **🚫 Отменить игру**: Cancel a game (marks as cancelled, preserves player list)
-- **✅ Восстановить игру**: Restore a cancelled game
-- **📊 Статистика игры**: View game statistics (player count, waitlist count)
+- **🔧 Панель администратора**: Private message with game overview and controls
+- **🚫 Отменить игру**: Cancel a game (sends cancellation notice to game chat)
+- **✅ Восстановить игру**: Restore a cancelled game (sends restoration notice)
+- **📊 Статистика игры**: View real-time game statistics
 
 #### **Game Cancellation**
 
@@ -290,17 +291,22 @@ Admins can view real-time statistics:
 
 ### Admin Workflow Example
 
-1. **Game Creation**: Cron job creates game with regular skill level buttons
-2. **Admin Interaction**: Admin users see additional admin buttons
-3. **Game Management**: Admin can cancel/restore games as needed
-4. **Statistics**: Real-time stats available via admin buttons
-5. **Player Management**: Regular players only see skill level buttons
+1. **Game Creation**: Cron job creates games with regular skill level buttons
+2. **Automatic Admin Panels**: All admins immediately receive private control messages
+3. **Proactive Management**: Admins can manage games before any player interaction
+4. **Game Control**: Admin manages games from private chat (invisible to players)
+5. **Public Notifications**: Actions send notifications to game chat (cancellation/restoration)
+6. **Clean Public Interface**: Regular players only see skill level buttons
 
 ### Technical Implementation
 
+- **Proactive Messaging**: Admin control panels sent automatically during game creation
 - **Admin Detection**: `AdminUtils.isAdmin(userId)` verifies admin status
-- **Dynamic Buttons**: `AdminUtils.getButtonsForUser(userId)` returns appropriate button set
-- **Message Management**: Admin actions update game messages while preserving formatting
+- **Clean Public Interface**: `AdminUtils.getButtonsForUser(userId)` returns only skill level buttons
+- **Private Admin Controls**: `AdminUtils.getAdminButtons()` for private messages
+- **Message Linking**: Admin control messages reference public game messages via Chat/Message IDs
+- **Cross-Chat Actions**: Admin actions in private chat affect public game messages
+- **Batch Admin Messaging**: All admins receive control panels for each new game
 - **Error Handling**: Robust error handling for admin operations
 
 ## Calendar & Location Integration

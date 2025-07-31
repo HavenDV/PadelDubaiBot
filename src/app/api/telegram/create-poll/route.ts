@@ -6,6 +6,8 @@ import {
   WEEKLY_SCHEDULE_TEMPLATE,
   GAME_MESSAGE_TEMPLATE,
   MessageUtils,
+  AdminUtils,
+  ADMIN_USER_IDS,
 } from "@/app/lib/telegram";
 
 export const runtime = "edge";
@@ -142,6 +144,44 @@ export async function GET() {
           `Failed to send game message for ${game.day}:`,
           gameResult
         );
+      } else if (gameResult.result?.message_id && !game.cancelled) {
+        // Send admin control messages to all admins when game is created
+        const chatId = parseInt(process.env.CHAT_ID!);
+        const messageId = gameResult.result.message_id;
+
+        // Send admin control panel to each admin
+        for (const adminId of ADMIN_USER_IDS) {
+          try {
+            const adminControlMessage = MessageUtils.createAdminControlMessage(
+              gameMessage,
+              chatId,
+              messageId
+            );
+
+            await TelegramAPI.sendMessage({
+              chat_id: adminId,
+              text: adminControlMessage,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+              reply_markup: {
+                inline_keyboard: AdminUtils.getAdminButtons(),
+              },
+            });
+
+            console.log(
+              `Admin control message sent to admin ${adminId} for ${game.day} game`
+            );
+          } catch (error) {
+            console.error(
+              `Failed to send admin control message to admin ${adminId}:`,
+              error
+            );
+            // Continue with other admins even if one fails
+          }
+
+          // Small delay between admin messages
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
       }
 
       // Small delay between messages to avoid rate limiting

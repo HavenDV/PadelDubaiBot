@@ -187,6 +187,7 @@ Content-Type: application/json
   }
 }
 
-### Test weekly schedule creation
+### Test weekly schedule creation with proactive admin controls
+# This will create games and automatically send admin control messages to all configured admins
 
 GET http://localhost:3000/api/telegram/create-poll
