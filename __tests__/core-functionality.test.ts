@@ -435,6 +435,9 @@ describe("Core Bot Functionality Tests", () => {
 
 📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz
 💵 <b>Цена:</b> 65 aed/чел
+🏟️ <b>Забронировано кортов:</b> 1
+
+📅 <a href="https://calendar.google.com/">Добавить в Google Calendar</a>
 
 <b>Записавшиеся игроки:</b>
 1. @player1 (D+)
@@ -445,37 +448,47 @@ describe("Core Bot Functionality Tests", () => {
 
       const cancelledMessage = MessageUtils.cancelGame(gameMessage);
 
-      expect(cancelledMessage).toContain("❗️<b>ОТМЕНА</b>❗️");
-      expect(cancelledMessage).toContain("Игра отменена администратором");
-      expect(cancelledMessage).toContain("Записанные игроки были:");
-      expect(cancelledMessage).toContain("@player1 (D+)");
-      expect(cancelledMessage).toContain("@player2 (D)");
+      expect(cancelledMessage).toContain(
+        "🎾 <b>Вторник, 07.01, 8:00-09:30</b>"
+      );
+      expect(cancelledMessage).toContain(
+        "📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz"
+      );
+      expect(cancelledMessage).toContain("💵 <b>Цена:</b> 65 aed/чел");
+      expect(cancelledMessage).toContain("🏟️ <b>Забронировано кортов:</b> 1");
+      expect(cancelledMessage).toContain("Добавить в Google Calendar");
+      expect(cancelledMessage).toContain("🚫 <b>Игра отменена</b>");
+      expect(cancelledMessage).not.toContain("Записавшиеся игроки:");
+      expect(cancelledMessage).not.toContain("@player1");
+      expect(cancelledMessage).not.toContain("@player2");
     });
 
     test("should restore cancelled game correctly", () => {
       const cancelledMessage = `🎾 <b>Вторник, 07.01, 8:00-09:30</b>
 
-❗️<b>ОТМЕНА</b>❗️
-
 📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz
+💵 <b>Цена:</b> 65 aed/чел
+🏟️ <b>Забронировано кортов:</b> 1
 
-❗️<b>ОТМЕНА</b>❗️
+📅 <a href="https://calendar.google.com/">Добавить в Google Calendar</a>
 
-Игра отменена администратором.
-
-<b>Записанные игроки были:</b>
-1. @player1 (D+)
-
-⏳ <b>Waitlist:</b>
----`;
+🚫 <b>Игра отменена</b>`;
 
       const restoredMessage = MessageUtils.restoreGame(cancelledMessage);
 
-      expect(restoredMessage).not.toContain("❗️<b>ОТМЕНА</b>❗️");
-      expect(restoredMessage).not.toContain("Игра отменена администратором");
+      expect(restoredMessage).toContain("🎾 <b>Вторник, 07.01, 8:00-09:30</b>");
+      expect(restoredMessage).toContain(
+        "📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz"
+      );
+      expect(restoredMessage).toContain("💵 <b>Цена:</b> 65 aed/чел");
+      expect(restoredMessage).toContain("🏟️ <b>Забронировано кортов:</b> 1");
+      expect(restoredMessage).toContain("Добавить в Google Calendar");
+      expect(restoredMessage).not.toContain("🚫 <b>Игра отменена</b>");
       expect(restoredMessage).toContain("Записавшиеся игроки:");
       expect(restoredMessage).toContain("1. -"); // Should have empty slots
-      expect(restoredMessage).not.toContain("@player1 (D+)"); // Old players should be cleared
+      expect(restoredMessage).toContain("4. -"); // Should have 4 slots for 1 court
+      expect(restoredMessage).toContain("⏳ <b>Waitlist:</b>");
+      expect(restoredMessage).toContain("---");
     });
 
     test("should calculate game statistics correctly", () => {
@@ -521,12 +534,12 @@ describe("Core Bot Functionality Tests", () => {
 
       expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain("🚫");
       expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain(
-        "автоматически отменена"
+        "🚫 Игра отменена"
       );
 
       expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain("✅");
       expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain(
-        "автоматически восстановлена"
+        "Игра восстановлена"
       );
 
       const statsMessage = CALLBACK_MESSAGES.ADMIN_GAME_STATS(4, 2);

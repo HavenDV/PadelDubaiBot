@@ -517,85 +517,72 @@ export class MessageUtils {
    * Cancels a game by updating the message to show cancellation status
    */
   static cancelGame(messageText: string): string {
-    // Replace the main status line to indicate cancellation
-    let updatedMessage = messageText;
+    // Find where the players section starts and replace everything after the calendar link
+    const lines = messageText.split("\n");
+    let calendarLinkIndex = -1;
 
-    // Update the players section header
-    if (updatedMessage.includes("Записавшиеся игроки:")) {
-      updatedMessage = updatedMessage.replace(
-        "Записавшиеся игроки:",
-        "❗️<b>ОТМЕНА</b>❗️\n\nИгра отменена администратором.\n\n<b>Записанные игроки были:</b>"
-      );
+    // Find the calendar link line
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        lines[i].includes("Добавить в Google Calendar") ||
+        lines[i].includes("calendar.google.com")
+      ) {
+        calendarLinkIndex = i;
+        break;
+      }
     }
 
-    // Add cancellation marker to the game title if not already present
-    if (!updatedMessage.includes("❗️<b>ОТМЕНА</b>❗️")) {
-      updatedMessage = updatedMessage.replace(
-        /^🎾 (<b>.*?<\/b>)/m,
-        "🎾 $1\n\n❗️<b>ОТМЕНА</b>❗️"
-      );
+    if (calendarLinkIndex !== -1) {
+      // Keep everything up to and including the calendar link, then add cancellation notice
+      const baseMessage = lines.slice(0, calendarLinkIndex + 1).join("\n");
+      return baseMessage + "\n\n🚫 <b>Игра отменена</b>";
     }
 
-    return updatedMessage;
+    // Fallback: if no calendar link found, just replace the players section
+    const fallbackLines = messageText.split("\n");
+    let playersIndex = -1;
+
+    for (let i = 0; i < fallbackLines.length; i++) {
+      if (fallbackLines[i].includes("Записавшиеся игроки:")) {
+        playersIndex = i;
+        break;
+      }
+    }
+
+    if (playersIndex !== -1) {
+      const baseMessage = fallbackLines.slice(0, playersIndex).join("\n");
+      return baseMessage + "\n\n🚫 <b>Игра отменена</b>";
+    }
+
+    // Ultimate fallback
+    return messageText + "\n\n🚫 <b>Игра отменена</b>";
   }
 
   /**
    * Restores a cancelled game by removing cancellation markers and resetting player list
    */
   static restoreGame(messageText: string): string {
-    let updatedMessage = messageText;
-
-    // Remove cancellation markers from title
-    updatedMessage = updatedMessage.replace(/\n\n❗️<b>ОТМЕНА<\/b>❗️/g, "");
-    updatedMessage = updatedMessage.replace(/❗️<b>ОТМЕНА<\/b>❗️\n\n/g, "");
-
-    // Remove cancellation text and restore players section
-    updatedMessage = updatedMessage.replace(
-      /❗️<b>ОТМЕНА<\/b>❗️\n\nИгра отменена администратором\.\n\n<b>Записанные игроки были:<\/b>/g,
-      "<b>Записавшиеся игроки:</b>"
-    );
-
-    // Fallback: just remove the cancellation text if pattern doesn't match exactly
-    updatedMessage = updatedMessage.replace(
-      /Игра отменена администратором\.\n\n/g,
+    // Remove the cancellation marker
+    let updatedMessage = messageText.replace(
+      /\n\n🚫 <b>Игра отменена<\/b>/g,
       ""
     );
-    updatedMessage = updatedMessage.replace(
-      /<b>Записанные игроки были:<\/b>/g,
-      "<b>Записавшиеся игроки:</b>"
-    );
+    updatedMessage = updatedMessage.replace(/🚫 <b>Игра отменена<\/b>/g, "");
 
-    // Now rebuild the message with empty player slots
-    // Find where the base message ends and replace everything after with empty slots
-    const lines = updatedMessage.split("\n");
-    let baseMessageEndIndex = -1;
+    // Get number of courts to determine max players
+    const courts = this.getCourtsFromMessage(updatedMessage);
+    const maxPlayers = courts * 4;
 
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes("Записавшиеся игроки:")) {
-        baseMessageEndIndex = i;
-        break;
-      }
+    // Add the players section back
+    updatedMessage += "\n\n<b>Записавшиеся игроки:</b>";
+
+    // Add empty player slots
+    for (let i = 1; i <= maxPlayers; i++) {
+      updatedMessage += `\n${i}. -`;
     }
 
-    if (baseMessageEndIndex !== -1) {
-      // Get the base message part (everything up to and including the "Записавшиеся игроки:" line)
-      const baseMessage = lines.slice(0, baseMessageEndIndex + 1).join("\n");
-
-      // Get number of courts to determine max players
-      const courts = this.getCourtsFromMessage(updatedMessage);
-      const maxPlayers = courts * 4;
-
-      // Build empty player slots
-      let emptyGameMessage = baseMessage + "\n";
-      for (let i = 1; i <= maxPlayers; i++) {
-        emptyGameMessage += `\n${i}. -`;
-      }
-
-      // Add empty waitlist
-      emptyGameMessage += "\n\n⏳ <b>Waitlist:</b>\n---";
-
-      return emptyGameMessage;
-    }
+    // Add empty waitlist
+    updatedMessage += "\n\n⏳ <b>Waitlist:</b>\n---";
 
     return updatedMessage;
   }
@@ -659,7 +646,8 @@ export class MessageUtils {
     // Get current statistics
     const stats = this.getGameStats(gameMessage);
 
-    // Store the original game message in a hidden section for restoration purposes
+    // Store the original game message for restoration purposes
+    // We'll encode it and put it at the end in a less conspicuous way
     const encodedOriginalMessage = Buffer.from(gameMessage).toString("base64");
 
     return `🔧 <b>Панель администратора</b>
@@ -676,9 +664,9 @@ export class MessageUtils {
 Chat ID: ${chatId}
 Message ID: ${messageId}
 
-<!-- ORIGINAL_GAME_DATA:${encodedOriginalMessage} -->
+<i>Используйте кнопки ниже для управления игрой:</i>
 
-<i>Используйте кнопки ниже для управления игрой:</i>`;
+<code>${encodedOriginalMessage}</code>`;
   }
 
   /**
@@ -705,7 +693,7 @@ Message ID: ${messageId}
    * Extracts the original game message from admin control message
    */
   static extractOriginalGameMessage(adminMessage: string): string | null {
-    const match = adminMessage.match(/<!-- ORIGINAL_GAME_DATA:([^-]+) -->/);
+    const match = adminMessage.match(/<code>([A-Za-z0-9+/=]+)<\/code>/);
 
     if (match && match[1]) {
       try {

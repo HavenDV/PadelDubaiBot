@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
               MessageUtils.extractOriginalGameMessage(currentText);
 
             if (originalGameMessage) {
-              // Use the existing cancelGame utility to preserve game info while showing cancellation
+              // Use the updated cancelGame method to preserve all game info
               const cancelledMessage =
                 MessageUtils.cancelGame(originalGameMessage);
 
@@ -80,12 +80,11 @@ export async function POST(req: NextRequest) {
               });
             } else {
               // Fallback if we can't get original message
-              const cancelledMessage = `❗️<b>ОТМЕНА</b>❗️
-
-🚫 <b>Игра отменена администратором</b>
+              const cancelledMessage = `🚫 <b>Игра отменена администратором</b>
 
 ❌ Регистрация на эту игру закрыта
-❌ Все записи аннулированы`;
+
+🚫 <b>Игра отменена</b>`;
 
               await TelegramAPI.editMessageText({
                 chat_id: gameReference.chatId,
@@ -124,7 +123,7 @@ export async function POST(req: NextRequest) {
               MessageUtils.extractOriginalGameMessage(currentText);
 
             if (originalGameMessage) {
-              // Use the existing restoreGame utility to restore the original format with empty slots
+              // Use the updated restoreGame method to restore with original game info
               const restoredMessage =
                 MessageUtils.restoreGame(originalGameMessage);
 
@@ -135,7 +134,7 @@ export async function POST(req: NextRequest) {
                 parse_mode: "HTML",
                 disable_web_page_preview: true,
                 reply_markup: {
-                  inline_keyboard: AdminUtils.getButtonsForUser(0), // Add skill level buttons back
+                  inline_keyboard: AdminUtils.getButtonsForUser(0),
                 },
               });
             } else {
