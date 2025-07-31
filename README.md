@@ -17,6 +17,7 @@ A Telegram bot for organizing Padel games in Dubai with weekly schedules and ski
 - **Cancellation Support**: Games can be marked as cancelled
 - **Robust Error Handling**: Automatic retry with exponential backoff for API errors
 - **Rate Limit Protection**: Handles Telegram's 429 errors with proper delays
+- **Welcome Messages**: Automatic personalized welcome messages for new group members
 - **AI-Powered Responses**: OpenAI integration for generating responses when the bot is mentioned
 
 ## Setup
@@ -144,6 +145,40 @@ Players can register for games by selecting their official skill level:
 ```
 
 _Note: No notifications are sent when players cancel from waitlist_
+
+## Welcome Messages
+
+When new members join the Telegram group, the bot automatically sends them a personalized welcome message that includes:
+
+### Welcome Message Content
+
+- **Personalized greeting**: Uses the new member's first name
+- **Community introduction**: Overview of the padel community and atmosphere
+- **Game information**: Details about playing schedule and club locations in Dubai
+- **Skill levels**: Information about different playing levels available
+- **Rules reference**: Link to community rules and guidelines
+- **Contact information**: How to get help and ask questions
+- **Encouraging tone**: Welcoming message to make new players feel included
+
+### Example Welcome Message
+
+```
+Привет Елизавета 🎾!
+Добро пожаловать в наш padel чат!
+У нас дружелюбная команда, и мы всегда рады новым участникам
+
+🏓 Немного о нас:
+— Играем несколько раз в неделю в лучших клубах Дубая
+— Атмосфера — лёгкая, без негатива, играем с удовольствием
+— Отношение друг к другу — уважительное и поддерживающее
+— Есть разные уровни игры, чтобы всем было комфортно и интересно
+
+🎯 Перед первой игрой, пожалуйста, ознакомься с нашими правилами...
+🤝 Если ты не уверен, подходит ли тебе уровень — ничего страшного...
+💬 Если есть вопросы — не стесняйся писать в чат или в личку...
+
+До встречи на корте! 🏆
+```
 
 ## Calendar & Location Integration
 

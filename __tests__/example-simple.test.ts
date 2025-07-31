@@ -1,6 +1,7 @@
 import { MessageUtils } from "../src/app/lib/telegram/message-utils";
 import {
   SKILL_LEVEL_BUTTONS,
+  WELCOME_MESSAGE_TEMPLATE,
   generateCalendarLinks,
 } from "../src/app/lib/telegram/constants";
 
@@ -167,6 +168,17 @@ _Пусто_`;
 
       // Should complete 100 updates in under 100ms
       expect(duration).toBeLessThan(100);
+    });
+  });
+
+  describe("Welcome Message", () => {
+    test("should generate welcome message with player name", () => {
+      const playerName = "Елизавета";
+      const welcomeMessage = WELCOME_MESSAGE_TEMPLATE(playerName);
+
+      expect(welcomeMessage).toContain(`Привет ${playerName} 🎾!`);
+      expect(welcomeMessage).toContain("Добро пожаловать в наш padel чат!");
+      expect(welcomeMessage).toContain("До встречи на корте! 🏆");
     });
   });
 });

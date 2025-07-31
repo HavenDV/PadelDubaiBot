@@ -7,6 +7,7 @@ import {
   TelegramAPI,
   SKILL_LEVEL_BUTTONS,
   CALLBACK_MESSAGES,
+  WELCOME_MESSAGE_TEMPLATE,
   MessageUtils,
 } from "@/app/lib/telegram";
 import { OpenAIUtils } from "@/app/lib/openai";
@@ -71,6 +72,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     } catch (error) {
       console.error("Error handling callback query:", error);
+      // Still return success to Telegram to avoid retries
+      return NextResponse.json({ ok: true });
+    }
+  }
+
+  // Handle new chat members
+  if (update.message?.new_chat_members?.length > 0) {
+    try {
+      const chatId = update.message.chat.id;
+      const newMembers = update.message.new_chat_members;
+
+      // Send welcome message to each new member
+      for (const newMember of newMembers) {
+        // Skip if the new member is a bot
+        if (newMember.is_bot) {
+          continue;
+        }
+
+        const firstName = newMember.first_name || "друг";
+        const welcomeMessage = WELCOME_MESSAGE_TEMPLATE(firstName);
+
+        await TelegramAPI.sendMessage({
+          chat_id: chatId,
+          text: welcomeMessage,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+        });
+      }
+
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      console.error("Error sending welcome message:", error);
       // Still return success to Telegram to avoid retries
       return NextResponse.json({ ok: true });
     }

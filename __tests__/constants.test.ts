@@ -4,6 +4,7 @@ import {
   generateCalendarLinks,
   GAME_MESSAGE_TEMPLATE,
   WEEKLY_SCHEDULE_TEMPLATE,
+  WELCOME_MESSAGE_TEMPLATE,
 } from "../src/app/lib/telegram/constants";
 
 describe("Telegram Constants and Helpers", () => {
@@ -175,6 +176,38 @@ describe("Telegram Constants and Helpers", () => {
     test("should have proper formatting", () => {
       expect(WEEKLY_SCHEDULE_TEMPLATE).toContain("🏓");
       expect(WEEKLY_SCHEDULE_TEMPLATE).toContain("<b>");
+    });
+  });
+
+  describe("WELCOME_MESSAGE_TEMPLATE", () => {
+    test("should generate personalized welcome message", () => {
+      const testName = "Елизавета";
+      const welcomeMessage = WELCOME_MESSAGE_TEMPLATE(testName);
+
+      expect(welcomeMessage).toContain(`Привет ${testName}`);
+      expect(welcomeMessage).toContain("padel чат");
+      expect(welcomeMessage).toContain("Добро пожаловать");
+    });
+
+    test("should include all essential information", () => {
+      const welcomeMessage = WELCOME_MESSAGE_TEMPLATE("Тест");
+
+      // Check for key sections
+      expect(welcomeMessage).toContain("🏓 Немного о нас:");
+      expect(welcomeMessage).toContain("🎯 Перед первой игрой");
+      expect(welcomeMessage).toContain("🤝 Если ты не уверен");
+      expect(welcomeMessage).toContain("💬 Если есть вопросы");
+      expect(welcomeMessage).toContain("До встречи на корте!");
+    });
+
+    test("should contain padel-specific content", () => {
+      const welcomeMessage = WELCOME_MESSAGE_TEMPLATE("Игрок");
+
+      expect(welcomeMessage).toContain("клубах Дубая");
+      expect(welcomeMessage).toContain("разные уровни игры");
+      expect(welcomeMessage).toContain("на корте");
+      expect(welcomeMessage).toContain("🎾");
+      expect(welcomeMessage).toContain("🏆");
     });
   });
 });
