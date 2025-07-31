@@ -474,7 +474,8 @@ describe("Core Bot Functionality Tests", () => {
       expect(restoredMessage).not.toContain("❗️<b>ОТМЕНА</b>❗️");
       expect(restoredMessage).not.toContain("Игра отменена администратором");
       expect(restoredMessage).toContain("Записавшиеся игроки:");
-      expect(restoredMessage).toContain("@player1 (D+)");
+      expect(restoredMessage).toContain("1. -"); // Should have empty slots
+      expect(restoredMessage).not.toContain("@player1 (D+)"); // Old players should be cleared
     });
 
     test("should calculate game statistics correctly", () => {
@@ -520,12 +521,12 @@ describe("Core Bot Functionality Tests", () => {
 
       expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain("🚫");
       expect(CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED).toContain(
-        "отменена администратором"
+        "автоматически отменена"
       );
 
       expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain("✅");
       expect(CALLBACK_MESSAGES.ADMIN_GAME_RESTORED).toContain(
-        "восстановлена администратором"
+        "автоматически восстановлена"
       );
 
       const statsMessage = CALLBACK_MESSAGES.ADMIN_GAME_STATS(4, 2);

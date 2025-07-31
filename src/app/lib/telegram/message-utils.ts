@@ -540,7 +540,7 @@ export class MessageUtils {
   }
 
   /**
-   * Restores a cancelled game by removing cancellation markers
+   * Restores a cancelled game by removing cancellation markers and resetting player list
    */
   static restoreGame(messageText: string): string {
     let updatedMessage = messageText;
@@ -564,6 +564,38 @@ export class MessageUtils {
       /<b>Записанные игроки были:<\/b>/g,
       "<b>Записавшиеся игроки:</b>"
     );
+
+    // Now rebuild the message with empty player slots
+    // Find where the base message ends and replace everything after with empty slots
+    const lines = updatedMessage.split("\n");
+    let baseMessageEndIndex = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("Записавшиеся игроки:")) {
+        baseMessageEndIndex = i;
+        break;
+      }
+    }
+
+    if (baseMessageEndIndex !== -1) {
+      // Get the base message part (everything up to and including the "Записавшиеся игроки:" line)
+      const baseMessage = lines.slice(0, baseMessageEndIndex + 1).join("\n");
+
+      // Get number of courts to determine max players
+      const courts = this.getCourtsFromMessage(updatedMessage);
+      const maxPlayers = courts * 4;
+
+      // Build empty player slots
+      let emptyGameMessage = baseMessage + "\n";
+      for (let i = 1; i <= maxPlayers; i++) {
+        emptyGameMessage += `\n${i}. -`;
+      }
+
+      // Add empty waitlist
+      emptyGameMessage += "\n\n⏳ <b>Waitlist:</b>\n---";
+
+      return emptyGameMessage;
+    }
 
     return updatedMessage;
   }
@@ -627,6 +659,9 @@ export class MessageUtils {
     // Get current statistics
     const stats = this.getGameStats(gameMessage);
 
+    // Store the original game message in a hidden section for restoration purposes
+    const encodedOriginalMessage = Buffer.from(gameMessage).toString("base64");
+
     return `🔧 <b>Панель администратора</b>
 
 🎾 <b>Игра:</b> ${title}
@@ -640,6 +675,8 @@ export class MessageUtils {
 🔗 <b>Связанное сообщение:</b>
 Chat ID: ${chatId}
 Message ID: ${messageId}
+
+<!-- ORIGINAL_GAME_DATA:${encodedOriginalMessage} -->
 
 <i>Используйте кнопки ниже для управления игрой:</i>`;
   }
@@ -662,5 +699,88 @@ Message ID: ${messageId}
     }
 
     return null;
+  }
+
+  /**
+   * Extracts the original game message from admin control message
+   */
+  static extractOriginalGameMessage(adminMessage: string): string | null {
+    const match = adminMessage.match(/<!-- ORIGINAL_GAME_DATA:([^-]+) -->/);
+
+    if (match && match[1]) {
+      try {
+        return Buffer.from(match[1], "base64").toString("utf8");
+      } catch (error) {
+        console.error("Error decoding original game message:", error);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Creates a cancellation template that preserves game information
+   * This replaces only the player registration section with cancellation notice
+   */
+  static createCancellationTemplate(baseGameInfo: {
+    title: string;
+    location: string;
+    price: string;
+    courts: number;
+    calendarLink?: string;
+  }): string {
+    return `🎾 <b>${baseGameInfo.title}</b>
+
+📍 <b>Место:</b> ${baseGameInfo.location}
+💵 <b>Цена:</b> ${baseGameInfo.price}
+🏟️ <b>Забронировано кортов:</b> ${baseGameInfo.courts}
+
+${
+  baseGameInfo.calendarLink
+    ? `📅 ${baseGameInfo.calendarLink}`
+    : "📅 Добавить в Google Calendar"
+}
+
+❗️<b>ОТМЕНА</b>❗️
+
+🚫 <b>Игра отменена администратором</b>
+❌ Регистрация закрыта`;
+  }
+
+  /**
+   * Creates a restoration template that preserves game information
+   * This restores the player registration section with empty slots
+   */
+  static createRestorationTemplate(baseGameInfo: {
+    title: string;
+    location: string;
+    price: string;
+    courts: number;
+    calendarLink?: string;
+  }): string {
+    const maxPlayers = baseGameInfo.courts * 4;
+    const playerSlots = Array.from(
+      { length: maxPlayers },
+      (_, i) => `${i + 1}. -`
+    ).join("\n");
+
+    return `🎾 <b>${baseGameInfo.title}</b>
+
+📍 <b>Место:</b> ${baseGameInfo.location}
+💵 <b>Цена:</b> ${baseGameInfo.price}
+🏟️ <b>Забронировано кортов:</b> ${baseGameInfo.courts}
+
+${
+  baseGameInfo.calendarLink
+    ? `📅 ${baseGameInfo.calendarLink}`
+    : "📅 Добавить в Google Calendar"
+}
+
+<b>Записавшиеся игроки:</b>
+${playerSlots}
+
+⏳ <b>Waitlist:</b>
+---`;
   }
 }

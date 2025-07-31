@@ -61,41 +61,51 @@ export async function POST(req: NextRequest) {
           responseText = CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED;
 
           try {
-            // Get the current game message to cancel it properly
-            // Since we can't fetch message content directly, we'll try to edit it optimistically
-            // The MessageUtils.cancelGame will handle the formatting
+            // Get the original game message from the admin control message
+            const originalGameMessage =
+              MessageUtils.extractOriginalGameMessage(currentText);
 
-            // Edit the message to show cancellation and remove buttons
-            // Since we can't fetch the original content, we'll try to preserve what we can
-            // and mark it as cancelled
-            const cancelledMessageText = `❗️<b>ОТМЕНА</b>❗️
+            if (originalGameMessage) {
+              // Use the existing cancelGame utility to preserve game info while showing cancellation
+              const cancelledMessage =
+                MessageUtils.cancelGame(originalGameMessage);
+
+              await TelegramAPI.editMessageText({
+                chat_id: gameReference.chatId,
+                message_id: gameReference.messageId,
+                text: cancelledMessage,
+                parse_mode: "HTML",
+                disable_web_page_preview: true,
+                // No reply_markup = no buttons
+              });
+            } else {
+              // Fallback if we can't get original message
+              const cancelledMessage = `❗️<b>ОТМЕНА</b>❗️
 
 🚫 <b>Игра отменена администратором</b>
 
 ❌ Регистрация на эту игру закрыта
-❌ Кнопки для записи отключены
+❌ Все записи аннулированы`;
 
-<i>Если у вас есть вопросы по отмене, обратитесь к администратору.</i>`;
+              await TelegramAPI.editMessageText({
+                chat_id: gameReference.chatId,
+                message_id: gameReference.messageId,
+                text: cancelledMessage,
+                parse_mode: "HTML",
+                disable_web_page_preview: true,
+              });
+            }
 
-            await TelegramAPI.editMessageText({
-              chat_id: gameReference.chatId,
-              message_id: gameReference.messageId,
-              text: cancelledMessageText,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-              // Remove all buttons by not including reply_markup
-            });
-
-            // Also send a notification message
+            // Send notification
             await TelegramAPI.sendMessage({
               chat_id: gameReference.chatId,
               text: "🚫 <b>Игра отменена администратором</b>",
               parse_mode: "HTML",
               reply_to_message_id: gameReference.messageId,
             });
-          } catch (editError) {
-            console.error("Error editing cancelled game message:", editError);
-            // Fallback: just send the notification message
+          } catch (error) {
+            console.error("Error cancelling game:", error);
+            // Fallback: just send notification
             await TelegramAPI.sendMessage({
               chat_id: gameReference.chatId,
               text: "🚫 <b>Игра отменена администратором</b>",
@@ -109,14 +119,30 @@ export async function POST(req: NextRequest) {
           responseText = CALLBACK_MESSAGES.ADMIN_GAME_RESTORED;
 
           try {
-            // Restore the game by adding buttons back and removing cancellation
-            // Since we can't fetch the original content, show a restoration message
-            const restoredMessageText = `✅ <b>Игра восстановлена администратором</b>
+            // Get the original game message from the admin control message
+            const originalGameMessage =
+              MessageUtils.extractOriginalGameMessage(currentText);
+
+            if (originalGameMessage) {
+              // Use the existing restoreGame utility to restore the original format with empty slots
+              const restoredMessage =
+                MessageUtils.restoreGame(originalGameMessage);
+
+              await TelegramAPI.editMessageText({
+                chat_id: gameReference.chatId,
+                message_id: gameReference.messageId,
+                text: restoredMessage,
+                parse_mode: "HTML",
+                disable_web_page_preview: true,
+                reply_markup: {
+                  inline_keyboard: AdminUtils.getButtonsForUser(0), // Add skill level buttons back
+                },
+              });
+            } else {
+              // Fallback if we can't get original message
+              const restoredMessage = `✅ <b>Игра восстановлена администратором</b>
 
 🎾 Регистрация на игру снова открыта
-🎾 Кнопки для записи активированы
-
-<i>Выберите ваш уровень игры для участия.</i>
 
 <b>Записавшиеся игроки:</b>
 1. -
@@ -127,27 +153,28 @@ export async function POST(req: NextRequest) {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-            await TelegramAPI.editMessageText({
-              chat_id: gameReference.chatId,
-              message_id: gameReference.messageId,
-              text: restoredMessageText,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-              reply_markup: {
-                inline_keyboard: AdminUtils.getButtonsForUser(0), // Get skill level buttons
-              },
-            });
+              await TelegramAPI.editMessageText({
+                chat_id: gameReference.chatId,
+                message_id: gameReference.messageId,
+                text: restoredMessage,
+                parse_mode: "HTML",
+                disable_web_page_preview: true,
+                reply_markup: {
+                  inline_keyboard: AdminUtils.getButtonsForUser(0),
+                },
+              });
+            }
 
-            // Also send a notification message
+            // Send notification
             await TelegramAPI.sendMessage({
               chat_id: gameReference.chatId,
               text: "✅ <b>Игра восстановлена администратором</b>",
               parse_mode: "HTML",
               reply_to_message_id: gameReference.messageId,
             });
-          } catch (editError) {
-            console.error("Error editing restored game message:", editError);
-            // Fallback: just send the notification message
+          } catch (error) {
+            console.error("Error restoring game:", error);
+            // Fallback: just send notification
             await TelegramAPI.sendMessage({
               chat_id: gameReference.chatId,
               text: "✅ <b>Игра восстановлена администратором</b>",
