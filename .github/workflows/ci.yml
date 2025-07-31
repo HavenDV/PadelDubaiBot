@@ -29,26 +29,26 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Check if user is Vercel team member
-        id: check_user
-        run: |
-          ACTOR="${{ github.actor }}"
-          TEAM_MEMBERS="${{ env.VERCEL_TEAM_MEMBERS }}"
+      # - name: Check if user is Vercel team member
+      #   id: check_user
+      #   run: |
+      #     ACTOR="${{ github.actor }}"
+      #     TEAM_MEMBERS="${{ env.VERCEL_TEAM_MEMBERS }}"
 
-          if [[ ",$TEAM_MEMBERS," == *",$ACTOR,"* ]]; then
-            echo "is_team_member=true" >> $GITHUB_OUTPUT
-            echo "User $ACTOR is a Vercel team member - deployment will be handled by Vercel integration"
-          else
-            echo "is_team_member=false" >> $GITHUB_OUTPUT
-            echo "User $ACTOR is external contributor - will deploy via GitHub Actions"
-          fi
+      #     if [[ ",$TEAM_MEMBERS," == *",$ACTOR,"* ]]; then
+      #       echo "is_team_member=true" >> $GITHUB_OUTPUT
+      #       echo "User $ACTOR is a Vercel team member - deployment will be handled by Vercel integration"
+      #     else
+      #       echo "is_team_member=false" >> $GITHUB_OUTPUT
+      #       echo "User $ACTOR is external contributor - will deploy via GitHub Actions"
+      #     fi
 
       - name: Build project
-        if: steps.check_user.outputs.is_team_member == 'false'
+        #if: steps.check_user.outputs.is_team_member == 'false'
         run: npm run build
 
       - name: Deploy to Vercel (Production)
-        if: steps.check_user.outputs.is_team_member == 'false'
+        #if: steps.check_user.outputs.is_team_member == 'false'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
