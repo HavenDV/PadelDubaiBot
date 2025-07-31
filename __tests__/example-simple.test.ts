@@ -16,7 +16,7 @@ describe("Example Tests - Simple Working Tests", () => {
 Записавшиеся игроки:
 
 ⏳ Waitlist:
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         messageWithoutHTML,
@@ -51,7 +51,7 @@ _Пусто_`;
       const emptyGameMessage = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         emptyGameMessage,
@@ -70,7 +70,7 @@ _Пусто_`;
 2. @player2 (D)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         gameWithPlayers,
@@ -138,7 +138,7 @@ _Пусто_`;
       const message = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const result = MessageUtils.updateMessageWithUserSelection(
         message,
@@ -155,7 +155,7 @@ _Пусто_`;
       const message = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const startTime = Date.now();
 

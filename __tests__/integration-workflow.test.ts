@@ -16,7 +16,7 @@ describe("Integration Tests - Complete Workflows", () => {
 Записавшиеся игроки:
 
 ⏳ Waitlist:
-_Пусто_`;
+---`;
 
       // Test first player registration
       const result1 = MessageUtils.updateMessageWithUserSelection(
@@ -59,7 +59,7 @@ _Пусто_`;
       );
 
       expect(waitlistResult.updatedMessage).toContain("🎾 @waitlist1 (D+)");
-      expect(waitlistResult.updatedMessage).not.toContain("_Пусто_");
+      expect(waitlistResult.updatedMessage).not.toContain("---");
       expect(waitlistResult.notification).toBeUndefined();
 
       // Verify HTML formatting is preserved throughout
@@ -140,7 +140,7 @@ _Пусто_`;
       const baseMessage = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       const startTime = Date.now();
 
@@ -171,7 +171,7 @@ _Пусто_`;
 📍 Место: SANDDUNE PADEL CLUB Al Qouz
 Записавшиеся игроки:
 ⏳ Waitlist:
-_Пусто_`;
+---`;
 
       const startTime = Date.now();
 
@@ -226,7 +226,7 @@ _Пусто_`;
       const message = `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       specialUsernames.forEach((username) => {
         const result = MessageUtils.updateMessageWithUserSelection(
@@ -262,7 +262,7 @@ _Пусто_`;
 1. @player1 (D+)
 
 ⏳ <b>Waitlist:</b>
-_Пусто_`;
+---`;
 
       // Test penalty detection
       const lateCancellationCheck =
