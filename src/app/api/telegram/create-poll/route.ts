@@ -77,7 +77,7 @@ function getWeeklyGames(): GameInfo[] {
     {
       day: "Четверг",
       date: dates.thursday,
-      time: "08:00-09:30",
+      time: "08:30-10:00",
       club: "Oxygen Padel Sport Academy",
       price: "55 aed/чел",
       courts: 1,
