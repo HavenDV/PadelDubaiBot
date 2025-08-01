@@ -3,9 +3,8 @@ import {
   TelegramAPI,
   type TelegramResponse,
   SKILL_LEVEL_BUTTONS,
-  WEEKLY_SCHEDULE_TEMPLATE,
-  GAME_MESSAGE_TEMPLATE,
-  MessageUtils,
+  GameDataManager,
+  MessageFormatter,
   AdminUtils,
   ADMIN_USER_IDS,
 } from "@/app/lib/telegram";
@@ -95,13 +94,11 @@ function getWeeklyGames(): GameInfo[] {
 
 export async function GET() {
   try {
-    const timeString = MessageUtils.getCurrentDubaiTime();
-    const weekRange = MessageUtils.getCurrentWeekDateRange();
+    const timeString = MessageFormatter.getCurrentDubaiTime();
+    const weekRange = MessageFormatter.getCurrentWeekDateRange();
 
     // Send main weekly schedule message
-    const mainMessage = `${WEEKLY_SCHEDULE_TEMPLATE}
-
-📅 Неделя: ${weekRange}`;
+    const mainMessage = MessageFormatter.formatWeeklyScheduleMessage(weekRange);
 
     const mainResult = await TelegramAPI.sendMessage({
       chat_id: process.env.CHAT_ID!,
@@ -121,9 +118,23 @@ export async function GET() {
     // Send individual game messages
     const gameResults: TelegramResponse[] = [];
     const weeklyGames = getWeeklyGames();
+    const chatId = parseInt(process.env.CHAT_ID!);
 
     for (const game of weeklyGames) {
-      const gameMessage = GAME_MESSAGE_TEMPLATE(game);
+      // Create GameInfo object using data-first approach
+      const gameInfo = GameDataManager.createGameInfo({
+        day: game.day,
+        date: game.date,
+        time: game.time,
+        club: game.club,
+        price: game.price,
+        courts: game.courts,
+        note: game.note,
+        chatId: chatId,
+      });
+
+      // Format the message from the data
+      const gameMessage = MessageFormatter.formatGameMessage(gameInfo);
 
       const gameResult = await TelegramAPI.sendMessage({
         chat_id: process.env.CHAT_ID!,
@@ -145,18 +156,14 @@ export async function GET() {
           gameResult
         );
       } else if (gameResult.result?.message_id && !game.cancelled) {
-        // Send admin control messages to all admins when game is created
-        const chatId = parseInt(process.env.CHAT_ID!);
-        const messageId = gameResult.result.message_id;
+        // Update the gameInfo with the actual message ID
+        gameInfo.messageId = gameResult.result.message_id;
 
-        // Send admin control panel to each admin
+        // Send admin control messages to all admins when game is created
         for (const adminId of ADMIN_USER_IDS) {
           try {
-            const adminControlMessage = MessageUtils.createAdminControlMessage(
-              gameMessage,
-              chatId,
-              messageId
-            );
+            const adminControlMessage =
+              MessageFormatter.formatAdminControlMessage(gameInfo);
 
             await TelegramAPI.sendMessage({
               chat_id: adminId,

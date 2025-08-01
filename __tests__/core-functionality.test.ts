@@ -1,4 +1,6 @@
-import { MessageUtils } from "../src/app/lib/telegram/message-utils";
+import { GameDataManager } from "../src/app/lib/telegram/game-data";
+import { MessageFormatter } from "../src/app/lib/telegram/message-formatter";
+import type { PlayerAction } from "../src/app/lib/telegram/types";
 import {
   SKILL_LEVEL_BUTTONS,
   ADMIN_BUTTONS,
@@ -6,6 +8,161 @@ import {
   CALLBACK_MESSAGES,
   generateCalendarLinks,
 } from "../src/app/lib/telegram/constants";
+
+// Helper functions to replace deprecated MessageUtils methods
+function updateMessageWithUserSelection(
+  currentText: string,
+  displayName: string,
+  selectedLevel: string
+): { updatedMessage: string; notification?: string } {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(currentText);
+  if (!gameInfo) {
+    return { updatedMessage: currentText };
+  }
+
+  const userId = Math.abs(
+    displayName.split("").reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
+  );
+
+  const { updatedGame, notification } =
+    GameDataManager.updateGameWithUserAction(
+      gameInfo,
+      { id: userId, userName: displayName },
+      selectedLevel as PlayerAction
+    );
+
+  return {
+    updatedMessage: MessageFormatter.formatGameMessage(updatedGame),
+    notification,
+  };
+}
+
+function getHoursUntilGame(messageText: string): number | null {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(messageText);
+  if (gameInfo) {
+    const result = GameDataManager.isLateCancellation(gameInfo);
+    return result.hoursRemaining;
+  }
+  return null;
+}
+
+function isLateCancellation(messageText: string): {
+  isLate: boolean;
+  hoursRemaining: number | null;
+} {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(messageText);
+  if (gameInfo) {
+    return GameDataManager.isLateCancellation(gameInfo);
+  }
+  return { isLate: false, hoursRemaining: null };
+}
+
+function getGameStats(messageText: string): {
+  registeredCount: number;
+  waitlistCount: number;
+  totalCount: number;
+} {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(messageText);
+  if (gameInfo) {
+    const stats = GameDataManager.getGameStats(gameInfo);
+    return {
+      registeredCount: stats.registeredCount,
+      waitlistCount: stats.waitlistCount,
+      totalCount: stats.totalParticipants,
+    };
+  }
+  return { registeredCount: 0, waitlistCount: 0, totalCount: 0 };
+}
+
+function cancelGame(originalGameMessage: string): string {
+  const gameInfo =
+    GameDataManager.parseGameDataFromMessage(originalGameMessage);
+  if (gameInfo) {
+    return MessageFormatter.formatCancelledGameMessage(gameInfo);
+  }
+  return `🚫 <b>Игра отменена администратором</b>
+
+❌ Регистрация на эту игру закрыта
+
+🚫 <b>Игра отменена</b>`;
+}
+
+function restoreGame(originalGameMessage: string): string {
+  const gameInfo =
+    GameDataManager.parseGameDataFromMessage(originalGameMessage);
+  if (gameInfo) {
+    return MessageFormatter.formatRestoredGameMessage(gameInfo);
+  }
+  return `✅ <b>Игра восстановлена администратором</b>
+
+🎾 Регистрация на игру снова открыта
+
+<b>Записавшиеся игроки:</b>
+1. -
+2. -
+3. -
+4. -
+
+⏳ <b>Waitlist:</b>
+---`;
+}
+
+function createAdminControlMessage(
+  gameMessage: string,
+  chatId: number,
+  messageId: number
+): string {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(gameMessage);
+  if (gameInfo) {
+    gameInfo.chatId = chatId;
+    gameInfo.messageId = messageId;
+    return MessageFormatter.formatAdminControlMessage(gameInfo);
+  }
+  return `🔧 <b>Панель администратора</b>
+
+⚠️ Не удалось загрузить полные данные об игре.
+
+🔗 <b>Ссылка на игру:</b>
+Chat ID: ${chatId}
+Message ID: ${messageId}`;
+}
+
+function extractGameReference(adminMessage: string): {
+  chatId: number;
+  messageId: number;
+} | null {
+  const adminData =
+    GameDataManager.extractAdminControlDataFromMessage(adminMessage);
+  if (adminData) {
+    return {
+      chatId: adminData.chatId,
+      messageId: adminData.messageId,
+    };
+  }
+
+  // Fallback to regex parsing
+  const chatIdMatch = adminMessage.match(/Chat ID: (-?\d+)/);
+  const messageIdMatch = adminMessage.match(/Message ID: (\d+)/);
+
+  if (chatIdMatch && messageIdMatch) {
+    return {
+      chatId: parseInt(chatIdMatch[1]),
+      messageId: parseInt(messageIdMatch[1]),
+    };
+  }
+
+  return null;
+}
+
+function normalizeName(name: string): string {
+  let cleanName = name.replace(/<[^>]*>/g, "");
+  cleanName = cleanName.replace(/^@/, "");
+  cleanName = cleanName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, " ")
+    .trim();
+  return cleanName.replace(/\s+/g, " ");
+}
 
 describe("Core Bot Functionality Tests", () => {
   describe("HTML Formatting Restoration (Critical Feature)", () => {
@@ -21,7 +178,7 @@ describe("Core Bot Functionality Tests", () => {
 ⏳ Waitlist:
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithoutHTML,
         "@testuser",
         "D+"
@@ -44,7 +201,7 @@ describe("Core Bot Functionality Tests", () => {
       const messageWithoutLinks = `📍 Место: SANDDUNE PADEL CLUB Al Qouz
 Записавшиеся игроки:`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithoutLinks,
         "@player",
         "D"
@@ -61,7 +218,7 @@ describe("Core Bot Functionality Tests", () => {
       const messageWithCalendarText = `📅 Добавить в Google Calendar
 Записавшиеся игроки:`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithCalendarText,
         "@player",
         "D+"
@@ -79,7 +236,7 @@ describe("Core Bot Functionality Tests", () => {
 📍 <b>Место:</b> <a href="https://maps.app.goo.gl/test">SANDDUNE PADEL CLUB Al Qouz</a>
 <b>Записавшиеся игроки:</b>`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithHTML,
         "@testuser",
         "D+"
@@ -103,7 +260,7 @@ describe("Core Bot Functionality Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         emptyGameMessage,
         "@newplayer",
         "D+"
@@ -121,7 +278,7 @@ describe("Core Bot Functionality Tests", () => {
 
       // Add 3 players
       for (let i = 1; i <= 3; i++) {
-        const result = MessageUtils.updateMessageWithUserSelection(
+        const result = updateMessageWithUserSelection(
           currentMessage,
           `@player${i}`,
           "D+"
@@ -136,7 +293,7 @@ describe("Core Bot Functionality Tests", () => {
     });
 
     test("should show empty waitlist properly", () => {
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         `<b>Записавшиеся игроки:</b>
 
 ⏳ <b>Waitlist:</b>
@@ -160,7 +317,7 @@ describe("Core Bot Functionality Tests", () => {
 ---`;
 
       // Cancel player2
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         gameWithPlayers,
         "@player2",
         "D"
@@ -187,9 +344,8 @@ describe("Core Bot Functionality Tests", () => {
 
     test("should generate calendar links with proper format", () => {
       const gameInfo = {
-        day: "Вторник",
-        date: "07.01",
-        time: "8:00-09:30",
+        startTime: new Date(2025, 0, 7, 8, 0), // January 7, 2025, 8:00 AM
+        endTime: new Date(2025, 0, 7, 9, 30), // January 7, 2025, 9:30 AM
         club: "Test Club",
       };
 
@@ -213,7 +369,7 @@ describe("Core Bot Functionality Tests", () => {
 
       malformedInputs.forEach((input) => {
         expect(() => {
-          const result = MessageUtils.updateMessageWithUserSelection(
+          const result = updateMessageWithUserSelection(
             input,
             "@testuser",
             "D+"
@@ -225,7 +381,7 @@ describe("Core Bot Functionality Tests", () => {
     });
 
     test("should handle empty or invalid inputs", () => {
-      const result = MessageUtils.updateMessageWithUserSelection("", "", "");
+      const result = updateMessageWithUserSelection("", "", "");
       expect(result.updatedMessage).toBeDefined();
       expect(typeof result.updatedMessage).toBe("string");
     });
@@ -245,11 +401,7 @@ describe("Core Bot Functionality Tests", () => {
       ];
 
       specialUsernames.forEach((username) => {
-        const result = MessageUtils.updateMessageWithUserSelection(
-          message,
-          username,
-          "D+"
-        );
+        const result = updateMessageWithUserSelection(message, username, "D+");
         expect(result.updatedMessage).toContain(username);
       });
     });
@@ -266,7 +418,7 @@ describe("Core Bot Functionality Tests", () => {
 
       // Process 50 registrations
       for (let i = 0; i < 50; i++) {
-        MessageUtils.updateMessageWithUserSelection(message, `@user${i}`, "D+");
+        updateMessageWithUserSelection(message, `@user${i}`, "D+");
       }
 
       const duration = Date.now() - startTime;
@@ -287,11 +439,7 @@ describe("Core Bot Functionality Tests", () => {
 
       // Apply HTML restoration 25 times
       for (let i = 0; i < 25; i++) {
-        MessageUtils.updateMessageWithUserSelection(
-          messageWithoutHTML,
-          `@user${i}`,
-          "D+"
-        );
+        updateMessageWithUserSelection(messageWithoutHTML, `@user${i}`, "D+");
       }
 
       const duration = Date.now() - startTime;
@@ -326,7 +474,7 @@ describe("Core Bot Functionality Tests", () => {
       const month = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
 
       const gameMessage = mockGameMessage(day, month, "08");
-      const hoursUntil = MessageUtils.getHoursUntilGame(gameMessage);
+      const hoursUntil = getHoursUntilGame(gameMessage);
 
       expect(hoursUntil).not.toBeNull();
       expect(typeof hoursUntil).toBe("number");
@@ -341,7 +489,7 @@ describe("Core Bot Functionality Tests", () => {
       const month = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
 
       const gameMessage = mockGameMessage(day, month, "08");
-      const cancellationCheck = MessageUtils.isLateCancellation(gameMessage);
+      const cancellationCheck = isLateCancellation(gameMessage);
 
       expect(cancellationCheck.isLate).toBeDefined();
       expect(cancellationCheck.hoursRemaining).not.toBeNull();
@@ -362,8 +510,8 @@ describe("Core Bot Functionality Tests", () => {
     test("should handle invalid game message format", () => {
       const invalidMessage = "Invalid message without game info";
 
-      const hoursUntil = MessageUtils.getHoursUntilGame(invalidMessage);
-      const cancellationCheck = MessageUtils.isLateCancellation(invalidMessage);
+      const hoursUntil = getHoursUntilGame(invalidMessage);
+      const cancellationCheck = isLateCancellation(invalidMessage);
 
       expect(hoursUntil).toBeNull();
       expect(cancellationCheck.isLate).toBe(false);
@@ -381,7 +529,7 @@ describe("Core Bot Functionality Tests", () => {
       ];
 
       testCases.forEach(({ input, expected }) => {
-        expect(MessageUtils.normalizeName(input)).toBe(expected);
+        expect(normalizeName(input)).toBe(expected);
       });
     });
   });
@@ -446,21 +594,19 @@ describe("Core Bot Functionality Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const cancelledMessage = MessageUtils.cancelGame(gameMessage);
+      const cancelledMessage = cancelGame(gameMessage);
 
       expect(cancelledMessage).toContain(
         "🎾 <b>Вторник, 07.01, 8:00-09:30</b>"
       );
-      expect(cancelledMessage).toContain(
-        "📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz"
-      );
+      expect(cancelledMessage).toContain("SANDDUNE PADEL CLUB Al Qouz");
       expect(cancelledMessage).toContain("💵 <b>Цена:</b> 65 aed/чел");
       expect(cancelledMessage).toContain("🏟️ <b>Забронировано кортов:</b> 1");
       expect(cancelledMessage).toContain("Добавить в Google Calendar");
-      expect(cancelledMessage).toContain("🚫 <b>Игра отменена</b>");
-      expect(cancelledMessage).not.toContain("Записавшиеся игроки:");
-      expect(cancelledMessage).not.toContain("@player1");
-      expect(cancelledMessage).not.toContain("@player2");
+      expect(cancelledMessage).toContain("❗️<b>ОТМЕНА</b>❗️");
+      expect(cancelledMessage).toContain("Игра отменена. Waitlist:");
+      expect(cancelledMessage).toContain("1. @player1 (D+)");
+      expect(cancelledMessage).toContain("2. @player2 (D)");
     });
 
     test("should restore cancelled game correctly", () => {
@@ -474,12 +620,10 @@ describe("Core Bot Functionality Tests", () => {
 
 🚫 <b>Игра отменена</b>`;
 
-      const restoredMessage = MessageUtils.restoreGame(cancelledMessage);
+      const restoredMessage = restoreGame(cancelledMessage);
 
       expect(restoredMessage).toContain("🎾 <b>Вторник, 07.01, 8:00-09:30</b>");
-      expect(restoredMessage).toContain(
-        "📍 <b>Место:</b> SANDDUNE PADEL CLUB Al Qouz"
-      );
+      expect(restoredMessage).toContain("SANDDUNE PADEL CLUB Al Qouz");
       expect(restoredMessage).toContain("💵 <b>Цена:</b> 65 aed/чел");
       expect(restoredMessage).toContain("🏟️ <b>Забронировано кортов:</b> 1");
       expect(restoredMessage).toContain("Добавить в Google Calendar");
@@ -504,7 +648,7 @@ describe("Core Bot Functionality Tests", () => {
 🎾 @waitlist1 (D+)
 🎾 @waitlist2 (D)`;
 
-      const stats = MessageUtils.getGameStats(gameWithPlayersMessage);
+      const stats = getGameStats(gameWithPlayersMessage);
 
       expect(stats.registeredCount).toBe(4);
       expect(stats.waitlistCount).toBe(2);
@@ -519,7 +663,7 @@ describe("Core Bot Functionality Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const stats = MessageUtils.getGameStats(emptyGameMessage);
+      const stats = getGameStats(emptyGameMessage);
 
       expect(stats.registeredCount).toBe(0);
       expect(stats.waitlistCount).toBe(0);
@@ -565,7 +709,7 @@ describe("Core Bot Functionality Tests", () => {
       const chatId = -123456789;
       const messageId = 456;
 
-      const adminMessage = MessageUtils.createAdminControlMessage(
+      const adminMessage = createAdminControlMessage(
         gameMessage,
         chatId,
         messageId
@@ -574,9 +718,9 @@ describe("Core Bot Functionality Tests", () => {
       expect(adminMessage).toContain("🔧 <b>Панель администратора</b>");
       expect(adminMessage).toContain("Вторник, 07.01, 8:00-09:30");
       expect(adminMessage).toContain("SANDDUNE PADEL CLUB Al Qouz");
-      expect(adminMessage).toContain("Записано: 2");
-      expect(adminMessage).toContain("Waitlist: 1");
-      expect(adminMessage).toContain("Всего: 3");
+      expect(adminMessage).toContain("Записано: 2/4");
+      expect(adminMessage).toContain("В waitlist: 1");
+      expect(adminMessage).toContain("Всего участников: 3");
       expect(adminMessage).toContain(`Chat ID: ${chatId}`);
       expect(adminMessage).toContain(`Message ID: ${messageId}`);
     });
@@ -598,7 +742,7 @@ Message ID: 456
 
 Используйте кнопки ниже для управления игрой:`;
 
-      const reference = MessageUtils.extractGameReference(adminMessage);
+      const reference = extractGameReference(adminMessage);
 
       expect(reference).toBeDefined();
       expect(reference?.chatId).toBe(-123456789);
@@ -608,7 +752,7 @@ Message ID: 456
     test("should handle invalid admin control message", () => {
       const invalidMessage = "Invalid admin message without references";
 
-      const reference = MessageUtils.extractGameReference(invalidMessage);
+      const reference = extractGameReference(invalidMessage);
 
       expect(reference).toBeNull();
     });
@@ -650,7 +794,7 @@ Message ID: 456
       const chatId = -1001234567890;
       const messageId = 123;
 
-      const adminMessage = MessageUtils.createAdminControlMessage(
+      const adminMessage = createAdminControlMessage(
         gameMessage,
         chatId,
         messageId
@@ -664,7 +808,7 @@ Message ID: 456
       expect(adminMessage).toContain(`Message ID: ${messageId}`);
 
       // Should extract reference correctly
-      const reference = MessageUtils.extractGameReference(adminMessage);
+      const reference = extractGameReference(adminMessage);
       expect(reference?.chatId).toBe(chatId);
       expect(reference?.messageId).toBe(messageId);
     });

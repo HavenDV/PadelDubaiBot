@@ -63,24 +63,13 @@ export const CLUB_LOCATIONS = {
 
 // Helper function to generate calendar links
 export const generateCalendarLinks = (gameInfo: {
-  day: string;
-  date: string;
-  time: string;
+  startTime: Date;
+  endTime: Date;
   club: string;
 }) => {
-  // Parse date and time for calendar
-  const [startTime, endTime] = gameInfo.time.split("-");
-  const [day, month] = gameInfo.date.split(".");
-  const year = new Date().getFullYear();
-
-  // Create start and end dates (Dubai timezone)
-  const startDate = new Date(year, parseInt(month) - 1, parseInt(day));
-  const [startHour, startMinute] = startTime.split(":");
-  startDate.setHours(parseInt(startHour), parseInt(startMinute));
-
-  const endDate = new Date(startDate);
-  const [endHour, endMinute] = endTime.split(":");
-  endDate.setHours(parseInt(endHour), parseInt(endMinute));
+  // Use the provided Date objects directly (already in local timezone)
+  const startDate = gameInfo.startTime;
+  const endDate = gameInfo.endTime;
 
   // Convert to UTC for calendar URLs (Dubai is UTC+4, so we subtract 4 hours)
   const startUTC = new Date(startDate.getTime() - 4 * 60 * 60 * 1000); // Dubai is UTC+4
@@ -113,7 +102,28 @@ export const GAME_MESSAGE_TEMPLATE = (gameInfo: {
   cancelled?: boolean;
 }) => {
   const mapLink = CLUB_LOCATIONS[gameInfo.club as keyof typeof CLUB_LOCATIONS];
-  const calendar = generateCalendarLinks(gameInfo);
+
+  // Convert string date/time to Date objects for calendar generation
+  const [dayNum, monthNum] = gameInfo.date.split(".").map(Number);
+  const [startTimeStr, endTimeStr] = gameInfo.time.split("-");
+  const [startHour, startMin] = startTimeStr.split(":").map(Number);
+  const [endHour, endMin] = endTimeStr.split(":").map(Number);
+
+  const currentYear = new Date().getFullYear();
+  const startTime = new Date(
+    currentYear,
+    monthNum - 1,
+    dayNum,
+    startHour,
+    startMin
+  );
+  const endTime = new Date(currentYear, monthNum - 1, dayNum, endHour, endMin);
+
+  const calendar = generateCalendarLinks({
+    startTime,
+    endTime,
+    club: gameInfo.club,
+  });
 
   return `🎾 <b>${gameInfo.day}, ${gameInfo.date}, ${gameInfo.time}</b>
 
@@ -171,7 +181,7 @@ export const AdminUtils = {
   /**
    * Gets skill level buttons only (admin controls are sent privately)
    */
-  getButtonsForUser: (_userId: number) => {
+  getButtonsForUser: () => {
     // Always return only skill level buttons for public messages
     // Admin controls are handled via private messages
     return [...SKILL_LEVEL_BUTTONS];

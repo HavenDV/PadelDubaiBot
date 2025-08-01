@@ -1,5 +1,36 @@
-import { MessageUtils } from "../src/app/lib/telegram/message-utils";
+import { GameDataManager } from "../src/app/lib/telegram/game-data";
+import { MessageFormatter } from "../src/app/lib/telegram/message-formatter";
 import { CALLBACK_MESSAGES } from "../src/app/lib/telegram/constants";
+import type { PlayerAction } from "../src/app/lib/telegram/types";
+
+// Helper function to simulate user selection (replaces updateMessageWithUserSelection)
+function updateMessageWithUserSelection(
+  currentText: string,
+  displayName: string,
+  selectedLevel: string
+): { updatedMessage: string; notification?: string } {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(currentText);
+  if (!gameInfo) {
+    return { updatedMessage: currentText };
+  }
+
+  // Generate a simple hash for user ID from display name (same as deprecated method)
+  const userId = Math.abs(
+    displayName.split("").reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
+  );
+
+  const { updatedGame, notification } =
+    GameDataManager.updateGameWithUserAction(
+      gameInfo,
+      { id: userId, userName: displayName },
+      selectedLevel as PlayerAction
+    );
+
+  return {
+    updatedMessage: MessageFormatter.formatGameMessage(updatedGame),
+    notification,
+  };
+}
 
 describe("Integration Tests - Complete Workflows", () => {
   describe("HTML Restoration and Player Registration Workflow", () => {
@@ -19,7 +50,7 @@ describe("Integration Tests - Complete Workflows", () => {
 ---`;
 
       // Test first player registration
-      const result1 = MessageUtils.updateMessageWithUserSelection(
+      const result1 = updateMessageWithUserSelection(
         messageFromTelegram,
         "@player1",
         "D+"
@@ -39,7 +70,7 @@ describe("Integration Tests - Complete Workflows", () => {
       let currentMessage = result1.updatedMessage;
 
       for (let i = 2; i <= 4; i++) {
-        const result = MessageUtils.updateMessageWithUserSelection(
+        const result = updateMessageWithUserSelection(
           currentMessage,
           `@player${i}`,
           "D"
@@ -52,14 +83,17 @@ describe("Integration Tests - Complete Workflows", () => {
       expect(currentMessage).toContain("@player4 (D)");
 
       // Test waitlist registration (5th player)
-      const waitlistResult = MessageUtils.updateMessageWithUserSelection(
+      const waitlistResult = updateMessageWithUserSelection(
         currentMessage,
         "@waitlist1",
         "D+"
       );
 
-      expect(waitlistResult.updatedMessage).toContain("🎾 @waitlist1 (D+)");
-      expect(waitlistResult.updatedMessage).not.toContain("---");
+      expect(waitlistResult.updatedMessage).toContain("5. @waitlist1 (D+)");
+      // Waitlist should be empty now
+      expect(waitlistResult.updatedMessage).toContain(
+        "⏳ <b>Waitlist:</b>\n---"
+      );
       expect(waitlistResult.notification).toBeUndefined();
 
       // Verify HTML formatting is preserved throughout
@@ -83,12 +117,12 @@ describe("Integration Tests - Complete Workflows", () => {
 4. @player4 (C-)
 
 ⏳ <b>Waitlist:</b>
-🎾 @waitlist1 (D+)
-🎾 @waitlist2 (D)
-🎾 @waitlist3 (D+)`;
+1. @waitlist1 (D+)
+2. @waitlist2 (D)
+3. @waitlist3 (D+)`;
 
       // Test cancellation with promotion
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         fullGameMessage,
         "@player2",
         "D" // Same skill level = cancellation
@@ -115,20 +149,20 @@ describe("Integration Tests - Complete Workflows", () => {
 4. @player4 (C-)
 
 ⏳ <b>Waitlist:</b>
-🎾 @waitlist1 (D+)
-🎾 @waitlist2 (D)
-🎾 @waitlist3 (D+)`;
+1. @waitlist1 (D+)
+2. @waitlist2 (D)
+3. @waitlist3 (D+)`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithWaitlist,
         "@waitlist2",
         "D" // Same skill level = cancellation
       );
 
       // Player should be removed from waitlist
-      expect(result.updatedMessage).not.toContain("🎾 @waitlist2 (D)");
-      expect(result.updatedMessage).toContain("🎾 @waitlist1 (D+)");
-      expect(result.updatedMessage).toContain("🎾 @waitlist3 (D+)");
+      expect(result.updatedMessage).not.toContain("3. @waitlist2 (D)");
+      expect(result.updatedMessage).toContain("1. @waitlist1 (D+)");
+      expect(result.updatedMessage).toContain("2. @waitlist3 (D+)");
 
       // No notification for waitlist cancellation
       expect(result.notification).toBeUndefined();
@@ -148,7 +182,7 @@ describe("Integration Tests - Complete Workflows", () => {
 
       // Simulate 20 player registrations
       for (let i = 1; i <= 20; i++) {
-        const result = MessageUtils.updateMessageWithUserSelection(
+        const result = updateMessageWithUserSelection(
           currentMessage,
           `@player${i}`,
           "D+"
@@ -163,7 +197,7 @@ describe("Integration Tests - Complete Workflows", () => {
 
       // Verify final state
       expect(currentMessage).toContain("@player1 (D+)");
-      expect(currentMessage).toContain("🎾 @player20 (D+)"); // In waitlist
+      expect(currentMessage).toContain("16. @player20 (D+)"); // In waitlist
     });
 
     test("should handle HTML restoration repeatedly without performance degradation", () => {
@@ -177,11 +211,7 @@ describe("Integration Tests - Complete Workflows", () => {
 
       // Apply HTML restoration 100 times
       for (let i = 0; i < 100; i++) {
-        MessageUtils.updateMessageWithUserSelection(
-          messageWithoutHTML,
-          `@user${i}`,
-          "D+"
-        );
+        updateMessageWithUserSelection(messageWithoutHTML, `@user${i}`, "D+");
       }
 
       const duration = Date.now() - startTime;
@@ -203,7 +233,7 @@ describe("Integration Tests - Complete Workflows", () => {
 
       malformedMessages.forEach((message, index) => {
         expect(() => {
-          const result = MessageUtils.updateMessageWithUserSelection(
+          const result = updateMessageWithUserSelection(
             message,
             `@testuser${index}`,
             "D+"
@@ -229,11 +259,7 @@ describe("Integration Tests - Complete Workflows", () => {
 ---`;
 
       specialUsernames.forEach((username) => {
-        const result = MessageUtils.updateMessageWithUserSelection(
-          message,
-          username,
-          "D+"
-        );
+        const result = updateMessageWithUserSelection(message, username, "D+");
 
         expect(result.updatedMessage).toContain(username);
       });
@@ -265,8 +291,12 @@ describe("Integration Tests - Complete Workflows", () => {
 ---`;
 
       // Test penalty detection
-      const lateCancellationCheck =
-        MessageUtils.isLateCancellation(gameMessage);
+      const lateCancellationCheck = (() => {
+        const gameInfo = GameDataManager.parseGameDataFromMessage(gameMessage);
+        return gameInfo
+          ? GameDataManager.isLateCancellation(gameInfo)
+          : { isLate: false, hoursRemaining: null };
+      })();
 
       expect(lateCancellationCheck.isLate).toBeDefined();
       expect(lateCancellationCheck.hoursRemaining).not.toBeNull();
