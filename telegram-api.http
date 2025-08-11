@@ -11,6 +11,10 @@ GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/setWebhook?url={{NEXT_PUB
 ### Get Webhook Info
 GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/getWebhookInfo
 
+### Get Chat ID by Username (e.g., @PadDXB)
+# Replace @PadDXB with your group's username
+GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/getChat?chat_id=@PadDXB
+
 ### Test telegram bot API locally
 
 POST http://localhost:3000/api/telegram/webhook

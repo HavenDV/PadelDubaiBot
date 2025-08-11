@@ -81,9 +81,8 @@ describe("Telegram Constants and Helpers", () => {
 
   describe("generateCalendarLinks", () => {
     const gameInfo = {
-      day: "Вторник",
-      date: "07.01",
-      time: "8:00-09:30",
+      startTime: new Date(2025, 0, 7, 8, 0), // January 7, 2025, 8:00 AM
+      endTime: new Date(2025, 0, 7, 9, 30), // January 7, 2025, 9:30 AM
       club: "SANDDUNE PADEL CLUB Al Qouz",
     };
 

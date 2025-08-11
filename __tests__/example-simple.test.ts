@@ -1,9 +1,39 @@
-import { MessageUtils } from "../src/app/lib/telegram/message-utils";
+import { GameDataManager } from "../src/app/lib/telegram/game-data";
+import { MessageFormatter } from "../src/app/lib/telegram/message-formatter";
+import type { PlayerAction } from "../src/app/lib/telegram/types";
 import {
   SKILL_LEVEL_BUTTONS,
   WELCOME_MESSAGE_TEMPLATE,
   generateCalendarLinks,
 } from "../src/app/lib/telegram/constants";
+
+// Helper function to replace updateMessageWithUserSelection
+function updateMessageWithUserSelection(
+  currentText: string,
+  displayName: string,
+  selectedLevel: string
+): { updatedMessage: string; notification?: string } {
+  const gameInfo = GameDataManager.parseGameDataFromMessage(currentText);
+  if (!gameInfo) {
+    return { updatedMessage: currentText };
+  }
+
+  const userId = Math.abs(
+    displayName.split("").reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
+  );
+
+  const { updatedGame, notification } =
+    GameDataManager.updateGameWithUserAction(
+      gameInfo,
+      { id: userId, userName: displayName },
+      selectedLevel as PlayerAction
+    );
+
+  return {
+    updatedMessage: MessageFormatter.formatGameMessage(updatedGame),
+    notification,
+  };
+}
 
 describe("Example Tests - Simple Working Tests", () => {
   describe("HTML Formatting Restoration", () => {
@@ -18,7 +48,7 @@ describe("Example Tests - Simple Working Tests", () => {
 ⏳ Waitlist:
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         messageWithoutHTML,
         "@testuser",
         "D+"
@@ -35,11 +65,7 @@ describe("Example Tests - Simple Working Tests", () => {
 
 Записавшиеся игроки:`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
-        message,
-        "@player",
-        "D"
-      );
+      const result = updateMessageWithUserSelection(message, "@player", "D");
 
       expect(result.updatedMessage).toContain("maps.app.goo.gl");
       expect(result.updatedMessage).toContain("<a href=");
@@ -53,7 +79,7 @@ describe("Example Tests - Simple Working Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         emptyGameMessage,
         "@newplayer",
         "D+"
@@ -72,7 +98,7 @@ describe("Example Tests - Simple Working Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         gameWithPlayers,
         "@player3",
         "C-"
@@ -99,9 +125,8 @@ describe("Example Tests - Simple Working Tests", () => {
 
     test("should generate valid calendar links", () => {
       const gameInfo = {
-        day: "Вторник",
-        date: "07.01",
-        time: "8:00-09:30",
+        startTime: new Date(2025, 0, 7, 8, 0), // January 7, 2025, 8:00 AM
+        endTime: new Date(2025, 0, 7, 9, 30), // January 7, 2025, 9:30 AM
         club: "Test Club",
       };
 
@@ -117,7 +142,7 @@ describe("Example Tests - Simple Working Tests", () => {
     test("should handle malformed messages gracefully", () => {
       const malformedMessage = "Invalid message format";
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         malformedMessage,
         "@testuser",
         "D+"
@@ -129,7 +154,7 @@ describe("Example Tests - Simple Working Tests", () => {
     });
 
     test("should handle empty inputs", () => {
-      const result = MessageUtils.updateMessageWithUserSelection("", "", "");
+      const result = updateMessageWithUserSelection("", "", "");
 
       expect(result.updatedMessage).toBeDefined();
     });
@@ -140,7 +165,7 @@ describe("Example Tests - Simple Working Tests", () => {
 ⏳ <b>Waitlist:</b>
 ---`;
 
-      const result = MessageUtils.updateMessageWithUserSelection(
+      const result = updateMessageWithUserSelection(
         message,
         "@тест_пользователь",
         "D+"
@@ -161,7 +186,7 @@ describe("Example Tests - Simple Working Tests", () => {
 
       // Run 100 updates
       for (let i = 0; i < 100; i++) {
-        MessageUtils.updateMessageWithUserSelection(message, `@user${i}`, "D+");
+        updateMessageWithUserSelection(message, `@user${i}`, "D+");
       }
 
       const duration = Date.now() - startTime;
