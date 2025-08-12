@@ -40,6 +40,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          cancelled: boolean | null
+          chat_id: number
+          courts: number
+          created_at: string | null
+          end_time: string
+          id: number
+          location_id: number
+          max_players: number
+          message_id: number
+          note: string | null
+          price: string
+          start_time: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          cancelled?: boolean | null
+          chat_id: number
+          courts: number
+          created_at?: string | null
+          end_time: string
+          id?: number
+          location_id: number
+          max_players: number
+          message_id: number
+          note?: string | null
+          price: string
+          start_time: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          cancelled?: boolean | null
+          chat_id?: number
+          courts?: number
+          created_at?: string | null
+          end_time?: string
+          id?: number
+          location_id?: number
+          max_players?: number
+          message_id?: number
+          note?: string | null
+          price?: string
+          start_time?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string | null
@@ -63,6 +122,45 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      registrations: {
+        Row: {
+          booking_id: number
+          created_at: string | null
+          id: number
+          updated_at: string | null
+          user_id: number
+        }
+        Insert: {
+          booking_id: number
+          created_at?: string | null
+          id?: number
+          updated_at?: string | null
+          user_id: number
+        }
+        Update: {
+          booking_id?: number
+          created_at?: string | null
+          id?: number
+          updated_at?: string | null
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
