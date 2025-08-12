@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, UserInsert } from "../../../../../database.types";
 import { createHmac } from "node:crypto";
+import type {
+  TelegramAuthResponse,
+  TelegramAuthErrorResponse,
+} from "../../../types/telegram-auth";
 
 type TelegramUser = {
   id: number;
@@ -67,12 +71,15 @@ export async function POST(req: NextRequest) {
     const { user } = validateTelegramInitData(initDataRaw, botToken);
     tg = user;
   } catch {
-    return NextResponse.json({ error: "invalid-init-data" }, { status: 401 });
+    return NextResponse.json<TelegramAuthErrorResponse>(
+      { error: "invalid-init-data" },
+      { status: 401 }
+    );
   }
 
   // 2) Build deterministic synthetic email (RFC 2606 reserved TLD ".invalid")
   //    EN: never deliverable; used as unique identifier only.
-  const email = `tg-${tg.id}@telegram.invalid`;
+  const email = `${tg.id}@telegram.invalid`;
 
   // 3) Ensure user exists (Admin API, server-only service_role)
   const admin = createClient<Database>(
@@ -85,6 +92,7 @@ export async function POST(req: NextRequest) {
       email,
       email_confirm: true, // EN: mark as confirmed so no email flow is required
       user_metadata: { tg_id: tg.id, username: tg.username ?? null },
+      app_metadata: { tg_id: tg.id },
     })
     .catch(() => {
       // conflict -> ok
@@ -120,7 +128,10 @@ export async function POST(req: NextRequest) {
     email,
   });
   if (genErr)
-    return NextResponse.json({ error: genErr.message }, { status: 500 });
+    return NextResponse.json<TelegramAuthErrorResponse>(
+      { error: genErr.message },
+      { status: 500 }
+    );
   const tokenHash =
     (
       gen?.properties as
@@ -130,7 +141,10 @@ export async function POST(req: NextRequest) {
     (gen?.properties as { hashed_token?: string } | undefined)?.hashed_token ??
     "";
   if (!tokenHash)
-    return NextResponse.json({ error: "missing-token-hash" }, { status: 500 });
+    return NextResponse.json<TelegramAuthErrorResponse>(
+      { error: "missing-token-hash" },
+      { status: 500 }
+    );
 
   // 5) Exchange token_hash -> Supabase session (public client)
   const pub = createClient<Database>(
@@ -142,7 +156,7 @@ export async function POST(req: NextRequest) {
     type: "email",
   });
   if (verifyErr || !data.session)
-    return NextResponse.json(
+    return NextResponse.json<TelegramAuthErrorResponse>(
       { error: verifyErr?.message ?? "no-session" },
       { status: 500 }
     );
@@ -160,7 +174,7 @@ export async function POST(req: NextRequest) {
 
   // 7) Return session tokens to the client (use supabase.auth.setSession on client)
   const { access_token, refresh_token, expires_in } = data.session;
-  return NextResponse.json({
+  return NextResponse.json<TelegramAuthResponse>({
     access_token,
     refresh_token,
     expires_in,
