@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+description: Policy – Do not use @telegram-apps libraries; validate Telegram initData inline; use Supabase magic-link session flow
+---
+
+### Telegram Auth Policy
+
+- **No unofficial Telegram libraries**: Do not add or import any `@telegram-apps/*` packages (e.g., `@telegram-apps/init-data-node`). If such imports exist, replace them with inline verification helpers.
+
+- **Validate Telegram initData inline (server-side)**:
+
+  - Compute `data_check_string` by sorting all query params except `hash` and joining as `key=value` with newlines.
+  - Secret key = `HMAC_SHA256(bot_token, "WebAppData")`.
+  - Verify signature = `HMAC_SHA256(data_check_string, secret_key)` equals the provided `hash` (hex).
+  - Ensure `auth_date` is within 3600 seconds.
+  - Parse `user` JSON to get Telegram user fields.
+
+- **Supabase session strategy (no Legacy JWT)**:
+
+  - Use a deterministic synthetic email: `tg-${telegramId}@telegram.invalid`.
+  - Ensure user exists via Admin API with `email_confirm: true` (idempotent create).
+  - Generate a magic link and extract `token_hash` (property name may be `token_hash` or `hashed_token`).
+  - Exchange with `supabase.auth.verifyOtp({ token_hash, type: 'email' })` to get a real session.
+  - Required env vars: `TELEGRAM_BOT_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+- **Reference implementation**: See `src/app/api/telegram/auth/route.ts` [src/app/api/telegram/auth/route.ts](mdc:src/app/api/telegram/auth/route.ts)
+
+- **Code style**: Write code and comments in English.
