@@ -1,0 +1,32 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Supabase Declarative Schema
+
+## Overview
+This project uses Supabase's declarative schema approach as the source of truth for database structure and policies. Schema files in `supabase/schemas/` define the database state and migrations are generated using the diff tool.
+
+## Directory Structure
+- `supabase/schemas/` - Contains declarative SQL schema files
+- `supabase/migrations/` - Generated migration files
+- `supabase/config.toml` - Configuration for schema ordering
+
+## Workflow
+
+### Making Schema Changes
+1. Edit or create files in `supabase/schemas/`
+2. Generate a migration and apply changes:
+   ```bash
+   npm run migration:new your_migration_name  # Stops Supabase and creates migration
+   npm run supabase:start                     # Starts Supabase again
+   npm run migration:up                       # Applies migrations
+   npm run supabase:types                     # Regenerates TypeScript types
+   ```
+
+### Deploying Changes
+1. Just push your changes to repo.
+
+## Configuration
+Schema files are applied in the order specified in [supabase/config.toml](mdc:supabase/config.toml):
