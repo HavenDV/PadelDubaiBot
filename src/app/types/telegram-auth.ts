@@ -4,7 +4,6 @@ export interface TelegramAuthResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
-  isAdmin: boolean;
 }
 
 export interface TelegramAuthErrorResponse {

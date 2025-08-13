@@ -10,6 +10,13 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const run = async () => {
       try {
+        // If a session already exists, redirect home immediately
+        const { data: initialSession } = await supabase.auth.getSession();
+        if (initialSession.session) {
+          window.location.replace("/");
+          return;
+        }
+
         const url = new URL(window.location.href);
         const hasCode = !!url.searchParams.get("code");
 
@@ -17,6 +24,12 @@ export default function AuthCallbackPage() {
           const { error: exchangeError } =
             await supabase.auth.exchangeCodeForSession(window.location.href);
           if (exchangeError) {
+            // Some browsers may block storage causing PKCE verifier missing; check if session exists anyway
+            const { data: postExchange } = await supabase.auth.getSession();
+            if (postExchange.session) {
+              window.location.replace("/");
+              return;
+            }
             setStatus(`Error establishing session: ${exchangeError.message}`);
             return;
           }
@@ -47,18 +60,13 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Now read current user to reflect newly linked identity or session
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          setStatus(`Error: ${error.message}`);
+        // If we reached here without errors, redirect home to clear long URLs and hashes
+        const { data: finalSession } = await supabase.auth.getSession();
+        if (finalSession.session) {
+          window.location.replace("/");
           return;
         }
-        const providers = data.user?.identities?.map((i) => i.provider) || [];
-        setStatus(
-          providers.length > 0
-            ? "Account linking/sign-in complete. You can close this page."
-            : "Signed in, but no identities found."
-        );
+        setStatus("Signed in, but no active session detected.");
       } catch (e) {
         setStatus("Unexpected error completing authentication");
 

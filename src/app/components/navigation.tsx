@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useTelegram } from "@contexts/TelegramContext";
+import { useIsAdmin } from "../hooks/useIsAdmin";
+import { useIsAnonymous } from "../hooks/useIsAnonymous";
 import { ScreenName } from "../page";
 import { useEffect, useState } from "react";
 import { getUser } from "@lib/supabase-queries";
@@ -18,7 +20,9 @@ export default function Navigation({
   setActiveScreen,
   screenNames,
 }: NavigationProps) {
-  const { webApp, theme, isAdmin, isLoading, isAnonymous } = useTelegram();
+  const { webApp, theme, isLoading } = useTelegram();
+  const { isAnonymous } = useIsAnonymous();
+  const { isAdmin } = useIsAdmin();
   const [avatarUrl, setAvatarUrl] = useState<string>("/default-avatar.svg");
   // Keep for potential future use in tooltips or menus, but suppress linter for unused
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -107,23 +111,7 @@ export default function Navigation({
     if (webApp) loadFromUsers();
   }, [webApp]);
 
-  const handleOAuthLogin = async (provider: "google" | "apple") => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams:
-          provider === "google"
-            ? { access_type: "offline", prompt: "consent" }
-            : undefined,
-      },
-    });
-    if (error) {
-      console.error(`OAuth ${provider} error:`, error.message);
-      return;
-    }
-    if (data?.url) window.location.href = data.url;
-  };
+  // Sign-in UI removed from navigation; handled on landing page
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -148,7 +136,7 @@ export default function Navigation({
     >
       <div className="flex items-center gap-3">
         {webApp === null ? (
-          // Web mode: show OAuth buttons or avatar/signout
+          // Web mode: avatar/signout only when logged in
           webUserEmail ? (
             <div className="flex items-center gap-2">
               <div
@@ -177,58 +165,7 @@ export default function Navigation({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleOAuthLogin("google")}
-                className="w-8 h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center"
-                title="Sign in with Google"
-                aria-label="Sign in with Google"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="10" fill="#fff" stroke="#E5E7EB" />
-                  <text
-                    x="12"
-                    y="16"
-                    textAnchor="middle"
-                    fontSize="12"
-                    fill="#EA4335"
-                    fontFamily="system-ui, -apple-system, Segoe UI, Roboto"
-                  >
-                    G
-                  </text>
-                </svg>
-              </button>
-              <button
-                onClick={() => handleOAuthLogin("apple")}
-                className="w-8 h-8 rounded-full border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center"
-                title="Sign in with Apple"
-                aria-label="Sign in with Apple"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="10" fill="#000" />
-                  <text
-                    x="12"
-                    y="16"
-                    textAnchor="middle"
-                    fontSize="12"
-                    fill="#fff"
-                    fontFamily="system-ui, -apple-system, Segoe UI, Roboto"
-                  >
-                    
-                  </text>
-                </svg>
-              </button>
-            </div>
+            <div></div>
           )
         ) : isAnonymous ? (
           <div></div>
