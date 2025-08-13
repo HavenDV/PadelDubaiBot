@@ -25,6 +25,28 @@ COMMENT ON TABLE public.users IS 'Main users table storing Telegram user informa
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
+-- Helper to check admin flag from JWT app_metadata
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY INVOKER
+set search_path = ''
+stable
+AS $$
+  select coalesce((auth.jwt() -> 'app_metadata' ->> 'admin')::boolean, false)
+$$;
+
+-- Helper: is the given Telegram user id equal to current JWT user id
+CREATE OR REPLACE FUNCTION public.is_current_user(target_tg_id bigint)
+RETURNS boolean
+LANGUAGE sql
+SECURITY INVOKER
+set search_path = ''
+stable
+AS $$
+  select ((auth.jwt() -> 'app_metadata' ->> 'tg_id')::bigint = target_tg_id)
+$$;
+
 -- Enable Row Level Security
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
@@ -47,11 +69,11 @@ ON public.users FOR SELECT
 TO authenticated, anon
 USING (true);
 
-CREATE POLICY "Users can update own record" 
-ON public.users FOR UPDATE 
+CREATE POLICY "Users can update own record"
+ON public.users FOR UPDATE
 TO authenticated
-USING (auth.uid()::text = id::text) 
-WITH CHECK (auth.uid()::text = id::text);
+USING ((select public.is_current_user(id)))
+WITH CHECK ((select public.is_current_user(id)));
 
 -- Trigger to keep updated_at current on row modification
 CREATE OR REPLACE FUNCTION public.set_updated_at()

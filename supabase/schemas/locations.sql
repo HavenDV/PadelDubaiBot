@@ -21,13 +21,33 @@ REVOKE ALL ON TABLE public.locations FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.locations TO service_role;
 
 -- Allow public/client read access to non-sensitive columns
-GRANT SELECT (name, url) ON public.locations TO anon, authenticated;
+GRANT SELECT (id, name, url, created_at, updated_at) ON public.locations TO anon, authenticated;
+GRANT INSERT (name, url) ON public.locations TO authenticated;
+GRANT UPDATE (name, url) ON public.locations TO authenticated;
+GRANT DELETE ON public.locations TO authenticated;
 
 -- Create policies
 CREATE POLICY "Public locations are viewable by everyone"
 ON public.locations FOR SELECT
 TO authenticated, anon
 USING (true);
+
+-- Admin-only write policies
+CREATE POLICY "Only admins can insert locations"
+ON public.locations FOR INSERT
+TO authenticated
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Only admins can update locations"
+ON public.locations FOR UPDATE
+TO authenticated
+USING ((select public.is_admin()))
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Only admins can delete locations"
+ON public.locations FOR DELETE
+TO authenticated
+USING ((select public.is_admin()));
 
 -- Trigger to keep updated_at current on row modification (reuses public.set_updated_at)
 CREATE TRIGGER set_locations_updated_at

@@ -91,7 +91,15 @@ export async function POST(req: NextRequest) {
     .createUser({
       email,
       email_confirm: true, // EN: mark as confirmed so no email flow is required
-      user_metadata: { tg_id: tg.id, username: tg.username ?? null },
+      user_metadata: {
+        tg_id: tg.id,
+        username: tg.username ?? null,
+        first_name: tg.first_name ?? null,
+        last_name: tg.last_name ?? null,
+        photo_url: tg.photo_url ?? null,
+        avatar_url: tg.photo_url ?? null,
+        picture: tg.photo_url ?? null,
+      },
       app_metadata: { tg_id: tg.id },
     })
     .catch(() => {
@@ -122,6 +130,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { data: adminRow, error: adminErr } = await admin
+    .from("users")
+    .select("admin")
+    .eq("id", tg.id)
+    .single();
+  if (adminErr) {
+    console.error("Error fetching admin status:", adminErr);
+  }
+  const isAdmin = adminRow?.admin === true;
+
   // 4) Generate magic link to obtain token_hash (no email is sent)
   const { data: gen, error: genErr } = await admin.auth.admin.generateLink({
     type: "magiclink",
@@ -146,7 +164,36 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
 
-  // 5) Exchange token_hash -> Supabase session (public client)
+  try {
+    type GenerateLinkUser = { id?: string } | null | undefined;
+    const authUser = (gen as unknown as { user?: GenerateLinkUser })?.user;
+    const authUserId = authUser?.id;
+    if (authUserId) {
+      await admin.auth.admin.updateUserById(authUserId, {
+        // Ensure non-sensitive display fields live in user_metadata
+        user_metadata: {
+          tg_id: tg.id,
+          username: tg.username ?? null,
+          first_name: tg.first_name ?? null,
+          last_name: tg.last_name ?? null,
+          photo_url: tg.photo_url ?? null,
+          avatar_url: tg.photo_url ?? null,
+          picture: tg.photo_url ?? null,
+        },
+        // Authorization flags must be in app_metadata so they flow into JWT
+        app_metadata: {
+          tg_id: tg.id,
+          admin: isAdmin,
+        },
+      });
+    }
+  } catch (e) {
+    console.error(
+      "Failed to update auth user metadata with Telegram fields",
+      e
+    );
+  }
+
   const pub = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -160,17 +207,6 @@ export async function POST(req: NextRequest) {
       { error: verifyErr?.message ?? "no-session" },
       { status: 500 }
     );
-
-  // 6) Check admin flag from database
-  const { data: adminRow, error: adminErr } = await admin
-    .from("users")
-    .select("admin")
-    .eq("id", tg.id)
-    .single();
-  if (adminErr) {
-    console.error("Error fetching admin status:", adminErr);
-  }
-  const isAdmin = adminRow?.admin === true;
 
   // 7) Return session tokens to the client (use supabase.auth.setSession on client)
   const { access_token, refresh_token, expires_in } = data.session;

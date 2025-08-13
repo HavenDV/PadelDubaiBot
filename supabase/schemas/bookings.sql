@@ -44,12 +44,36 @@ GRANT ALL ON TABLE public.bookings TO service_role;
 GRANT SELECT (
   id, title, start_time, end_time, location_id, price, courts, max_players, note, cancelled, created_at, updated_at, chat_id, message_id
 ) ON public.bookings TO anon, authenticated;
+GRANT INSERT (
+  title, start_time, end_time, location_id, price, courts, max_players, note, cancelled, chat_id, message_id
+) ON public.bookings TO authenticated;
+GRANT UPDATE (
+  title, start_time, end_time, location_id, price, courts, max_players, note, cancelled, chat_id, message_id
+) ON public.bookings TO authenticated;
+GRANT DELETE ON public.bookings TO authenticated;
 
 -- Policies
 CREATE POLICY "Public bookings are viewable by everyone"
 ON public.bookings FOR SELECT
 TO authenticated, anon
 USING (true);
+
+-- Admin-only write policies
+CREATE POLICY "Only admins can insert bookings"
+ON public.bookings FOR INSERT
+TO authenticated
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Only admins can update bookings"
+ON public.bookings FOR UPDATE
+TO authenticated
+USING ((select public.is_admin()))
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Only admins can delete bookings"
+ON public.bookings FOR DELETE
+TO authenticated
+USING ((select public.is_admin()));
 
 -- Trigger to keep updated_at current on row modification
 CREATE TRIGGER set_bookings_updated_at
