@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../hooks/useUser";
 import { ScreenName } from "../page";
-import { useEffect, useState } from "react";
-import { getUser } from "@lib/supabase-queries";
+import {} from "react";
 import { supabase } from "@lib/supabase/client";
 
 interface NavigationProps {
@@ -20,94 +19,7 @@ export default function Navigation({
   screenNames,
 }: NavigationProps) {
   const { webApp, theme, isLoading } = useTelegram();
-  const { isAnonymous, isAdmin } = useUser();
-  const [avatarUrl, setAvatarUrl] = useState<string>("/default-avatar.svg");
-  // Keep for potential future use in tooltips or menus, but suppress linter for unused
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [firstName, setFirstName] = useState<string>("Player");
-  const [webUserEmail, setWebUserEmail] = useState<string | null>(null);
-
-  // Web (non-Telegram) auth: observe Supabase user
-  useEffect(() => {
-    if (webApp) return; // Only for web usage
-    let isMounted = true;
-    const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!isMounted) return;
-      setWebUserEmail(data.user?.email ?? null);
-      const meta = data.user?.user_metadata as
-        | { avatar_url?: string; picture?: string; photo_url?: string }
-        | undefined;
-      const candidate = meta?.avatar_url || meta?.picture || meta?.photo_url;
-      if (candidate) setAvatarUrl(candidate);
-      const nameMeta = data.user?.user_metadata as
-        | {
-            first_name?: string;
-            given_name?: string;
-            name?: string;
-            full_name?: string;
-          }
-        | undefined;
-      const resolvedName =
-        nameMeta?.first_name ||
-        nameMeta?.given_name ||
-        (nameMeta?.name ? nameMeta.name.split(" ")[0] : undefined) ||
-        (nameMeta?.full_name ? nameMeta.full_name.split(" ")[0] : undefined) ||
-        (data.user?.email ? data.user.email.split("@")[0] : undefined) ||
-        "Player";
-      setFirstName(resolvedName);
-    };
-    load();
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setWebUserEmail(session?.user?.email ?? null);
-      const meta = session?.user?.user_metadata as
-        | { avatar_url?: string; picture?: string; photo_url?: string }
-        | undefined;
-      const candidate = meta?.avatar_url || meta?.picture || meta?.photo_url;
-      if (candidate) setAvatarUrl(candidate);
-      const nameMeta = session?.user?.user_metadata as
-        | {
-            first_name?: string;
-            given_name?: string;
-            name?: string;
-            full_name?: string;
-          }
-        | undefined;
-      const resolvedName =
-        nameMeta?.first_name ||
-        nameMeta?.given_name ||
-        (nameMeta?.name ? nameMeta.name.split(" ")[0] : undefined) ||
-        (nameMeta?.full_name ? nameMeta.full_name.split(" ")[0] : undefined) ||
-        (session?.user?.email ? session.user.email.split("@")[0] : undefined) ||
-        "Player";
-      setFirstName(resolvedName);
-    });
-    return () => {
-      isMounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [webApp]);
-
-  // Telegram mode: prefer avatar from our public.users table
-  useEffect(() => {
-    const loadFromUsers = async () => {
-      try {
-        // userId is stored in localStorage by TelegramProvider
-        const idStr =
-          typeof window !== "undefined"
-            ? localStorage.getItem("telegram_user_id")
-            : null;
-        const tgId = idStr ? parseInt(idStr) : null;
-        if (!tgId) return;
-        const user = await getUser(tgId);
-        if (user?.photo_url) setAvatarUrl(user.photo_url);
-        if (user?.first_name) setFirstName(user.first_name);
-      } catch (e) {
-        console.error("Failed to load user avatar from database", e);
-      }
-    };
-    if (webApp) loadFromUsers();
-  }, [webApp]);
+  const { isAnonymous, isAdmin, email, avatarUrl } = useUser();
 
   // Sign-in UI removed from navigation; handled on landing page
 
@@ -135,7 +47,7 @@ export default function Navigation({
       <div className="flex items-center gap-3">
         {webApp === null ? (
           // Web mode: avatar/signout only when logged in
-          webUserEmail ? (
+          email ? (
             <div className="flex items-center gap-2">
               <div
                 className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"

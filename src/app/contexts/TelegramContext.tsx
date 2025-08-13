@@ -112,23 +112,12 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           if (initData?.user) {
             const { id } = initData.user;
 
-            // Save user ID to state and localStorage
             setUserId(id);
-            localStorage.setItem("telegram_user_id", id.toString());
-
-            // Server-side auth route already upserts user profile using service role.
-
-            // Telegram user id available
-          } else {
-            // No telegram user in initData
           }
         } catch (error) {
           console.error("Authentication error:", error);
           setIsLoading(false);
         }
-
-        // Simulate minimum loading time for smooth UX
-        setTimeout(() => setIsLoading(false), 300);
 
         // Return cleanup function
         return () => {
