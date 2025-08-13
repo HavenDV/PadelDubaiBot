@@ -119,6 +119,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           setIsLoading(false);
         }
 
+        setIsLoading(false);
+
         // Return cleanup function
         return () => {
           webApp.offEvent("themeChanged", handleThemeChange);
