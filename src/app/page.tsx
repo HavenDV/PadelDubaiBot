@@ -21,7 +21,7 @@ export type ScreenName =
 // | "schedules"
 
 export default function Home() {
-  const { theme } = useTelegram();
+  const { theme, isLoading: isTelegramLoading } = useTelegram();
   const { isAdmin } = useIsAdmin();
   const { isAnonymous, isLoading: anonLoading } = useIsAnonymous();
 
@@ -36,7 +36,7 @@ export default function Home() {
   };
 
   // Get visible navigation items (settings is accessed via avatar)
-  if (anonLoading) {
+  if (anonLoading || isTelegramLoading) {
     return (
       <div
         className={`${theme.bg} flex flex-auto items-center justify-center p-6`}
