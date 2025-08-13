@@ -2,8 +2,7 @@
 
 import { JSX, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
-import { useIsAdmin } from "./hooks/useIsAdmin";
-import { useIsAnonymous } from "./hooks/useIsAnonymous";
+import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
 import Settings from "@components/settings";
 import Navigation from "@components/navigation";
@@ -22,8 +21,7 @@ export type ScreenName =
 
 export default function Home() {
   const { theme, isLoading: isTelegramLoading } = useTelegram();
-  const { isAdmin } = useIsAdmin();
-  const { isAnonymous, isLoading: anonLoading } = useIsAnonymous();
+  const { isAdmin, isAnonymous, isLoading } = useUser();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("settings");
 
@@ -36,7 +34,7 @@ export default function Home() {
   };
 
   // Get visible navigation items (settings is accessed via avatar)
-  if (anonLoading || isTelegramLoading) {
+  if (isLoading || isTelegramLoading) {
     return (
       <div
         className={`${theme.bg} flex flex-auto items-center justify-center p-6`}

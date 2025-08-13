@@ -214,6 +214,5 @@ export async function POST(req: NextRequest) {
     access_token,
     refresh_token,
     expires_in,
-    isAdmin,
   });
 }

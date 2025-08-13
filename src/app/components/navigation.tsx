@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import { useTelegram } from "@contexts/TelegramContext";
-import { useIsAdmin } from "../hooks/useIsAdmin";
-import { useIsAnonymous } from "../hooks/useIsAnonymous";
+import { useUser } from "../hooks/useUser";
 import { ScreenName } from "../page";
 import { useEffect, useState } from "react";
 import { getUser } from "@lib/supabase-queries";
@@ -21,8 +20,7 @@ export default function Navigation({
   screenNames,
 }: NavigationProps) {
   const { webApp, theme, isLoading } = useTelegram();
-  const { isAnonymous } = useIsAnonymous();
-  const { isAdmin } = useIsAdmin();
+  const { isAnonymous, isAdmin } = useUser();
   const [avatarUrl, setAvatarUrl] = useState<string>("/default-avatar.svg");
   // Keep for potential future use in tooltips or menus, but suppress linter for unused
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
