@@ -2,23 +2,16 @@
 
 import { useTelegram } from "@contexts/TelegramContext";
 import { useState, useEffect, useCallback } from "react";
-import { getUser, upsertUser } from "@lib/supabase-queries";
+import { getUser } from "@lib/supabase-queries";
 import { supabase } from "@lib/supabase/client";
 
 export default function Settings() {
   const { theme, webApp } = useTelegram();
-  const [pickupHeight, setPickupHeight] = useState<number | undefined>(
-    undefined
-  );
-  const [shareStats, setShareStats] = useState<boolean>(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
   const [userId, setUserId] = useState<number | undefined>(undefined);
 
   // Linked accounts state
   const [primaryEmail, setPrimaryEmail] = useState<string | null>(null);
   const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
-  const [newEmail, setNewEmail] = useState<string>("");
   const [linkingProvider, setLinkingProvider] = useState<
     "google" | "apple" | null
   >(null);
@@ -94,71 +87,6 @@ export default function Settings() {
     }
   };
 
-  const handleChangeEmail = async () => {
-    setAuthMessage("");
-    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-      setAuthMessage("Please enter a valid email address");
-      return;
-    }
-    try {
-      const { data, error } = await supabase.auth.updateUser({
-        email: newEmail,
-      });
-      if (error) {
-        setAuthMessage(`Error updating email: ${error.message}`);
-        return;
-      }
-      setPrimaryEmail(data.user.email ?? newEmail);
-      setAuthMessage(
-        "Email update requested. Check your inbox to confirm the change."
-      );
-      setNewEmail("");
-    } catch (e) {
-      console.error(e);
-      setAuthMessage("Unexpected error updating email");
-    }
-  };
-
-  const handleSave = async () => {
-    if (!userId) return;
-
-    const { data: sess } = await supabase.auth.getSession();
-    console.log("Settings: current session user id", sess.session?.user?.id);
-
-    setIsSaving(true);
-    setSaveMessage("");
-
-    try {
-      const user = await getUser(userId);
-      console.log("Current user before update:", user);
-
-      await upsertUser(
-        user.id,
-        user.first_name,
-        user.last_name || undefined,
-        user.username || undefined,
-        user.photo_url || undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      );
-
-      console.log("Updated with pickup_height:", pickupHeight);
-
-      // Fetch the updated user data to verify changes
-      await fetchUserData();
-
-      setSaveMessage("Settings saved successfully");
-      setTimeout(() => setSaveMessage(""), 3000);
-    } catch (error) {
-      console.error("Error saving pickup height:", error);
-      setSaveMessage("Error saving");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <div className="p-4 space-y-6">
       <h2 className={`text-xl font-bold ${theme.text} mb-4`}>Settings</h2>
@@ -228,102 +156,6 @@ export default function Settings() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Change Email Section */}
-      <div className="space-y-3">
-        <label className={`block text-sm font-medium ${theme.text}`}>
-          Attach real email
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="email"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-            placeholder="Enter your email"
-            className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-              theme.cardBg || "border-gray-300 bg-white"
-            } ${theme.text || "text-black"}`}
-          />
-          <button
-            onClick={handleChangeEmail}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-          >
-            Save email
-          </button>
-        </div>
-        <p className={`text-xs ${theme.secondaryText || "text-gray-500"}`}>
-          Changing email may require email confirmation. After confirming, you
-          can sign in with this email in addition to Telegram.
-        </p>
-      </div>
-
-      {/* Pickup Height Section */}
-      <div className="space-y-3">
-        <label className={`block text-sm font-medium ${theme.text}`}>
-          Pickup Height (cm)
-        </label>
-        <div className="flex items-center space-x-2">
-          <input
-            type="number"
-            value={pickupHeight ?? ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              setPickupHeight(value ? parseInt(value, 10) : undefined);
-            }}
-            placeholder="Enter height in cm"
-            className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-              theme.cardBg || "border-gray-300 bg-white"
-            } ${theme.text || "text-black"}`}
-            min="140"
-            max="220"
-          />
-        </div>
-        <p className={`text-xs ${theme.secondaryText || "text-gray-500"}`}>
-          Your height for calculating pickup game compatibility
-        </p>
-        {saveMessage && (
-          <p
-            className={`text-sm ${
-              saveMessage.includes("Error") ? "text-red-500" : "text-green-500"
-            }`}
-          >
-            {saveMessage}
-          </p>
-        )}
-      </div>
-
-      {/* Share Statistics Section */}
-      <div className="space-y-3">
-        <label className={`block text-sm font-medium ${theme.text}`}>
-          Share my statistics publicly
-        </label>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={shareStats}
-            onChange={(e) => setShareStats(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <span className={`text-sm ${theme.secondaryText || "text-gray-500"}`}>
-            Allow my statistics to be visible to others
-          </span>
-        </div>
-      </div>
-
-      {/* Save Button */}
-      <div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            isSaving
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </button>
       </div>
     </div>
   );

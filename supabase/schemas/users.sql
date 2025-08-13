@@ -57,8 +57,8 @@ REVOKE ALL ON TABLE public.users FROM PUBLIC, anon, authenticated;
 -- Ensure backend has full access
 GRANT ALL ON TABLE public.users TO service_role;
 
--- Allow clients to read ONLY the explicit_name column
-GRANT SELECT (explicit_name) ON public.users TO anon, authenticated;
+-- Allow clients to read safe profile columns
+GRANT SELECT (id, first_name, last_name, username, photo_url, explicit_name, created_at, updated_at, admin) ON public.users TO anon, authenticated;
 
 -- Allow clients to update ONLY the explicit_name column (combined with RLS policy below)
 GRANT UPDATE (explicit_name) ON public.users TO authenticated;

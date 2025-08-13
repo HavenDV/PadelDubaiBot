@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -218,7 +217,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user: {
+        Args: { target_tg_id: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

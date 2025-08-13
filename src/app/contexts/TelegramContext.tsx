@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { isAdmin as checkIsAdmin, upsertUser } from "../lib/supabase-queries";
+import { isAdmin as checkIsAdmin } from "../lib/supabase-queries";
 import { useTelegramTheme } from "../hooks/useTelegramTheme";
 import { setAuthToken } from "@lib/supabase/client";
 import type {
@@ -259,17 +259,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
             setUserId(id);
             localStorage.setItem("telegram_user_id", id.toString());
 
-            await upsertUser(
-              id,
-              first_name,
-              last_name,
-              username,
-              photo_url,
-              language_code,
-              is_premium,
-              allows_write_to_pm,
-              is_bot
-            );
+            // Server-side auth route already upserts user profile using service role.
 
             // User has Telegram ID, not anonymous
             setIsAnonymous(false);

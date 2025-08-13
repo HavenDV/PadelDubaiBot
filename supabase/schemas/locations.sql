@@ -22,6 +22,7 @@ GRANT ALL ON TABLE public.locations TO service_role;
 
 -- Allow public/client read access to non-sensitive columns
 GRANT SELECT (id, name, url, created_at, updated_at) ON public.locations TO anon, authenticated;
+GRANT SELECT ON TABLE public.locations TO anon, authenticated;
 GRANT INSERT (name, url) ON public.locations TO authenticated;
 GRANT UPDATE (name, url) ON public.locations TO authenticated;
 GRANT DELETE ON public.locations TO authenticated;
