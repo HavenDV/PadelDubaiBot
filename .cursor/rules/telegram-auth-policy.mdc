@@ -21,7 +21,7 @@ description: Policy – Do not use @telegram-apps libraries; validate Telegram i
   - Ensure user exists via Admin API with `email_confirm: true` (idempotent create).
   - Generate a magic link and extract `token_hash` (property name may be `token_hash` or `hashed_token`).
   - Exchange with `supabase.auth.verifyOtp({ token_hash, type: 'email' })` to get a real session.
-  - Required env vars: `TELEGRAM_BOT_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+  - Required env vars: `TELEGRAM_BOT_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 
 - **Reference implementation**: See `src/app/api/telegram/auth/route.ts` [src/app/api/telegram/auth/route.ts](mdc:src/app/api/telegram/auth/route.ts)
 
