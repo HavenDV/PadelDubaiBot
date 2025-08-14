@@ -57,18 +57,8 @@ export default function Home() {
     login: <Login />,
   };
 
-  // Show loading screen only when resolving authenticated sessions
-  const shouldShowLoading = (() => {
-    if (webApp === null) {
-      // Web mode: show loading when resolving authenticated user
-      return !isAnonymous && (isTelegramLoading || isAuthorizing || isLoading);
-    } else {
-      // Telegram mode: only show loading when user is authenticated but still loading
-      return !isAnonymous && isLoading;
-    }
-  })();
-
-  if (shouldShowLoading) {
+  // Show loading screen only in Web mode when resolving authenticated sessions
+  if (webApp === null && !isAnonymous && (isTelegramLoading || isAuthorizing || isLoading)) {
     const loadingMessage = isAuthorizing ? "Authorizing…" : "Loading account…";
 
     return (
@@ -79,6 +69,7 @@ export default function Home() {
       </div>
     );
   }
+  // Telegram mode: Never show full-screen loading - always show the app with navigation indicator
 
   const visibleScreens = (() => {
     if (webApp === null) {
