@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
+import { useUser } from "../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
 import { Location } from "../../../database.types";
 import Image from "next/image";
 
 export default function Locations() {
   const { theme } = useTelegram();
+  const { isAdmin } = useUser();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -128,117 +130,137 @@ export default function Locations() {
 
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            placeholder="Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-              theme.cardBg || "border-gray-300 bg-white"
-            } ${theme.text || "text-black"}`}
-          />
-          <input
-            type="url"
-            placeholder="Maps URL"
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-            className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-              theme.cardBg || "border-gray-300 bg-white"
-            } ${theme.text || "text-black"}`}
-          />
-          <button
-            onClick={handleCreate}
-            disabled={loading || !newName || !newUrl}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              loading
-                ? "bg-gray-300 text-gray-500"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
-          >
-            Add
-          </button>
+      {isAdmin && (
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className={`flex-1 px-3 py-2 border rounded-md text-sm ${
+                theme.cardBg || "border-gray-300 bg-white"
+              } ${theme.text || "text-black"}`}
+            />
+            <input
+              type="url"
+              placeholder="Maps URL"
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              className={`flex-1 px-3 py-2 border rounded-md text-sm ${
+                theme.cardBg || "border-gray-300 bg-white"
+              } ${theme.text || "text-black"}`}
+            />
+            <button
+              onClick={handleCreate}
+              disabled={loading || !newName || !newUrl}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                loading
+                  ? "bg-gray-300 text-gray-500"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
+            >
+              Add
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="divide-y divide-gray-200/40">
-        {locations.map((loc) => (
-          <div
-            key={loc.id}
-            className="py-3 flex flex-col sm:flex-row sm:items-center gap-2"
-          >
-            {editingId === loc.id ? (
-              <div className="flex-1 flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                    theme.cardBg || "border-gray-300 bg-white"
-                  } ${theme.text || "text-black"}`}
-                />
-                <input
-                  type="url"
-                  value={editUrl}
-                  onChange={(e) => setEditUrl(e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                    theme.cardBg || "border-gray-300 bg-white"
-                  } ${theme.text || "text-black"}`}
-                />
-              </div>
-            ) : (
+      {loading && locations.length === 0 ? (
+        <div className="divide-y divide-gray-200/40">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 animate-pulse"
+            >
               <div className="flex-1">
-                <div className={`font-medium ${theme.text}`}>{loc.name}</div>
-                <a
-                  href={loc.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  {loc.url}
-                </a>
+                <div className="h-5 bg-gray-300 rounded w-48 mb-1" />
+                <div className="h-4 bg-gray-200 rounded w-72" />
               </div>
-            )}
-            <div className="flex gap-2">
-              {editingId === loc.id ? (
-                <>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-3 py-2 rounded-md text-sm bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="px-3 py-2 rounded-md text-sm bg-gray-200 hover:bg-gray-300 text-gray-800"
-                  >
-                    Cancel
-                  </button>
-                </>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-200/40">
+          {locations.map((loc) => (
+            <div
+              key={loc.id}
+              className="py-3 flex flex-col sm:flex-row sm:items-center gap-2"
+            >
+              {isAdmin && editingId === loc.id ? (
+                <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm ${
+                      theme.cardBg || "border-gray-300 bg-white"
+                    } ${theme.text || "text-black"}`}
+                  />
+                  <input
+                    type="url"
+                    value={editUrl}
+                    onChange={(e) => setEditUrl(e.target.value)}
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm ${
+                      theme.cardBg || "border-gray-300 bg-white"
+                    } ${theme.text || "text-black"}`}
+                  />
+                </div>
               ) : (
-                <>
-                  <button
-                    onClick={() => startEdit(loc)}
-                    className="px-3 py-2 rounded-md text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
+                <div className="flex-1">
+                  <div className={`font-medium ${theme.text}`}>{loc.name}</div>
+                  <a
+                    href={loc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-blue-600 hover:underline"
                   >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(loc.id)}
-                    className="px-3 py-2 rounded-md text-sm bg-red-500 hover:bg-red-600 text-white"
-                  >
-                    Remove
-                  </button>
-                </>
+                    {loc.url}
+                  </a>
+                </div>
+              )}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  {editingId === loc.id ? (
+                    <>
+                      <button
+                        onClick={handleSaveEdit}
+                        className="px-3 py-2 rounded-md text-sm bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-2 rounded-md text-sm bg-gray-200 hover:bg-gray-300 text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => startEdit(loc)}
+                        className="px-3 py-2 rounded-md text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(loc.id)}
+                        className="px-3 py-2 rounded-md text-sm bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-        ))}
-        {!loading && locations.length === 0 && (
-          <div className="py-6 text-sm text-gray-500">No locations yet</div>
-        )}
-      </div>
+          ))}
+          {!loading && locations.length === 0 && (
+            <div className="py-6 text-sm text-gray-500">No locations yet</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

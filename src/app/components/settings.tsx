@@ -4,9 +4,12 @@ import { useTelegram } from "@contexts/TelegramContext";
 import { useState, useEffect, useCallback } from "react";
 import { getUser } from "@lib/supabase-queries";
 import { supabase } from "@lib/supabase/client";
+import { useUser } from "../hooks/useUser";
+import TelegramLoginButton from "./TelegramLoginButton";
 
 export default function Settings() {
   const { theme, webApp } = useTelegram();
+  const { isAnonymous } = useUser();
   const [userId, setUserId] = useState<number | undefined>(undefined);
 
   // Linked accounts state
@@ -43,23 +46,29 @@ export default function Settings() {
     }
   }, [userId, fetchUserData]);
 
-  // Fetch auth profile (email + linked identities)
+  // Fetch auth profile (email + linked identities) only when logged in
   useEffect(() => {
+    if (isAnonymous) return;
     const loadAuthProfile = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Error loading auth user:", error);
-        return;
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error loading auth user:", error);
+          return;
+        }
+        const user = data.user;
+        setPrimaryEmail(user?.email ?? null);
+        const providers = (user?.identities ?? [])
+          .map((i) => i.provider)
+          .filter(Boolean) as string[];
+        setLinkedProviders(providers);
+      } catch (e) {
+        // Some versions throw AuthSessionMissingError when no session exists.
+        console.error("Error loading auth user (caught):", e);
       }
-      const user = data.user;
-      setPrimaryEmail(user?.email ?? null);
-      const providers = (user?.identities ?? [])
-        .map((i) => i.provider)
-        .filter(Boolean) as string[];
-      setLinkedProviders(providers);
     };
     loadAuthProfile();
-  }, []);
+  }, [isAnonymous]);
 
   const handleLinkProvider = async (provider: "google" | "apple") => {
     setAuthMessage("");

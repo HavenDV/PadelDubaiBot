@@ -1,0 +1,126 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Development Commands
+
+### Primary Commands
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build production bundle
+- `npm run lint` - Run ESLint for code quality
+- `npm test` - Run Jest test suite
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage report
+
+### Supabase Database Commands
+- `npm run supabase:start` - Start local Supabase instance
+- `npm run supabase:stop` - Stop local Supabase instance
+- `npm run supabase:reset` - Reset local database
+- `npm run supabase:types` - Generate TypeScript types from local schema
+- `npm run supabase:types:remote` - Generate TypeScript types from remote schema
+- `npm run migration:new` - Create new migration file
+- `npm run migration:up` - Apply pending migrations
+
+### Development Tools
+- `npm run tunnel` - Expose local dev server via devtunnel (for webhook testing)
+- `npm run tunnel2` - Expose local dev server via ngrok (alternative)
+
+## Architecture Overview
+
+### Core Structure
+This is a **Telegram Bot for Padel Game Organization** built with:
+- **Next.js 15** with App Router (Server Components by default)
+- **TypeScript** for type safety
+- **Supabase** for authentication and database
+- **Telegram Bot API** for chat interactions
+- **OpenAI GPT-4.1 Nano** for AI-powered responses
+- **Edge Runtime** for zero cold-start webhook responses
+
+### Key Directories
+- `src/app/api/telegram/` - Telegram webhook and API endpoints
+- `src/app/lib/telegram/` - Core Telegram bot logic and utilities
+- `src/app/lib/supabase/` - Database client and queries
+- `src/app/components/` - React components for admin interface
+- `supabase/` - Database schema, migrations, and RLS policies
+- `__tests__/` - Jest test suite
+
+### Telegram Bot Architecture
+The bot uses a **data-first architecture** with clear separation:
+
+1. **TelegramAPI** (`api.ts`) - Low-level Telegram API wrapper with retry logic
+2. **GameDataManager** (`game-data.ts`) - Parses and manages game state from messages
+3. **MessageFormatter** (`message-formatter.ts`) - Formats messages and handles player registration
+4. **AdminUtils** (`constants.ts`) - Admin permissions and controls
+5. **Types** (`types.ts`) - TypeScript interfaces for all data structures
+
+### Key Features
+- **Skill-based registration** (E, D, D+, C-, C, C+)
+- **Automatic waitlist management** (4 players max per game)
+- **Admin controls** via private messages (cancel/restore games, statistics)
+- **Late cancellation penalties** (24-hour rule enforcement)
+- **Calendar integration** (Google Calendar links)
+- **Location mapping** (Google Maps integration)
+- **AI responses** when bot is mentioned
+- **Welcome messages** for new group members
+
+## Database Schema (Supabase)
+
+### Core Tables
+- `users` - User profiles with Telegram data
+- `locations` - Padel club locations
+- `bookings` - Game bookings and registration
+- `registrations` - Player registrations per game
+
+### Row Level Security (RLS)
+All tables use RLS policies for secure data access. Admin users have elevated permissions.
+
+## Testing
+
+- **Jest** with TypeScript support
+- Tests located in `__tests__/` directory
+- Coverage reports generated in `coverage/` directory
+- Setup file: `jest.setup.js`
+
+## Environment Variables Required
+
+```bash
+TELEGRAM_BOT_TOKEN=<bot_token_from_botfather>
+CHAT_ID=<telegram_group_chat_id>
+OPENAI_API_KEY=<openai_api_key>
+NEXT_PUBLIC_SUPABASE_URL=<supabase_project_url>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<supabase_anon_key>
+```
+
+## Deployment (Vercel)
+
+- Uses `vercel.json` for configuration
+- Edge Runtime for webhook endpoints
+- Cron job runs weekly at 8 AM Dubai time (`0 8 * * 1`)
+- 60-second timeout for webhook processing
+
+## Admin Configuration
+
+Admin user IDs are configured in `src/app/lib/telegram/constants.ts`:
+```typescript
+export const ADMIN_USER_IDS = [
+  // Add Telegram user IDs here
+] as const;
+```
+
+## Code Conventions
+
+- Use Server Components by default (mark Client Components with `'use client'`)
+- Follow Next.js App Router patterns
+- Place Telegram logic in `src/app/lib/telegram/`
+- Use TypeScript interfaces from `types.ts`
+- Handle errors gracefully with proper logging
+- Implement rate limiting for Telegram API calls
+- Use Supabase RLS for data security
+
+## Key Files to Understand
+
+- `src/app/api/telegram/webhook/route.ts` - Main webhook handler
+- `src/app/lib/telegram/constants.ts` - Configuration and admin settings
+- `src/app/lib/telegram/game-data.ts` - Game state management
+- `supabase/migrations/` - Database schema changes
+- `vercel.json` - Deployment and cron configuration

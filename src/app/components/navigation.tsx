@@ -31,6 +31,7 @@ export default function Navigation({
     settings: "/settings.svg",
     locations: "/location.svg",
     bookings: "/calendar.svg",
+    login: "/login.svg",
     // history: "/history.svg",
     // schedules: "/calendar.svg",
   };
@@ -56,7 +57,7 @@ export default function Navigation({
               >
                 <div className="overflow-hidden rounded-full relative">
                   <Image
-                    src={avatarUrl}
+                    src={avatarUrl || "/settings.svg"}
                     alt="User Photo"
                     width={40}
                     height={40}
@@ -75,7 +76,27 @@ export default function Navigation({
               </button>
             </div>
           ) : (
-            <div></div>
+            <div
+              className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
+              onClick={() => setActiveScreen("login")}
+              title="Sign in"
+            >
+              <div className="overflow-hidden rounded-full relative">
+                <Image
+                  src={"/login.svg"}
+                  alt="Sign in"
+                  width={40}
+                  height={40}
+                  priority
+                  className={`rounded-full transition-all duration-200 ${
+                    activeScreen === "login"
+                      ? "ring-2 ring-offset-1 ring-[#4CD964]"
+                      : "group-hover:brightness-110"
+                  }`}
+                />
+                <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
+              </div>
+            </div>
           )
         ) : isAnonymous ? (
           <div></div>
@@ -89,7 +110,7 @@ export default function Navigation({
           >
             <div className="overflow-hidden rounded-full relative">
               <Image
-                src={avatarUrl}
+                src={avatarUrl || "/settings.svg"}
                 alt="User Photo"
                 width={40}
                 height={40}
@@ -121,28 +142,30 @@ export default function Navigation({
       </div>
 
       <div className="flex space-x-4">
-        {screenNames.map((screen) => (
-          <button
-            key={screen}
-            onClick={() => setActiveScreen(screen)}
-            className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
-              activeScreen === screen
-                ? `${theme.primaryButton} hover:brightness-110`
-                : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
-            }`}
-            style={activeScreen === screen ? theme.primaryButtonStyle : {}}
-            title={screen.charAt(0).toUpperCase() + screen.slice(1)}
-          >
-            <Image
-              src={iconMap[screen]}
-              alt={screen}
-              width={24}
-              height={24}
-              priority
-              className={activeScreen === screen ? "brightness-0 invert" : ""}
-            />
-          </button>
-        ))}
+        {screenNames
+          .filter((screen) => screen !== "login")
+          .map((screen) => (
+            <button
+              key={screen}
+              onClick={() => setActiveScreen(screen)}
+              className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
+                activeScreen === screen
+                  ? `${theme.primaryButton} hover:brightness-110`
+                  : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
+              }`}
+              style={activeScreen === screen ? theme.primaryButtonStyle : {}}
+              title={screen.charAt(0).toUpperCase() + screen.slice(1)}
+            >
+              <Image
+                src={iconMap[screen]}
+                alt={screen}
+                width={24}
+                height={24}
+                priority
+                className={activeScreen === screen ? "brightness-0 invert" : ""}
+              />
+            </button>
+          ))}
       </div>
     </nav>
   );
