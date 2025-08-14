@@ -1,10 +1,9 @@
 "use client";
 
-import { JSX, useEffect, useState } from "react";
+import { JSX, useEffect, useRef, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
-import Script from "next/script";
 import Settings from "@components/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
@@ -32,6 +31,7 @@ export default function Home() {
   const [activeScreen, setActiveScreen] = useState<ScreenName>("settings");
   const [showTelegramWidget, setShowTelegramWidget] = useState(false);
   const [telegramAuthUrl, setTelegramAuthUrl] = useState<string | null>(null);
+  const telegramWidgetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -55,6 +55,37 @@ export default function Home() {
       isAllowed ? `${window.location.origin}/callbacks/auth/telegram` : null
     );
   }, [webApp]);
+
+  // Dynamically inject Telegram Login Widget script when allowed
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const container = telegramWidgetRef.current;
+    // Cleanup any previous script/iframe
+    if (container) container.innerHTML = "";
+
+    if (!showTelegramWidget || !telegramAuthUrl || !container) return;
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login", "padel_dubai_bot");
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "8");
+    script.setAttribute("data-auth-url", telegramAuthUrl);
+    script.setAttribute("data-request-access", "write");
+    script.onload = () => {
+      try {
+        console.log("Telegram widget script (injected) loaded");
+      } catch {}
+    };
+    container.appendChild(script);
+
+    return () => {
+      try {
+        if (container) container.innerHTML = "";
+      } catch {}
+    };
+  }, [showTelegramWidget, telegramAuthUrl]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -136,24 +167,10 @@ export default function Home() {
                 Continue with Google
               </button>
               {showTelegramWidget && telegramAuthUrl && (
-                <div className="inline-flex rounded-md">
-                  <Script
-                    key="telegram-login-widget"
-                    async
-                    src="https://telegram.org/js/telegram-widget.js?22"
-                    data-telegram-login="padel_dubai_bot"
-                    data-size="large"
-                    data-radius="8"
-                    data-auth-url={telegramAuthUrl}
-                    data-request-access="write"
-                    strategy="afterInteractive"
-                    onLoad={() => {
-                      try {
-                        console.log("Telegram widget script loaded");
-                      } catch {}
-                    }}
-                  />
-                </div>
+                <div
+                  className="inline-flex rounded-md"
+                  ref={telegramWidgetRef}
+                />
               )}
             </div>
           </div>
