@@ -1,6 +1,6 @@
 "use client";
 
-import { JSX, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
@@ -25,6 +25,18 @@ export default function Home() {
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("settings");
+  const [showTelegramWidget, setShowTelegramWidget] = useState(false);
+  const [telegramAuthUrl, setTelegramAuthUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const allowedHost = "padel-dubai-bot-five.vercel.app";
+    const isAllowed = window.location.hostname === allowedHost;
+    setShowTelegramWidget(isAllowed);
+    setTelegramAuthUrl(
+      isAllowed ? `https://${allowedHost}/callbacks/auth/telegram` : null
+    );
+  }, []);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -84,17 +96,17 @@ export default function Home() {
             >
               Continue with Google
             </button>
-            <Script
-              async
-              src="https://telegram.org/js/telegram-widget.js?22"
-              data-telegram-login="padel_dubai_bot"
-              data-size="large"
-              data-auth-url={`${
-                typeof window !== "undefined" ? window.location.origin : ""
-              }/callbacks/auth/telegram`}
-              data-request-access="write"
-              strategy="afterInteractive"
-            />
+            {showTelegramWidget && telegramAuthUrl && (
+              <Script
+                async
+                src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="padel_dubai_bot"
+                data-size="large"
+                data-auth-url={telegramAuthUrl}
+                data-request-access="write"
+                strategy="afterInteractive"
+              />
+            )}
           </div>
         </div>
       </div>
