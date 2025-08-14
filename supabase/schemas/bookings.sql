@@ -44,6 +44,7 @@ GRANT ALL ON TABLE public.bookings TO service_role;
 GRANT SELECT (
   id, title, start_time, end_time, location_id, price, courts, max_players, note, cancelled, created_at, updated_at, chat_id, message_id
 ) ON public.bookings TO anon, authenticated;
+GRANT SELECT ON TABLE public.bookings TO anon, authenticated;
 GRANT INSERT (
   title, start_time, end_time, location_id, price, courts, max_players, note, cancelled, chat_id, message_id
 ) ON public.bookings TO authenticated;

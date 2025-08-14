@@ -30,6 +30,12 @@ GRANT ALL ON TABLE public.registrations TO service_role;
 GRANT SELECT (
   id, booking_id, user_id, created_at, updated_at
 ) ON public.registrations TO anon, authenticated;
+GRANT SELECT ON TABLE public.registrations TO anon, authenticated;
+
+-- Allow authenticated clients to write (RLS restricts to own rows)
+GRANT INSERT (booking_id, user_id) ON public.registrations TO authenticated;
+GRANT UPDATE ON public.registrations TO authenticated;
+GRANT DELETE ON public.registrations TO authenticated;
 
 -- Policies
 CREATE POLICY "Registrations are viewable by everyone"
