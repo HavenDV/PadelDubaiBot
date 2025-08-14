@@ -30,11 +30,15 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const allowedHost = "padel-dubai-bot-five.vercel.app";
-    const isAllowed = window.location.hostname === allowedHost;
+    const host = window.location.hostname;
+    const allowedHosts = [
+      "padel-dubai-bot-five.vercel.app",
+      "www.padel-dubai-bot-five.vercel.app",
+    ];
+    const isAllowed = allowedHosts.includes(host);
     setShowTelegramWidget(isAllowed);
     setTelegramAuthUrl(
-      isAllowed ? `https://${allowedHost}/callbacks/auth/telegram` : null
+      isAllowed ? `${window.location.origin}/callbacks/auth/telegram` : null
     );
   }, []);
 
