@@ -25,7 +25,7 @@ export default function TelegramLoginButton({
 }: TelegramLoginButtonProps) {
   const { webApp } = useTelegram();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const { shouldRender, authUrl } = useMemo(() => {
     if (typeof window === "undefined") {
