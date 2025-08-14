@@ -57,8 +57,18 @@ export default function Home() {
     login: <Login />,
   };
 
-  // Show a brief loading screen only when a logged-in session is being resolved
-  if (!isAnonymous && (isTelegramLoading || isAuthorizing || isLoading)) {
+  // Show loading screen only when resolving authenticated sessions
+  const shouldShowLoading = (() => {
+    if (webApp === null) {
+      // Web mode: show loading when resolving authenticated user
+      return !isAnonymous && (isTelegramLoading || isAuthorizing || isLoading);
+    } else {
+      // Telegram mode: only show loading when user is authenticated but still loading
+      return !isAnonymous && isLoading;
+    }
+  })();
+
+  if (shouldShowLoading) {
     const loadingMessage = isAuthorizing ? "Authorizing…" : "Loading account…";
 
     return (
