@@ -41,15 +41,6 @@ export default function Home() {
       "www.padel-dubai-bot-five.vercel.app",
     ];
     const isAllowed = allowedHosts.includes(host) && !webApp; // never show inside Telegram WebApp
-    // Debug logs to help diagnose rendering in prod
-    try {
-      console.log("TelegramWidget gating:", {
-        host,
-        isAllowed,
-        webAppPresent: Boolean(webApp),
-        origin: window.location.origin,
-      });
-    } catch {}
     setShowTelegramWidget(isAllowed);
     setTelegramAuthUrl(
       isAllowed ? `${window.location.origin}/callbacks/auth/telegram` : null
@@ -73,11 +64,6 @@ export default function Home() {
     script.setAttribute("data-radius", "8");
     script.setAttribute("data-auth-url", telegramAuthUrl);
     script.setAttribute("data-request-access", "write");
-    script.onload = () => {
-      try {
-        console.log("Telegram widget script (injected) loaded");
-      } catch {}
-    };
     container.appendChild(script);
 
     return () => {
@@ -135,10 +121,10 @@ export default function Home() {
             <div className="text-center text-base mb-5">
               Please sign in to continue.
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex flex-col items-stretch justify-center gap-3">
               <button
                 onClick={() => handleOAuthLogin("google")}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-white hover:bg-gray-50 text-gray-900 border border-gray-300"
+                className="inline-flex h-11 items-center justify-center gap-2 px-4 rounded-md text-sm font-medium bg-white hover:bg-gray-50 text-gray-900 border border-gray-300"
                 aria-label="Sign in with Google"
               >
                 <svg
@@ -168,7 +154,7 @@ export default function Home() {
               </button>
               {showTelegramWidget && telegramAuthUrl && (
                 <div
-                  className="inline-flex rounded-md"
+                  className="inline-flex h-11 rounded-md overflow-hidden"
                   ref={telegramWidgetRef}
                 />
               )}
