@@ -13,12 +13,12 @@ import Login from "./components/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { webApp, theme } = useTelegram();
+  const { theme, isTelegram } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   // Different default screens for web vs Telegram
   const getDefaultScreen = (): ScreenName => {
-    if (webApp === null) {
+    if (!isTelegram) {
       // Web mode: show login when anonymous, settings when authenticated
       return isAnonymous ? "login" : "settings";
     } else {
@@ -34,7 +34,7 @@ export default function Home() {
   // Handle redirects after sign-in/sign-out
   useEffect(() => {
     if (!isLoading) {
-      if (webApp === null) {
+      if (!isTelegram) {
         // Web mode: redirect to settings after sign-in, login after sign-out
         if (!isAnonymous && activeScreen === "login") {
           setActiveScreen("settings");
@@ -53,7 +53,7 @@ export default function Home() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAnonymous, isLoading, webApp]);
+  }, [isAnonymous, isLoading, isTelegram]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -63,7 +63,7 @@ export default function Home() {
   };
 
   const visibleScreens = (() => {
-    if (webApp === null) {
+    if (!isTelegram) {
       // Web mode: show login when anonymous
       return isAnonymous
         ? (["login", "locations", "bookings"] as ScreenName[])

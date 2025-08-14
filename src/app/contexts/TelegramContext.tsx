@@ -9,10 +9,6 @@ import {
 } from "react";
 import { useTelegramTheme } from "../hooks/useTelegramTheme";
 import { setAuthToken } from "@lib/supabase/client";
-import type {
-  TelegramAuthResponse,
-  TelegramAuthErrorResponse,
-} from "../types/telegram-auth";
 import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
 import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
 
@@ -23,6 +19,7 @@ interface TelegramContextType {
   themeParams: ThemeParams | null;
   theme: ReturnType<typeof useTelegramTheme>;
   userId: number | null; // Add userId for easier access
+  isTelegram: boolean; // Better Telegram mode detection
 }
 
 const TelegramContext = createContext<TelegramContextType | undefined>(
@@ -35,6 +32,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
+  const [isTelegram, setIsTelegram] = useState(false);
 
   // Generate theme styles based on themeParams
   const theme = useTelegramTheme(themeParams);
@@ -60,6 +58,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       // Check if Telegram WebApp is available (only in browser client-side)
       if (isBrowser && window.Telegram?.WebApp) {
         const webApp = window.Telegram.WebApp;
+        setIsTelegram(true);
 
         // Notify Telegram WebApp that we are ready
         window.Telegram.WebApp.ready();
@@ -124,6 +123,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         console.log("Telegram WebApp not available - using default theme");
         setWebApp(null);
         setThemeParams(null);
+        setIsTelegram(false);
 
         setIsAuthorizing(false);
         setIsLoading(false);
@@ -147,6 +147,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         themeParams,
         theme,
         userId,
+        isTelegram,
       }}
     >
       {children}

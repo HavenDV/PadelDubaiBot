@@ -18,7 +18,7 @@ export default function Navigation({
   setActiveScreen,
   screenNames,
 }: NavigationProps) {
-  const { webApp, theme, isLoading } = useTelegram();
+  const { theme, isLoading, isTelegram } = useTelegram();
   const { isAnonymous, isAdmin, email, avatarUrl } = useUser();
 
   // Sign-in UI removed from navigation; handled on landing page
@@ -47,13 +47,13 @@ export default function Navigation({
     >
       <div className="flex items-center gap-3">
         {/* Telegram mode: prioritize auth status indicator */}
-        {webApp !== null && (isAnonymous || isLoading) ? (
+        {isTelegram && (isAnonymous || isLoading) ? (
           // Telegram mode: show auth status indicator when anonymous or still loading
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
             <span className="text-xs opacity-60">Authenticating</span>
           </div>
-        ) : webApp === null ? (
+        ) : !isTelegram ? (
           // Web mode: avatar/signout only when fully authenticated
           email && !isLoading ? (
             <div className="flex items-center gap-2">
