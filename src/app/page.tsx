@@ -20,7 +20,7 @@ export type ScreenName =
 // | "schedules"
 
 export default function Home() {
-  const { theme, isLoading: isTelegramLoading } = useTelegram();
+  const { theme, isLoading: isTelegramLoading, isAuthorizing } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("settings");
@@ -34,12 +34,18 @@ export default function Home() {
   };
 
   // Get visible navigation items (settings is accessed via avatar)
-  if (isLoading || isTelegramLoading) {
+  if (isTelegramLoading || isAuthorizing || isLoading) {
+    const loadingMessage = isTelegramLoading
+      ? "Initializing Telegram…"
+      : isAuthorizing
+      ? "Authorizing…"
+      : "Loading account…";
+
     return (
       <div
-        className={`${theme.bg} flex flex-auto items-center justify-center p-6`}
+        className={`${theme.bg} ${theme.text} flex min-h-[100dvh] w-full items-center justify-center p-6`}
       >
-        <div className={`${theme.text}`}>Loading…</div>
+        <div className="text-base">{loadingMessage}</div>
       </div>
     );
   }
@@ -91,7 +97,7 @@ export default function Home() {
 
   return (
     <>
-      <div className={`${theme.bg} flex flex-auto flex-col`}>
+      <div className={`${theme.bg} flex min-h-[100dvh] flex-col`}>
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}

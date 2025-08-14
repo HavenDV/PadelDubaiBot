@@ -18,6 +18,7 @@ import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
 interface TelegramContextType {
   webApp: WebApp | null; // Make webApp nullable for SSR
   isLoading: boolean;
+  isAuthorizing: boolean;
   themeParams: ThemeParams | null;
   theme: ReturnType<typeof useTelegramTheme>;
   userId: number | null; // Add userId for easier access
@@ -30,6 +31,7 @@ const TelegramContext = createContext<TelegramContextType | undefined>(
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const [webApp, setWebApp] = useState<WebApp | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
 
@@ -76,6 +78,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
         // Call our API to validate the data and get a Supabase token
         try {
+          setIsAuthorizing(true);
           const response = await fetch("/api/telegram/auth", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -117,6 +120,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error("Authentication error:", error);
           setIsLoading(false);
+        } finally {
+          setIsAuthorizing(false);
         }
 
         setIsLoading(false);
@@ -131,6 +136,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         setWebApp(null);
         setThemeParams(null);
 
+        setIsAuthorizing(false);
         setIsLoading(false);
 
         // Return empty cleanup function
@@ -148,6 +154,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       value={{
         webApp,
         isLoading,
+        isAuthorizing,
         themeParams,
         theme,
         userId,

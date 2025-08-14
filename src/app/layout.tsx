@@ -33,7 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="overflow-x-hidden h-full"
+      suppressHydrationWarning
+    >
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
@@ -41,7 +45,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-[100dvh] flex`}
       >
         <TelegramProvider>{children}</TelegramProvider>
       </body>
