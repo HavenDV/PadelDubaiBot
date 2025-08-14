@@ -102,7 +102,11 @@ export default function Navigation({
             </button>
           )
         ) : isAnonymous ? (
-          <div></div>
+          // Telegram mode: show auth status indicator when anonymous
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
+            <span className="text-xs opacity-60">Authenticating</span>
+          </div>
         ) : isLoading ? (
           <div className="w-[40px] h-[40px] rounded-full bg-gray-300 dark:bg-gray-700 animate-pulse"></div>
         ) : (

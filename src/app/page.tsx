@@ -13,27 +13,42 @@ import Login from "./components/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { theme, isLoading: isTelegramLoading, isAuthorizing } = useTelegram();
+  const { webApp, theme, isLoading: isTelegramLoading, isAuthorizing } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
-  const [activeScreen, setActiveScreen] = useState<ScreenName>(
-    isAnonymous ? "login" : "settings"
-  );
+  // Different default screens for web vs Telegram
+  const getDefaultScreen = (): ScreenName => {
+    if (webApp === null) {
+      // Web mode: show login when anonymous, settings when authenticated
+      return isAnonymous ? "login" : "settings";
+    } else {
+      // Telegram mode: show bookings when anonymous, settings when authenticated
+      return isAnonymous ? "bookings" : "settings";
+    }
+  };
+
+  const [activeScreen, setActiveScreen] = useState<ScreenName>(getDefaultScreen());
 
   // Handle redirects after sign-in/sign-out
   useEffect(() => {
     if (!isLoading) {
-      // Redirect to settings after successful sign-in
-      if (!isAnonymous && activeScreen === "login") {
-        setActiveScreen("settings");
-      }
-      // Redirect to login after sign-out
-      else if (isAnonymous && activeScreen !== "login") {
-        setActiveScreen("login");
+      if (webApp === null) {
+        // Web mode: redirect to settings after sign-in, login after sign-out
+        if (!isAnonymous && activeScreen === "login") {
+          setActiveScreen("settings");
+        } else if (isAnonymous && activeScreen !== "login") {
+          setActiveScreen("login");
+        }
+      } else {
+        // Telegram mode: redirect to settings after sign-in, stay on current screen when anonymous
+        if (!isAnonymous && (activeScreen === "bookings" || activeScreen === "locations")) {
+          setActiveScreen("settings");
+        }
+        // No redirect needed when becoming anonymous in Telegram - stay on current screen
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAnonymous, isLoading]);
+  }, [isAnonymous, isLoading, webApp]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -55,9 +70,17 @@ export default function Home() {
     );
   }
 
-  const visibleScreens = isAnonymous
-    ? (["login", "locations", "bookings"] as ScreenName[])
-    : (["locations", "bookings"] as ScreenName[]);
+  const visibleScreens = (() => {
+    if (webApp === null) {
+      // Web mode: show login when anonymous
+      return isAnonymous
+        ? (["login", "locations", "bookings"] as ScreenName[])
+        : (["locations", "bookings"] as ScreenName[]);
+    } else {
+      // Telegram mode: never show login, always show locations and bookings
+      return ["locations", "bookings"] as ScreenName[];
+    }
+  })();
 
   return (
     <>
