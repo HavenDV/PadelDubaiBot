@@ -106,9 +106,6 @@ export default function Settings() {
           Linked accounts
         </label>
         <div className="flex flex-col gap-2">
-          <div className={`text-sm ${theme.secondaryText || "text-gray-500"}`}>
-            Current email: {primaryEmail ?? "none"}
-          </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleLinkProvider("google")}
@@ -127,7 +124,7 @@ export default function Settings() {
                 ? "Google linked"
                 : "Link Google"}
             </button>
-            <button
+            {/* <button
               onClick={() => handleLinkProvider("apple")}
               disabled={
                 linkingProvider !== null || linkedProviders.includes("apple")
@@ -143,7 +140,7 @@ export default function Settings() {
               {linkedProviders.includes("apple")
                 ? "Apple linked"
                 : "Link Apple"}
-            </button>
+            </button> */}
           </div>
           {authMessage && (
             <p
@@ -160,8 +157,7 @@ export default function Settings() {
             <div
               className={`text-xs ${theme.secondaryText || "text-gray-500"}`}
             >
-              You can link Google or Apple to sign in next time without
-              Telegram.
+              You can link Google to sign in next time outside Telegram.
             </div>
           </div>
         </div>
