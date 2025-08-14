@@ -41,6 +41,15 @@ export default function Home() {
       "www.padel-dubai-bot-five.vercel.app",
     ];
     const isAllowed = allowedHosts.includes(host) && !webApp; // never show inside Telegram WebApp
+    // Debug logs to help diagnose rendering in prod
+    try {
+      console.log("TelegramWidget gating:", {
+        host,
+        isAllowed,
+        webAppPresent: Boolean(webApp),
+        origin: window.location.origin,
+      });
+    } catch {}
     setShowTelegramWidget(isAllowed);
     setTelegramAuthUrl(
       isAllowed ? `${window.location.origin}/callbacks/auth/telegram` : null
