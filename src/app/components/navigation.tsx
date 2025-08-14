@@ -46,7 +46,14 @@ export default function Navigation({
       style={theme.borderStyle}
     >
       <div className="flex items-center gap-3">
-        {webApp === null ? (
+        {/* Telegram mode: prioritize auth status indicator */}
+        {webApp !== null && (isAnonymous || isLoading) ? (
+          // Telegram mode: show auth status indicator when anonymous or still loading
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
+            <span className="text-xs opacity-60">Authenticating</span>
+          </div>
+        ) : webApp === null ? (
           // Web mode: avatar/signout only when fully authenticated
           email && !isLoading ? (
             <div className="flex items-center gap-2">
@@ -101,12 +108,6 @@ export default function Navigation({
               />
             </button>
           )
-        ) : isAnonymous || isLoading ? (
-          // Telegram mode: show auth status indicator when anonymous or still loading
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
-            <span className="text-xs opacity-60">Authenticating</span>
-          </div>
         ) : (
           <div
             className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
