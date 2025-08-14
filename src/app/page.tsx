@@ -13,7 +13,7 @@ import Login from "./components/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { webApp, theme, isLoading: isTelegramLoading, isAuthorizing } = useTelegram();
+  const { webApp, theme } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   // Different default screens for web vs Telegram
@@ -27,7 +27,9 @@ export default function Home() {
     }
   };
 
-  const [activeScreen, setActiveScreen] = useState<ScreenName>(getDefaultScreen());
+  const [activeScreen, setActiveScreen] = useState<ScreenName>(
+    getDefaultScreen()
+  );
 
   // Handle redirects after sign-in/sign-out
   useEffect(() => {
@@ -41,7 +43,10 @@ export default function Home() {
         }
       } else {
         // Telegram mode: redirect to settings after sign-in, stay on current screen when anonymous
-        if (!isAnonymous && (activeScreen === "bookings" || activeScreen === "locations")) {
+        if (
+          !isAnonymous &&
+          (activeScreen === "bookings" || activeScreen === "locations")
+        ) {
           setActiveScreen("settings");
         }
         // No redirect needed when becoming anonymous in Telegram - stay on current screen
@@ -56,20 +61,6 @@ export default function Home() {
     bookings: <Bookings />,
     login: <Login />,
   };
-
-  // Show loading screen only in Web mode when resolving authenticated sessions
-  if (webApp === null && !isAnonymous && (isTelegramLoading || isAuthorizing || isLoading)) {
-    const loadingMessage = isAuthorizing ? "Authorizing…" : "Loading account…";
-
-    return (
-      <div
-        className={`${theme.bg} ${theme.text} flex min-h-[100dvh] w-full items-center justify-center p-6`}
-      >
-        <div className="text-base">{loadingMessage}</div>
-      </div>
-    );
-  }
-  // Telegram mode: Never show full-screen loading - always show the app with navigation indicator
 
   const visibleScreens = (() => {
     if (webApp === null) {
