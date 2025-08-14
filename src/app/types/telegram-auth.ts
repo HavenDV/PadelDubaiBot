@@ -9,3 +9,14 @@ export interface TelegramAuthResponse {
 export interface TelegramAuthErrorResponse {
   error: string;
 }
+
+// EN: Payload returned by Telegram Login Widget (outside of WebApp)
+export interface TelegramLoginPayload {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number | string; // unix timestamp
+  hash: string; // HMAC-SHA256 signature (hex)
+}

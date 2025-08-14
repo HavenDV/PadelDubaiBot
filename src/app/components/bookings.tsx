@@ -186,7 +186,7 @@ export default function Bookings() {
           placeholder="Title"
           value={form.title as string}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -195,7 +195,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, location_id: Number(e.target.value) }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         >
@@ -214,7 +214,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, start_time: e.target.value }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -222,7 +222,7 @@ export default function Bookings() {
           type="datetime-local"
           value={form.end_time as string}
           onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -231,7 +231,7 @@ export default function Bookings() {
           placeholder="Price"
           value={form.price as string}
           onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -243,7 +243,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, courts: Number(e.target.value) }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -255,7 +255,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, max_players: Number(e.target.value) }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -264,7 +264,7 @@ export default function Bookings() {
           placeholder="Note (optional)"
           value={(form.note as string) || ""}
           onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -275,7 +275,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, chat_id: Number(e.target.value) }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -286,7 +286,7 @@ export default function Bookings() {
           onChange={(e) =>
             setForm((f) => ({ ...f, message_id: Number(e.target.value) }))
           }
-          className={`px-3 py-2 border rounded-md text-sm ${
+          className={`w-full px-3 py-2 border rounded-md text-sm ${
             theme.cardBg || "border-gray-300 bg-white"
           } ${theme.text || "text-black"}`}
         />
@@ -327,7 +327,7 @@ export default function Bookings() {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -339,7 +339,7 @@ export default function Bookings() {
                       location_id: Number(e.target.value),
                     }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 >
@@ -358,7 +358,7 @@ export default function Bookings() {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, start_time: e.target.value }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -371,7 +371,7 @@ export default function Bookings() {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, end_time: e.target.value }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -381,7 +381,7 @@ export default function Bookings() {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, price: e.target.value }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -395,7 +395,7 @@ export default function Bookings() {
                       courts: Number(e.target.value),
                     }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -409,7 +409,7 @@ export default function Bookings() {
                       max_players: Number(e.target.value),
                     }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -419,7 +419,7 @@ export default function Bookings() {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, note: e.target.value }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -432,7 +432,7 @@ export default function Bookings() {
                       chat_id: Number(e.target.value),
                     }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />
@@ -445,7 +445,7 @@ export default function Bookings() {
                       message_id: Number(e.target.value),
                     }))
                   }
-                  className={`px-3 py-2 border rounded-md text-sm ${
+                  className={`w-full px-3 py-2 border rounded-md text-sm ${
                     theme.cardBg || "border-gray-300 bg-white"
                   } ${theme.text || "text-black"}`}
                 />

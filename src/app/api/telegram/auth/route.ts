@@ -2,10 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, UserInsert } from "../../../../../database.types";
-import { createHmac } from "node:crypto";
+import { createHmac, createHash } from "node:crypto";
 import type {
   TelegramAuthResponse,
   TelegramAuthErrorResponse,
+  TelegramLoginPayload,
 } from "../../../types/telegram-auth";
 
 type TelegramUser = {
@@ -62,18 +63,77 @@ function validateTelegramInitData(initDataRaw: string, botToken: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const { initDataRaw } = await req.json();
+  const body = await req.json();
+  const initDataRaw: string | undefined = body?.initDataRaw;
+  const loginPayload: TelegramLoginPayload | undefined = body?.loginPayload;
 
-  // 1) Verify Telegram initData on server (HMAC using "WebAppData" key)
+  // 1) Verify Telegram data on server
+  // - If coming from WebApp: validate initDataRaw with "WebAppData" secret
+  // - If coming from Login Widget: validate loginPayload with SHA256(botToken) secret
   const botToken = process.env.TELEGRAM_BOT_TOKEN!;
   let tg: TelegramUser;
-  try {
-    const { user } = validateTelegramInitData(initDataRaw, botToken);
-    tg = user;
-  } catch {
+  if (typeof initDataRaw === "string" && initDataRaw.length > 0) {
+    try {
+      const { user } = validateTelegramInitData(initDataRaw, botToken);
+      tg = user;
+    } catch {
+      return NextResponse.json<TelegramAuthErrorResponse>(
+        { error: "invalid-init-data" },
+        { status: 401 }
+      );
+    }
+  } else if (loginPayload && typeof loginPayload === "object") {
+    // Validate Telegram Login Widget payload
+    const params: [string, string | number | undefined][] = [
+      ["auth_date", loginPayload.auth_date],
+      ["first_name", loginPayload.first_name],
+      ["id", loginPayload.id],
+      ["last_name", loginPayload.last_name],
+      ["photo_url", loginPayload.photo_url],
+      ["username", loginPayload.username],
+    ];
+    const dataPairs = params
+      .filter(([, v]) => v !== undefined && v !== null && `${v}`.length > 0)
+      .map(([k, v]) => `${k}=${v}`)
+      .sort();
+    const dataCheckString = dataPairs.join("\n");
+
+    // Secret key for Login Widget = SHA256(bot_token)
+    const secretKey = createHash("sha256").update(botToken).digest();
+    const calculatedHash = createHmac("sha256", secretKey)
+      .update(dataCheckString)
+      .digest("hex");
+
+    if (calculatedHash !== loginPayload.hash) {
+      return NextResponse.json<TelegramAuthErrorResponse>(
+        { error: "signature-invalid" },
+        { status: 401 }
+      );
+    }
+    const authDate = parseInt(String(loginPayload.auth_date), 10);
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (!Number.isFinite(authDate))
+      return NextResponse.json<TelegramAuthErrorResponse>(
+        { error: "auth-date-invalid" },
+        { status: 401 }
+      );
+    if (currentTime - authDate > 3600)
+      return NextResponse.json<TelegramAuthErrorResponse>(
+        { error: "expired" },
+        { status: 401 }
+      );
+
+    tg = {
+      id: loginPayload.id,
+      first_name: loginPayload.first_name,
+      last_name: loginPayload.last_name,
+      username: loginPayload.username,
+      photo_url: loginPayload.photo_url,
+    };
+  } else {
     return NextResponse.json<TelegramAuthErrorResponse>(
-      { error: "invalid-init-data" },
-      { status: 401 }
+      { error: "missing-auth-data" },
+      { status: 400 }
     );
   }
 

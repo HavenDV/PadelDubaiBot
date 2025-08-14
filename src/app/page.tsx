@@ -4,6 +4,7 @@ import { JSX, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
+import Script from "next/script";
 import Settings from "@components/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
@@ -71,12 +72,10 @@ export default function Home() {
 
     return (
       <div
-        className={`${theme.bg} flex flex-auto items-center justify-center p-6`}
+        className={`${theme.bg} ${theme.text} flex min-h-[100dvh] items-center justify-center p-6`}
       >
         <div className="flex flex-col items-center gap-4">
-          <div className={`text-base ${theme.text}`}>
-            Please sign in to continue.
-          </div>
+          <div className={`text-base`}>Please sign in to continue.</div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleOAuthLogin("google")}
@@ -85,6 +84,17 @@ export default function Home() {
             >
               Continue with Google
             </button>
+            <Script
+              async
+              src="https://telegram.org/js/telegram-widget.js?22"
+              data-telegram-login="padel_dubai_bot"
+              data-size="large"
+              data-auth-url={`${
+                typeof window !== "undefined" ? window.location.origin : ""
+              }/callbacks/auth/telegram`}
+              data-request-access="write"
+              strategy="afterInteractive"
+            />
           </div>
         </div>
       </div>
@@ -97,7 +107,7 @@ export default function Home() {
 
   return (
     <>
-      <div className={`${theme.bg} flex min-h-[100dvh] flex-col`}>
+      <div className={`${theme.bg} flex min-h-[100dvh] w-full flex-col`}>
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}

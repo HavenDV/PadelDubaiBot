@@ -14,6 +14,7 @@ import type {
   TelegramAuthErrorResponse,
 } from "../types/telegram-auth";
 import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
+import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
 
 interface TelegramContextType {
   webApp: WebApp | null; // Make webApp nullable for SSR
@@ -79,20 +80,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         // Call our API to validate the data and get a Supabase token
         try {
           setIsAuthorizing(true);
-          const response = await fetch("/api/telegram/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initDataRaw: webApp.initData }),
-          });
-
-          if (!response.ok) {
-            const errorData: TelegramAuthErrorResponse = await response.json();
-            console.error("Authentication error:", errorData.error);
-            throw new Error(errorData.error || "Authentication failed");
-          }
-
-          const { access_token, refresh_token }: TelegramAuthResponse =
-            await response.json();
+          const { access_token, refresh_token } =
+            await exchangeTelegramAuthViaInitData(webApp.initData);
 
           // Set the token in Supabase client
           initializeSupabase(access_token, refresh_token);
