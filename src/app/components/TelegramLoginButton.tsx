@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTelegram } from "@/app/contexts/TelegramContext";
 
 export type TelegramLoginButtonProps = {
@@ -25,6 +25,7 @@ export default function TelegramLoginButton({
 }: TelegramLoginButtonProps) {
   const { webApp } = useTelegram();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { shouldRender, authUrl } = useMemo(() => {
     if (typeof window === "undefined") {
@@ -52,6 +53,18 @@ export default function TelegramLoginButton({
     script.setAttribute("data-radius", String(radius));
     script.setAttribute("data-auth-url", authUrl);
     script.setAttribute("data-request-access", "write");
+    setIsLoading(true);
+
+    const observer = new MutationObserver(() => {
+      if (container.querySelector("iframe") || container.querySelector("a")) {
+        setIsLoading(false);
+        observer.disconnect();
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+
+    const fallback = window.setTimeout(() => setIsLoading(false), 1500);
+
     container.appendChild(script);
 
     return () => {
@@ -60,10 +73,22 @@ export default function TelegramLoginButton({
       } catch {
         // ignore
       }
+      observer.disconnect();
+      window.clearTimeout(fallback);
     };
   }, [shouldRender, authUrl, botUsername, size, radius]);
 
   if (!shouldRender) return null;
 
-  return <div ref={containerRef} className={className} />;
+  return (
+    <div className={className}>
+      {isLoading && (
+        <div className="h-full w-full rounded-md bg-gray-200 animate-pulse" />
+      )}
+      <div
+        ref={containerRef}
+        className={isLoading ? "opacity-0 pointer-events-none" : "opacity-100"}
+      />
+    </div>
+  );
 }
