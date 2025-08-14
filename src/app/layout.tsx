@@ -45,7 +45,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-[100dvh] flex`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-[100dvh] w-full`}
       >
         <TelegramProvider>{children}</TelegramProvider>
       </body>
