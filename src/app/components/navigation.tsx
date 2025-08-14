@@ -76,27 +76,30 @@ export default function Navigation({
               </button>
             </div>
           ) : (
-            <div
-              className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
+            // Login button in avatar position when not logged in
+            <button
               onClick={() => setActiveScreen("login")}
-              title="Sign in"
+              className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
+                activeScreen === "login"
+                  ? `${theme.primaryButton} hover:brightness-110`
+                  : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
+              }`}
+              style={activeScreen === "login" ? theme.primaryButtonStyle : {}}
+              title="Login"
             >
-              <div className="overflow-hidden rounded-full relative">
-                <Image
-                  src={"/login.svg"}
-                  alt="Sign in"
-                  width={40}
-                  height={40}
-                  priority
-                  className={`rounded-full transition-all duration-200 ${
-                    activeScreen === "login"
-                      ? "ring-2 ring-offset-1 ring-[#4CD964]"
-                      : "group-hover:brightness-110"
-                  }`}
-                />
-                <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
-              </div>
-            </div>
+              <Image
+                src="/login.svg"
+                alt="login"
+                width={24}
+                height={24}
+                priority
+                className={
+                  activeScreen === "login" 
+                    ? "brightness-0 invert" 
+                    : "invert opacity-50"
+                }
+              />
+            </button>
           )
         ) : isAnonymous ? (
           <div></div>
@@ -162,7 +165,11 @@ export default function Navigation({
                 width={24}
                 height={24}
                 priority
-                className={activeScreen === screen ? "brightness-0 invert" : ""}
+                className={
+                  activeScreen === screen 
+                    ? "brightness-0 invert" 
+                    : "invert opacity-50"
+                }
               />
             </button>
           ))}

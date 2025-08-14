@@ -32,7 +32,8 @@ export default function Home() {
         setActiveScreen("login");
       }
     }
-  }, [isAnonymous, isLoading, activeScreen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnonymous, isLoading]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
