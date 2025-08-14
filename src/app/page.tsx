@@ -4,7 +4,7 @@ import { JSX, useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
-// no Next.js Script here for Telegram widget; we need inline placement
+import Script from "next/script";
 import Settings from "@components/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
@@ -137,7 +137,8 @@ export default function Home() {
               </button>
               {showTelegramWidget && telegramAuthUrl && (
                 <div className="inline-flex rounded-md">
-                  <script
+                  <Script
+                    key="telegram-login-widget"
                     async
                     src="https://telegram.org/js/telegram-widget.js?22"
                     data-telegram-login="padel_dubai_bot"
@@ -145,6 +146,12 @@ export default function Home() {
                     data-radius="8"
                     data-auth-url={telegramAuthUrl}
                     data-request-access="write"
+                    strategy="afterInteractive"
+                    onLoad={() => {
+                      try {
+                        console.log("Telegram widget script loaded");
+                      } catch {}
+                    }}
                   />
                 </div>
               )}
