@@ -51,12 +51,9 @@ export default function Home() {
   };
 
   // Get visible navigation items (settings is accessed via avatar)
-  if (isTelegramLoading || isAuthorizing || isLoading) {
-    const loadingMessage = isTelegramLoading
-      ? "Initializing Telegram…"
-      : isAuthorizing
-      ? "Authorizing…"
-      : "Loading account…";
+  // Show loading only when user is not anonymous; anonymous users should see login immediately
+  if (!isAnonymous && (isTelegramLoading || isAuthorizing || isLoading)) {
+    const loadingMessage = isAuthorizing ? "Authorizing…" : "Loading account…";
 
     return (
       <div
