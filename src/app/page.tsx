@@ -4,7 +4,7 @@ import { JSX, useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
 import { supabase } from "@/app/lib/supabase/client";
-import Script from "next/script";
+// no Next.js Script here for Telegram widget; we need inline placement
 import Settings from "@components/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
@@ -21,7 +21,12 @@ export type ScreenName =
 // | "schedules"
 
 export default function Home() {
-  const { theme, isLoading: isTelegramLoading, isAuthorizing } = useTelegram();
+  const {
+    theme,
+    isLoading: isTelegramLoading,
+    isAuthorizing,
+    webApp,
+  } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("settings");
@@ -35,12 +40,12 @@ export default function Home() {
       "padel-dubai-bot-five.vercel.app",
       "www.padel-dubai-bot-five.vercel.app",
     ];
-    const isAllowed = allowedHosts.includes(host);
+    const isAllowed = allowedHosts.includes(host) && !webApp; // never show inside Telegram WebApp
     setShowTelegramWidget(isAllowed);
     setTelegramAuthUrl(
       isAllowed ? `${window.location.origin}/callbacks/auth/telegram` : null
     );
-  }, []);
+  }, [webApp]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -123,7 +128,7 @@ export default function Home() {
               </button>
               {showTelegramWidget && telegramAuthUrl && (
                 <div className="inline-flex rounded-md">
-                  <Script
+                  <script
                     async
                     src="https://telegram.org/js/telegram-widget.js?22"
                     data-telegram-login="padel_dubai_bot"
@@ -131,7 +136,6 @@ export default function Home() {
                     data-radius="8"
                     data-auth-url={telegramAuthUrl}
                     data-request-access="write"
-                    strategy="afterInteractive"
                   />
                 </div>
               )}
