@@ -7,6 +7,9 @@ import { supabase } from "@lib/supabase/client";
 import { Location } from "../../../../database.types";
 import Image from "next/image";
 import AddLocationModal from "./AddLocationModal";
+import dynamic from "next/dynamic";
+
+const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
 export default function Locations() {
   const { theme } = useTelegram();
@@ -15,11 +18,8 @@ export default function Locations() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-
-  // edit state
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editName, setEditName] = useState<string>("");
-  const [editUrl, setEditUrl] = useState<string>("");
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [openMapId, setOpenMapId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -44,37 +44,13 @@ export default function Locations() {
     load();
   }, []);
 
-  const startEdit = (loc: Location) => {
-    setEditingId(loc.id);
-    setEditName(loc.name);
-    setEditUrl(loc.url);
+  const openAddModal = () => {
+    setEditingLocation(null);
+    setIsModalOpen(true);
   };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditName("");
-    setEditUrl("");
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const { error } = await supabase
-        .from("locations")
-        .update({ name: editName, url: editUrl })
-        .eq("id", editingId);
-      if (error) throw error;
-      cancelEdit();
-      await load();
-    } catch (e) {
-      setError("Failed to update location");
-
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  const openEditModal = (loc: Location) => {
+    setEditingLocation(loc);
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -103,7 +79,7 @@ export default function Locations() {
         </div>
         {isAdmin && (
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openAddModal}
             className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center"
             title="Add Location"
           >
@@ -135,71 +111,44 @@ export default function Locations() {
               key={loc.id}
               className="py-3 flex flex-col sm:flex-row sm:items-center gap-2"
             >
-              {isAdmin && editingId === loc.id ? (
-                <div className="flex-1 flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                      theme.cardBg || "border-gray-300 bg-white"
-                    } ${theme.text || "text-black"}`}
-                  />
-                  <input
-                    type="url"
-                    value={editUrl}
-                    onChange={(e) => setEditUrl(e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                      theme.cardBg || "border-gray-300 bg-white"
-                    } ${theme.text || "text-black"}`}
-                  />
-                </div>
-              ) : (
-                <div className="flex-1">
-                  <div className={`font-medium ${theme.text}`}>{loc.name}</div>
-                  <a
-                    href={loc.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    {loc.url}
-                  </a>
-                </div>
-              )}
+              <div className="flex-1">
+                <div className={`font-medium ${theme.text}`}>{loc.name}</div>
+                <a
+                  href={loc.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {loc.url}
+                </a>
+                {openMapId === loc.id && (
+                  <div className="mt-3">
+                    <MapEmbed name={loc.name} url={loc.url} height={220} className="w-full rounded-md" />
+                  </div>
+                )}
+              </div>
               {isAdmin && (
                 <div className="flex gap-2">
-                  {editingId === loc.id ? (
-                    <>
-                      <button
-                        onClick={handleSaveEdit}
-                        className="px-3 py-2 rounded-md text-sm bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="px-3 py-2 rounded-md text-sm bg-gray-200 hover:bg-gray-300 text-gray-800"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => startEdit(loc)}
-                        className="px-3 py-2 rounded-md text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(loc.id)}
-                        className="px-3 py-2 rounded-md text-sm bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Remove
-                      </button>
-                    </>
-                  )}
+                  <>
+                    <button
+                      onClick={() => setOpenMapId((prev) => (prev === loc.id ? null : loc.id))}
+                      className="px-3 py-2 rounded-md text-sm bg-indigo-500 hover:bg-indigo-600 text-white"
+                    >
+                      {openMapId === loc.id ? "Hide Map" : "Show Map"}
+                    </button>
+                    <button
+                      onClick={() => openEditModal(loc)}
+                      className="px-3 py-2 rounded-md text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(loc.id)}
+                      className="px-3 py-2 rounded-md text-sm bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      Remove
+                    </button>
+                  </>
                 </div>
               )}
             </div>
@@ -213,8 +162,12 @@ export default function Locations() {
       {/* Add Location Modal */}
       <AddLocationModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingLocation(null);
+        }}
         onSuccess={load}
+        editingLocation={editingLocation}
       />
     </div>
   );
