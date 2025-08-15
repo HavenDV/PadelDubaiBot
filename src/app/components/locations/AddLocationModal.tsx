@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { supabase } from "@lib/supabase/client";
 import { Location } from "../../../../database.types";
+import MapEmbed from "./MapEmbed";
 
 interface AddLocationModalProps {
   isOpen: boolean;
@@ -314,6 +315,23 @@ export default function AddLocationModal({
               Google Maps link or website URL for directions.
             </p>
           </div>
+          {(placeId || (lat && lng) || name || url) && (
+            <div>
+              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+                Map preview
+              </label>
+              <div className="border rounded-md overflow-hidden">
+                <MapEmbed
+                  placeId={placeId || undefined}
+                  name={name || undefined}
+                  url={url || undefined}
+                  lat={lat ? Number(lat) : undefined}
+                  lng={lng ? Number(lng) : undefined}
+                  height={220}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Details section */}
