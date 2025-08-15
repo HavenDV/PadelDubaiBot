@@ -13,6 +13,9 @@ export default function Bookings() {
   const { isAdmin } = useUser();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [telegramMessages, setTelegramMessages] = useState<{
+    [key: number]: boolean;
+  }>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -22,14 +25,24 @@ export default function Bookings() {
     setLoading(true);
     setError("");
     try {
-      const [bRes, lRes] = await Promise.all([
+      const [bRes, lRes, tRes] = await Promise.all([
         supabase.from("bookings").select("*").order("id", { ascending: false }),
         supabase.from("locations").select("*").order("id"),
+        supabase.from("messages").select("booking_id").eq("is_active", true),
       ]);
       if (bRes.error) throw bRes.error;
       if (lRes.error) throw lRes.error;
+      if (tRes.error) throw tRes.error;
+
       setBookings(bRes.data ?? []);
       setLocations(lRes.data ?? []);
+
+      // Create a lookup for bookings that have been posted to Telegram
+      const telegramMessageLookup: { [key: number]: boolean } = {};
+      (tRes.data ?? []).forEach((msg) => {
+        telegramMessageLookup[msg.booking_id] = true;
+      });
+      setTelegramMessages(telegramMessageLookup);
     } catch (e) {
       setError("Failed to load data");
 
@@ -64,6 +77,47 @@ export default function Bookings() {
     } catch (e) {
       setError("Failed to delete booking");
 
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePostToTelegram = async (booking: Booking) => {
+    if (telegramMessages[booking.id]) {
+      alert("This booking has already been posted to Telegram");
+      return;
+    }
+
+    if (!confirm("Post this booking to Telegram chat for registrations?"))
+      return;
+
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/telegram/post-booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to post to Telegram");
+      }
+
+      const result = await response.json();
+      console.log("Posted to Telegram:", result);
+      await loadAll(); // Refresh to show updated message_id
+      alert("Successfully posted to Telegram!");
+    } catch (e) {
+      setError(
+        `Failed to post to Telegram: ${
+          e instanceof Error ? e.message : "Unknown error"
+        }`
+      );
       console.error(e);
     } finally {
       setLoading(false);
@@ -105,27 +159,63 @@ export default function Bookings() {
           {bookings.map((b) => {
             const start = new Date(b.start_time);
             const end = new Date(b.end_time);
-            const dateStr = start.toLocaleDateString('en-US', { 
-              weekday: 'short', 
-              month: 'short', 
-              day: 'numeric' 
+            const dateStr = start.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
             });
-            const startTime = start.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit' 
+            const startTime = start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
             });
-            const endTime = end.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit' 
+            const endTime = end.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
             });
-            const duration = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+            const duration = Math.round(
+              (end.getTime() - start.getTime()) / (1000 * 60)
+            );
             const location = locations.find((l) => l.id === b.location_id);
-            
+
             return (
               <div key={b.id} className="relative py-4">
                 {/* Admin Actions */}
                 {isAdmin && (
                   <div className="absolute top-3 right-0 flex items-center gap-1 z-10">
+                    {/* Post to Telegram */}
+                    <button
+                      onClick={() => handlePostToTelegram(b)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                        telegramMessages[b.id]
+                          ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                          : "text-blue-600 hover:bg-blue-50 border-blue-200 hover:border-blue-300"
+                      }`}
+                      title={
+                        telegramMessages[b.id]
+                          ? "Already posted to Telegram"
+                          : "Post to Telegram"
+                      }
+                      aria-label={
+                        telegramMessages[b.id]
+                          ? "Already posted to Telegram"
+                          : "Post to Telegram"
+                      }
+                      disabled={!!telegramMessages[b.id]}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4"
+                      >
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      </svg>
+                    </button>
+
                     {/* Edit */}
                     <button
                       onClick={() => startEdit(b)}
@@ -242,12 +332,21 @@ export default function Bookings() {
                         strokeLinejoin="round"
                         className="w-5 h-5 text-gray-500"
                       >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                        />
                         <line x1="16" y1="2" x2="16" y2="6" />
                         <line x1="8" y1="2" x2="8" y2="6" />
                         <line x1="3" y1="10" x2="21" y2="10" />
                       </svg>
-                      <span className="font-semibold text-gray-800 text-base">{dateStr}</span>
+                      <span className="font-semibold text-gray-800 text-base">
+                        {dateStr}
+                      </span>
                     </div>
 
                     {/* Time */}
@@ -299,7 +398,6 @@ export default function Bookings() {
                     </div>
                   )}
                 </div>
-
               </div>
             );
           })}

@@ -143,6 +143,44 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          booking_id: number
+          chat_id: number
+          created_at: string | null
+          id: number
+          is_active: boolean | null
+          message_id: number
+          updated_at: string | null
+        }
+        Insert: {
+          booking_id: number
+          chat_id: number
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          message_id: number
+          updated_at?: string | null
+        }
+        Update: {
+          booking_id?: number
+          chat_id?: number
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          message_id?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       registrations: {
         Row: {
           booking_id: number

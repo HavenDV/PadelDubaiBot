@@ -5,8 +5,6 @@ import {
   SKILL_LEVEL_BUTTONS,
   GameDataManager,
   MessageFormatter,
-  AdminUtils,
-  ADMIN_USER_IDS,
 } from "@/app/lib/telegram";
 
 export const runtime = "edge";
@@ -159,36 +157,8 @@ export async function GET() {
         // Update the gameInfo with the actual message ID
         gameInfo.messageId = gameResult.result.message_id;
 
-        // Send admin control messages to all admins when game is created
-        for (const adminId of ADMIN_USER_IDS) {
-          try {
-            const adminControlMessage =
-              MessageFormatter.formatAdminControlMessage(gameInfo);
-
-            await TelegramAPI.sendMessage({
-              chat_id: adminId,
-              text: adminControlMessage,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-              reply_markup: {
-                inline_keyboard: AdminUtils.getAdminButtons(),
-              },
-            });
-
-            console.log(
-              `Admin control message sent to admin ${adminId} for ${game.day} game`
-            );
-          } catch (error) {
-            console.error(
-              `Failed to send admin control message to admin ${adminId}:`,
-              error
-            );
-            // Continue with other admins even if one fails
-          }
-
-          // Small delay between admin messages
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
+        // Admin controls are now handled through the Telegram Mini App
+        // No need to send private admin control messages
       }
 
       // Small delay between messages to avoid rate limiting

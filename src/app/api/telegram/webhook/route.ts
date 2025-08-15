@@ -10,175 +10,339 @@ import {
   GameDataManager,
   MessageFormatter,
   type PlayerAction,
-  type AdminAction,
   // MessageUtils removed - using new data-first architecture
 } from "@/app/lib/telegram";
 import { OpenAIUtils } from "@/app/lib/openai";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
+
+// Helper function to handle database-backed registrations
+async function handleDatabaseRegistration(
+  messageId: number,
+  userId: number,
+  userName: string,
+  skillLevel: PlayerAction,
+  chatId: number
+): Promise<{ success: boolean; notification?: string; error?: string; updatedMessage?: string }> {
+  try {
+    // Find booking through messages table
+    const { data: telegramMessage, error: messageError } = await supabaseAdmin
+      .from("messages")
+      .select("booking_id")
+      .eq("message_id", messageId)
+      .eq("chat_id", chatId)
+      .eq("is_active", true)
+      .single();
+
+    if (messageError || !telegramMessage) {
+      return { success: false, error: "Message not found" };
+    }
+
+    // Get booking data with location
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from("bookings")
+      .select(`
+        *,
+        locations:location_id (
+          id,
+          name,
+          url
+        )
+      `)
+      .eq("id", telegramMessage.booking_id)
+      .single();
+
+    if (bookingError || !booking) {
+      return { success: false, error: "Booking not found" };
+    }
+
+    // Check if booking is cancelled
+    if (booking.cancelled) {
+      return { success: false, error: "This booking has been cancelled" };
+    }
+
+    // Ensure user exists in database
+    const { data: existingUser, error: userCheckError } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    let dbUserId: number;
+
+    if (userCheckError || !existingUser) {
+      // Create user if doesn't exist
+      const { data: newUser, error: createUserError } = await supabaseAdmin
+        .from("users")
+        .insert({
+          id: userId,
+          username: userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim(), // Clean HTML tags
+          first_name: userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim(),
+        })
+        .select("id")
+        .single();
+
+      if (createUserError || !newUser) {
+        return { success: false, error: "Failed to create user" };
+      }
+      dbUserId = newUser.id;
+    } else {
+      dbUserId = existingUser.id;
+    }
+
+    // Handle "not_coming" - remove registration
+    if (skillLevel === "not_coming") {
+      const { error: deleteError } = await supabaseAdmin
+        .from("registrations")
+        .delete()
+        .eq("booking_id", booking.id)
+        .eq("user_id", dbUserId);
+
+      if (deleteError) {
+        return { success: false, error: "Failed to remove registration" };
+      }
+    } else {
+      // Handle skill level registration
+      // First, remove any existing registration for this user
+      await supabaseAdmin
+        .from("registrations")
+        .delete()
+        .eq("booking_id", booking.id)
+        .eq("user_id", dbUserId);
+
+      // Add new registration
+      const { error: insertError } = await supabaseAdmin
+        .from("registrations")
+        .insert({
+          booking_id: booking.id,
+          user_id: dbUserId,
+        });
+
+      if (insertError) {
+        return { success: false, error: "Failed to register for booking" };
+      }
+    }
+
+    // Get all current registrations for this booking
+    const { data: registrations, error: regError } = await supabaseAdmin
+      .from("registrations")
+      .select(`
+        id,
+        users:user_id (
+          id,
+          username,
+          first_name
+        )
+      `)
+      .eq("booking_id", booking.id)
+      .order("created_at");
+
+    if (regError) {
+      console.error("Failed to fetch registrations:", regError);
+      return { success: false, error: "Failed to fetch registrations" };
+    }
+
+    // Generate updated message based on database state
+    const updatedMessage = await generateMessageFromDatabase(booking, registrations || []);
+
+    const cleanUserName = userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim();
+    const notification = skillLevel === "not_coming" 
+      ? `${cleanUserName} отменил участие` 
+      : undefined;
+
+    return { 
+      success: true, 
+      updatedMessage,
+      notification
+    };
+  } catch (error) {
+    console.error("Database registration error:", error);
+    return { success: false, error: "Database error" };
+  }
+}
+
+// Types for database booking with location
+interface BookingWithLocation {
+  id: number;
+  start_time: string;
+  end_time: string;
+  price: number;
+  courts: number;
+  note: string | null;
+  cancelled: boolean | null;
+  locations: {
+    id: number;
+    name: string;
+    url: string;
+  };
+}
+
+// Types for registrations with user data
+interface RegistrationWithUser {
+  id: number;
+  users: {
+    id: number;
+    username: string | null;
+    first_name: string;
+  };
+}
+
+// Helper function to generate message from database state
+async function generateMessageFromDatabase(booking: BookingWithLocation, registrations: RegistrationWithUser[]): Promise<string> {
+  const location = booking.locations;
+  const startTime = new Date(booking.start_time);
+  const endTime = new Date(booking.end_time);
+
+  // Format dates for display
+  const days = [
+    "Воскресенье",
+    "Понедельник", 
+    "Вторник",
+    "Среда",
+    "Четверг",
+    "Пятница",
+    "Суббота",
+  ];
+
+  const day = days[startTime.getDay()];
+  const date = `${startTime.getDate().toString().padStart(2, "0")}.${(
+    startTime.getMonth() + 1
+  )
+    .toString()
+    .padStart(2, "0")}`;
+
+  const startTimeStr = `${startTime.getHours()}:${startTime
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+  const endTimeStr = `${endTime.getHours()}:${endTime
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+  const time = `${startTimeStr}-${endTimeStr}`;
+
+  // Convert registrations to player format
+  const players = registrations.map(reg => ({
+    id: reg.users.id,
+    userName: reg.users.username ? `@${reg.users.username}` : reg.users.first_name,
+    skillLevel: "registered", // We don't store skill level in new system
+    registrationTime: new Date() // Use current time as placeholder
+  }));
+
+  // Create GameInfo object
+  const gameInfo = GameDataManager.createGameInfo({
+    day,
+    date,
+    time,
+    club: location.name,
+    price: `${booking.price} aed/чел`,
+    courts: booking.courts,
+    note: booking.note || undefined,
+    chatId: parseInt(process.env.CHAT_ID!),
+  });
+
+  // Set location with maps URL
+  gameInfo.location = {
+    name: location.name,
+    mapsUrl: location.url || "",
+  };
+
+  // Set times
+  gameInfo.startTime = startTime;
+  gameInfo.endTime = endTime;
+
+  // Set players (4 max, rest go to waitlist)
+  gameInfo.registeredPlayers = players.slice(0, 4);
+  gameInfo.waitlist = players.slice(4);
+
+  // Check if cancelled
+  if (booking.cancelled) {
+    gameInfo.cancelled = true;
+  }
+
+  return MessageFormatter.formatGameMessage(gameInfo);
+}
+
+// Helper function to update a Telegram message from database state
+// This can be called from webhook or from external Mini App updates
+export async function updateTelegramMessageFromDatabase(
+  chatId: number,
+  messageId: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Find booking through messages table
+    const { data: telegramMessage, error: messageError } = await supabaseAdmin
+      .from("messages")
+      .select("booking_id")
+      .eq("message_id", messageId)
+      .eq("chat_id", chatId)
+      .eq("is_active", true)
+      .single();
+
+    if (messageError || !telegramMessage) {
+      return { success: false, error: "Message not found in database" };
+    }
+
+    // Get booking data with location
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from("bookings")
+      .select(`
+        *,
+        locations:location_id (
+          id,
+          name,
+          url
+        )
+      `)
+      .eq("id", telegramMessage.booking_id)
+      .single();
+
+    if (bookingError || !booking) {
+      return { success: false, error: "Booking not found" };
+    }
+
+    // Get current registrations
+    const { data: registrations, error: regError } = await supabaseAdmin
+      .from("registrations")
+      .select(`
+        id,
+        users:user_id (
+          id,
+          username,
+          first_name
+        )
+      `)
+      .eq("booking_id", booking.id)
+      .order("created_at");
+
+    if (regError) {
+      return { success: false, error: "Failed to fetch registrations" };
+    }
+
+    // Generate updated message
+    const updatedMessage = await generateMessageFromDatabase(booking, registrations || []);
+
+    // Update Telegram message
+    await TelegramAPI.editMessageText({
+      chat_id: chatId,
+      message_id: messageId,
+      text: updatedMessage,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+      reply_markup: booking.cancelled ? undefined : {
+        inline_keyboard: AdminUtils.getButtonsForUser(),
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating telegram message from database:", error);
+    return { success: false, error: "Failed to update message" };
+  }
+}
 
 export async function POST(req: NextRequest) {
   const update = await req.json();
   const callbackQuery = update.callback_query;
-
-  // Handle admin-only callbacks
-  if (callbackQuery && callbackQuery.data?.startsWith("admin_")) {
-    const adminAction = callbackQuery.data.replace("admin_", "") as AdminAction;
-    const user = callbackQuery.from;
-
-    // Check if user is admin
-    if (!AdminUtils.isAdmin(user.id)) {
-      try {
-        await TelegramAPI.answerCallbackQuery({
-          callback_query_id: callbackQuery.id,
-          text: CALLBACK_MESSAGES.ADMIN_UNAUTHORIZED,
-          show_alert: true,
-        });
-        return NextResponse.json({ ok: true });
-      } catch (error) {
-        console.error("Error sending admin unauthorized message:", error);
-        return NextResponse.json({ ok: true });
-      }
-    }
-
-    // Handle admin actions from private messages
-    const currentText = callbackQuery.message.text;
-    let responseText = "";
-
-    try {
-      // Extract admin control data from the message
-      const adminControlData =
-        GameDataManager.extractAdminControlDataFromMessage(currentText);
-
-      if (!adminControlData) {
-        await TelegramAPI.answerCallbackQuery({
-          callback_query_id: callbackQuery.id,
-          text: "❌ Не удалось найти данные об игре.",
-          show_alert: true,
-        });
-        return NextResponse.json({ ok: true });
-      }
-
-      const { chatId, messageId } = adminControlData;
-
-      // Since we can't embed full game data, we need to get the current message to parse it
-      // For now, we'll use a simplified approach for admin actions
-      switch (adminAction) {
-        case "cancel_game":
-          responseText = CALLBACK_MESSAGES.ADMIN_GAME_CANCELLED;
-
-          try {
-            // We'll need to fetch the current message to get the game data
-            // For now, let's use a basic cancellation approach
-            const basicCancelledMessage = `🚫 <b>Игра отменена администратором</b>
-
-❌ Регистрация на эту игру закрыта
-
-🚫 <b>Игра отменена</b>`;
-
-            await TelegramAPI.editMessageText({
-              chat_id: chatId,
-              message_id: messageId,
-              text: basicCancelledMessage,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-              // No reply_markup = no buttons
-            });
-
-            // Send notification
-            await TelegramAPI.sendMessage({
-              chat_id: chatId,
-              text: "🚫 <b>Игра отменена администратором</b>",
-              parse_mode: "HTML",
-              reply_to_message_id: messageId,
-            });
-          } catch (error) {
-            console.error("Error cancelling game:", error);
-            // Fallback: just send notification
-            await TelegramAPI.sendMessage({
-              chat_id: chatId,
-              text: "🚫 <b>Игра отменена администратором</b>",
-              parse_mode: "HTML",
-              reply_to_message_id: messageId,
-            });
-          }
-          break;
-
-        case "restore_game":
-          responseText = CALLBACK_MESSAGES.ADMIN_GAME_RESTORED;
-
-          try {
-            // Basic restoration - this would need to be enhanced to preserve original game info
-            const basicRestoredMessage = `✅ <b>Игра восстановлена администратором</b>
-
-🎾 Регистрация на игру снова открыта
-
-<b>Записавшиеся игроки:</b>
-1. -
-2. -
-3. -
-4. -
-
-⏳ <b>Waitlist:</b>
----`;
-
-            await TelegramAPI.editMessageText({
-              chat_id: chatId,
-              message_id: messageId,
-              text: basicRestoredMessage,
-              parse_mode: "HTML",
-              disable_web_page_preview: true,
-              reply_markup: {
-                inline_keyboard: AdminUtils.getButtonsForUser(),
-              },
-            });
-
-            // Send notification
-            await TelegramAPI.sendMessage({
-              chat_id: chatId,
-              text: "✅ <b>Игра восстановлена администратором</b>",
-              parse_mode: "HTML",
-              reply_to_message_id: messageId,
-            });
-          } catch (error) {
-            console.error("Error restoring game:", error);
-            // Fallback: just send notification
-            await TelegramAPI.sendMessage({
-              chat_id: chatId,
-              text: "✅ <b>Игра восстановлена администратором</b>",
-              parse_mode: "HTML",
-              reply_to_message_id: messageId,
-            });
-          }
-          break;
-
-        case "game_stats":
-          // For stats, we'd need to fetch the actual game message
-          // For now, show a generic message
-          responseText =
-            "📊 Для получения актуальной статистики проверьте сообщение игры";
-
-          await TelegramAPI.answerCallbackQuery({
-            callback_query_id: callbackQuery.id,
-            text: responseText,
-            show_alert: true,
-          });
-          return NextResponse.json({ ok: true });
-
-        default:
-          responseText = "❌ Неизвестная административная команда.";
-      }
-
-      // Send response to admin
-      await TelegramAPI.answerCallbackQuery({
-        callback_query_id: callbackQuery.id,
-        text: responseText,
-      });
-
-      return NextResponse.json({ ok: true });
-    } catch (error) {
-      console.error("Error handling admin callback:", error);
-      return NextResponse.json({ ok: true });
-    }
-  }
 
   // Handle button callbacks for skill level selection
   if (callbackQuery && callbackQuery.data?.startsWith("skill_")) {
@@ -239,16 +403,39 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Update game state with user action
-      const { updatedGame, notification } =
-        GameDataManager.updateGameWithUserAction(
-          gameInfo,
-          { id: user.id, userName: displayName },
-          selectedLevel
-        );
+      // Try database registration first (for new system)
+      const dbResult = await handleDatabaseRegistration(
+        messageId,
+        user.id,
+        displayName,
+        selectedLevel,
+        chatId
+      );
 
-      // Format the updated message
-      const updatedMessage = MessageFormatter.formatGameMessage(updatedGame);
+      let updatedMessage: string;
+      let notification: string | undefined;
+
+      if (dbResult.success && dbResult.updatedMessage) {
+        // Use database-driven system
+        updatedMessage = dbResult.updatedMessage;
+        notification = dbResult.notification;
+        console.log("Using database-driven registration system");
+      } else {
+        // Fallback to message-based system for backward compatibility
+        console.warn("Database registration failed, falling back to message parsing:", dbResult.error);
+        
+        // Update game state with user action (message-based system)
+        const { updatedGame, notification: fallbackNotification } =
+          GameDataManager.updateGameWithUserAction(
+            gameInfo,
+            { id: user.id, userName: displayName },
+            selectedLevel
+          );
+
+        // Format the updated message
+        updatedMessage = MessageFormatter.formatGameMessage(updatedGame);
+        notification = fallbackNotification;
+      }
 
       // Run answerCallbackQuery and editMessageText concurrently
       const promises = [
