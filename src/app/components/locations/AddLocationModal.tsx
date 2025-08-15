@@ -226,7 +226,7 @@ export default function AddLocationModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div
-        className={`w-full max-w-md rounded-lg p-6 ${
+        className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg p-6 ${
           theme.cardBg || "bg-white"
         }`}
       >
