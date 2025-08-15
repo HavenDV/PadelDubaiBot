@@ -24,6 +24,8 @@ async function handleDatabaseRegistration(
   chatId: number
 ): Promise<{ success: boolean; notification?: string; error?: string; updatedMessage?: string }> {
   try {
+    console.log(`Looking for message: messageId=${messageId}, chatId=${chatId}`);
+    
     // Find booking through messages table
     const { data: telegramMessage, error: messageError } = await supabaseAdmin
       .from("messages")
@@ -32,6 +34,11 @@ async function handleDatabaseRegistration(
       .eq("chat_id", chatId)
       .eq("is_active", true)
       .single();
+
+    console.log(`Database query result: found=${!!telegramMessage}, error=${messageError?.message}`);
+    if (telegramMessage) {
+      console.log(`Found booking_id: ${telegramMessage.booking_id}`);
+    }
 
     if (messageError || !telegramMessage) {
       return { success: false, error: "Message not found" };
@@ -357,6 +364,22 @@ export async function POST(req: NextRequest) {
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
       : user.first_name || "Unknown";
 
+    console.log(`Webhook received: chatId=${chatId}, messageId=${messageId}, user=${user.id}, action=${selectedLevel}`);
+
+    // Answer callback query immediately to prevent timeout
+    try {
+      await TelegramAPI.answerCallbackQuery({
+        callback_query_id: callbackQuery.id,
+        text:
+          selectedLevel === "not_coming"
+            ? CALLBACK_MESSAGES.NOT_COMING
+            : CALLBACK_MESSAGES.REGISTERED(selectedLevel),
+      });
+      console.log("Callback query answered immediately");
+    } catch (error) {
+      console.error("Error answering callback query immediately:", error);
+    }
+
     const currentText = callbackQuery.message.text;
 
     try {
@@ -437,16 +460,11 @@ export async function POST(req: NextRequest) {
         notification = fallbackNotification;
       }
 
-      // Run answerCallbackQuery and editMessageText concurrently
-      const promises = [
-        TelegramAPI.answerCallbackQuery({
-          callback_query_id: callbackQuery.id,
-          text:
-            selectedLevel === "not_coming"
-              ? CALLBACK_MESSAGES.NOT_COMING
-              : CALLBACK_MESSAGES.REGISTERED(selectedLevel),
-        }),
-        TelegramAPI.editMessageText({
+      console.log(`About to update Telegram message: chatId=${chatId}, messageId=${messageId}`);
+      
+      // Update the message
+      try {
+        await TelegramAPI.editMessageText({
           chat_id: chatId,
           message_id: messageId,
           text: updatedMessage,
@@ -455,22 +473,26 @@ export async function POST(req: NextRequest) {
           reply_markup: {
             inline_keyboard: AdminUtils.getButtonsForUser(),
           },
-        }),
-      ];
+        });
+        console.log("Message edited successfully");
+      } catch (error) {
+        console.error("Error editing message:", error);
+      }
 
       // If there's a notification, send it as a separate message
       if (notification) {
-        promises.push(
-          TelegramAPI.sendMessage({
+        try {
+          await TelegramAPI.sendMessage({
             chat_id: chatId,
             text: notification,
             parse_mode: "HTML",
             disable_web_page_preview: true,
-          })
-        );
+          });
+          console.log("Notification sent successfully");
+        } catch (error) {
+          console.error("Error sending notification:", error);
+        }
       }
-
-      await Promise.all(promises);
       return NextResponse.json({ ok: true });
     } catch (error) {
       console.error("Error handling callback query:", error);
