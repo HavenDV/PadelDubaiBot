@@ -80,7 +80,7 @@ export default function Locations() {
         {isAdmin && (
           <button
             onClick={openAddModal}
-            className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center"
+            className="w-8 h-8 bg-gray-700 hover:bg-gray-800 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center"
             title="Add Location"
           >
             +
@@ -109,9 +109,9 @@ export default function Locations() {
           {locations.map((loc) => (
             <div
               key={loc.id}
-              className="py-3 flex flex-col sm:flex-row sm:items-center gap-2"
+              className="relative py-3 flex flex-col sm:flex-row sm:items-start gap-2"
             >
-              <div className="flex-1">
+              <div className="flex-1 pr-24">
                 <div className={`font-medium ${theme.text}`}>{loc.name}</div>
                 <a
                   href={loc.url}
@@ -123,13 +123,30 @@ export default function Locations() {
                 </a>
                 {/* Opening hours */}
                 {Array.isArray((loc as any).opening_hours) && (
-                  <div className="mt-2">
-                    <div className="text-xs font-medium text-gray-700">Opening hours</div>
-                    <ul className="mt-1 text-xs text-gray-600">
-                      {((loc as any).opening_hours as string[]).map((line: string, idx: number) => (
-                        <li key={idx}>{line}</li>
-                      ))}
-                    </ul>
+                  <div className="mt-3">
+                    <div className={`text-xs font-medium mb-2 ${theme.text}`}>Opening hours</div>
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden max-w-md">
+                      <div className="divide-y divide-gray-100">
+                        {((loc as any).opening_hours as string[]).map((line: string, idx: number) => {
+                          const [day, hours] = line.split(': ');
+                          const isOpen24h = hours?.toLowerCase().includes('24 hours') || hours?.toLowerCase().includes('open 24 hours');
+                          const isClosed = hours?.toLowerCase().includes('closed');
+                          
+                          return (
+                            <div key={idx} className="px-4 py-2.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                              <span className="text-sm font-medium text-gray-800 min-w-[80px]">{day}</span>
+                              <span className={`text-sm font-medium ${
+                                isOpen24h ? 'text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs' :
+                                isClosed ? 'text-red-600' : 
+                                'text-gray-600'
+                              }`}>
+                                {isOpen24h ? '24/7' : hours || 'Closed'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
                 {openMapId === loc.id && (
@@ -139,27 +156,76 @@ export default function Locations() {
                 )}
               </div>
               {isAdmin && (
-                <div className="flex gap-2">
-                  <>
-                    <button
-                      onClick={() => setOpenMapId((prev) => (prev === loc.id ? null : loc.id))}
-                      className="px-3 py-2 rounded-md text-sm bg-indigo-500 hover:bg-indigo-600 text-white"
+                <div className="absolute top-1 right-0 flex items-center gap-1">
+                  {/* Toggle Map */}
+                  <button
+                    onClick={() => setOpenMapId((prev) => (prev === loc.id ? null : loc.id))}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-blue-200 hover:border-blue-300 transition-colors"
+                    title={openMapId === loc.id ? "Hide map" : "Show map"}
+                    aria-label={openMapId === loc.id ? "Hide map" : "Show map"}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
                     >
-                      {openMapId === loc.id ? "Hide Map" : "Show Map"}
-                    </button>
-                    <button
-                      onClick={() => openEditModal(loc)}
-                      className="px-3 py-2 rounded-md text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
+                      <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
+                      <path d="M9 4v16" />
+                      <path d="M15 6v16" />
+                    </svg>
+                  </button>
+
+                  {/* Edit */}
+                  <button
+                    onClick={() => openEditModal(loc)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors"
+                    title="Edit"
+                    aria-label="Edit"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
                     >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(loc.id)}
-                      className="px-3 py-2 rounded-md text-sm bg-red-500 hover:bg-red-600 text-white"
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                  </button>
+
+                  {/* Remove */}
+                  <button
+                    onClick={() => handleDelete(loc.id)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                    title="Remove"
+                    aria-label="Remove"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
                     >
-                      Remove
-                    </button>
-                  </>
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
