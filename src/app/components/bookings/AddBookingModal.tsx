@@ -35,7 +35,7 @@ export default function AddBookingModal({
     location_id: 0,
     price: "",
     courts: 1,
-    max_players: 0,
+    max_players: 4, // Default to 4 players
     note: "",
     chat_id: 0,
     message_id: 0,
@@ -45,8 +45,7 @@ export default function AddBookingModal({
   // Create form date/time pieces for clarity
   const [startDate, setStartDate] = useState<string>("");
   const [startTime, setStartTime] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
+  const [duration, setDuration] = useState<number>(90); // Duration in minutes, default 90 min
 
   const resetForm = () => {
     setForm({
@@ -56,7 +55,7 @@ export default function AddBookingModal({
       location_id: 0,
       price: "",
       courts: 1,
-      max_players: 0,
+      max_players: 4,
       note: "",
       chat_id: 0,
       message_id: 0,
@@ -64,16 +63,20 @@ export default function AddBookingModal({
     });
     setStartDate("");
     setStartTime("");
-    setEndDate("");
-    setEndTime("");
+    setDuration(90);
     setError("");
   };
 
   const handleCreate = async () => {
     const startISO = combineLocalDateTimeToISO(startDate, startTime);
-    const endISO = combineLocalDateTimeToISO(endDate, endTime);
-    if (!form.title || !startISO || !endISO || !form.location_id || !form.price)
+    if (!form.title || !startISO || !form.location_id || !form.price)
       return;
+    
+    // Calculate end time by adding duration to start time
+    const startDateTime = new Date(startISO);
+    const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
+    const endISO = endDateTime.toISOString();
+    
     setLoading(true);
     setError("");
     try {
@@ -81,6 +84,10 @@ export default function AddBookingModal({
         ...form,
         start_time: startISO,
         end_time: endISO,
+        max_players: 4, // Always set to 4 players
+        chat_id: 0,
+        message_id: 0,
+        cancelled: false,
       };
       const { error } = await supabase.from("bookings").insert(payload);
       if (error) throw error;
@@ -205,33 +212,23 @@ export default function AddBookingModal({
 
           <div>
             <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
-              End date
+              Duration (minutes)
             </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+            <select
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
               className={`w-full px-3 py-2 border rounded-md text-sm ${
                 theme.cardBg || "border-gray-300 bg-white"
               } ${theme.text || "text-black"}`}
-            />
-            <p className="text-xs text-gray-400 mt-1">When the booking ends.</p>
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
-              End time
-            </label>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
+            >
+              <option value={60}>1 hour</option>
+              <option value={90}>1.5 hours</option>
+              <option value={120}>2 hours</option>
+              <option value={150}>2.5 hours</option>
+              <option value={180}>3 hours</option>
+            </select>
             <p className="text-xs text-gray-400 mt-1">
-              Local time the game ends.
+              How long the game session lasts.
             </p>
           </div>
 
@@ -276,24 +273,6 @@ export default function AddBookingModal({
             </p>
           </div>
 
-          <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
-              Max players
-            </label>
-            <input
-              type="number"
-              min={0}
-              placeholder="0"
-              value={form.max_players as number}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, max_players: Number(e.target.value) }))
-              }
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
-            <p className="text-xs text-gray-400 mt-1">Total players allowed.</p>
-          </div>
 
           <div className="md:col-span-2">
             <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
@@ -313,59 +292,6 @@ export default function AddBookingModal({
             </p>
           </div>
 
-          <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
-              Chat ID
-            </label>
-            <input
-              type="number"
-              placeholder="Telegram chat id"
-              value={form.chat_id as number}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, chat_id: Number(e.target.value) }))
-              }
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Used to update the original post.
-            </p>
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
-              Message ID
-            </label>
-            <input
-              type="number"
-              placeholder="Telegram message id"
-              value={form.message_id as number}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, message_id: Number(e.target.value) }))
-              }
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Pairs with chat id for updates.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              id="cancelled"
-              type="checkbox"
-              checked={Boolean(form.cancelled)}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, cancelled: e.target.checked }))
-              }
-            />
-            <label htmlFor="cancelled" className={`text-sm ${theme.text}`}>
-              Cancelled
-            </label>
-          </div>
         </div>
 
         <div className="flex gap-3 mt-6 pt-4 border-t">
