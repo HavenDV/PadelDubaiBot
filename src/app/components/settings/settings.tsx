@@ -4,8 +4,7 @@ import { useTelegram } from "@contexts/TelegramContext";
 import { useState, useEffect, useCallback } from "react";
 import { getUser } from "@lib/supabase-queries";
 import { supabase } from "@lib/supabase/client";
-import { useUser } from "../hooks/useUser";
-import TelegramLoginButton from "./TelegramLoginButton";
+import { useUser } from "../../hooks/useUser";
 
 export default function Settings() {
   const { theme, webApp } = useTelegram();
@@ -13,7 +12,6 @@ export default function Settings() {
   const [userId, setUserId] = useState<number | undefined>(undefined);
 
   // Linked accounts state
-  const [primaryEmail, setPrimaryEmail] = useState<string | null>(null);
   const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
   const [linkingProvider, setLinkingProvider] = useState<
     "google" | "apple" | null
@@ -57,7 +55,6 @@ export default function Settings() {
           return;
         }
         const user = data.user;
-        setPrimaryEmail(user?.email ?? null);
         const providers = (user?.identities ?? [])
           .map((i) => i.provider)
           .filter(Boolean) as string[];

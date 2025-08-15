@@ -3,12 +3,12 @@
 import { JSX, useState, useEffect } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "./hooks/useUser";
-import Settings from "@components/settings";
+import Settings from "@/app/components/settings/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
-import Locations from "./components/locations";
-import Bookings from "./components/bookings";
-import Login from "./components/login";
+import Locations from "./components/locations/locations";
+import Bookings from "./components/bookings/bookings";
+import Login from "./components/login/login";
 
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 

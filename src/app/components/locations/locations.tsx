@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
-import { useUser } from "../hooks/useUser";
+import { useUser } from "../../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
-import { Location } from "../../../database.types";
+import { Location } from "../../../../database.types";
 import Image from "next/image";
 
 export default function Locations() {
