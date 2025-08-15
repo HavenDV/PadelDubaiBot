@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -22,10 +22,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
+          extensions?: Json
           operationName?: string
           query?: string
           variables?: Json
-          extensions?: Json
         }
         Returns: Json
       }
@@ -42,50 +42,38 @@ export type Database = {
       bookings: {
         Row: {
           cancelled: boolean | null
-          chat_id: number
           courts: number
           created_at: string | null
           end_time: string
           id: number
           location_id: number
-          max_players: number
-          message_id: number
           note: string | null
-          price: string
+          price: number
           start_time: string
-          title: string
           updated_at: string | null
         }
         Insert: {
           cancelled?: boolean | null
-          chat_id: number
           courts: number
           created_at?: string | null
           end_time: string
           id?: number
           location_id: number
-          max_players: number
-          message_id: number
           note?: string | null
-          price: string
+          price: number
           start_time: string
-          title: string
           updated_at?: string | null
         }
         Update: {
           cancelled?: boolean | null
-          chat_id?: number
           courts?: number
           created_at?: string | null
           end_time?: string
           id?: number
           location_id?: number
-          max_players?: number
-          message_id?: number
           note?: string | null
-          price?: string
+          price?: number
           start_time?: string
-          title?: string
           updated_at?: string | null
         }
         Relationships: [
