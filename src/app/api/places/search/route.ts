@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Type for Google Places search result
+interface GooglePlaceResult {
+  place_id: string;
+  name: string;
+  formatted_address: string;
+  geometry?: {
+    location?: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const key = process.env.GOOGLE_MAPS_API_KEY;
@@ -33,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
     const json = await res.json();
     const results = Array.isArray(json?.results) ? json.results : [];
-    const candidates = results.slice(0, 12).map((c: any) => ({
+    const candidates = results.slice(0, 12).map((c: GooglePlaceResult) => ({
       place_id: c.place_id as string,
       name: c.name as string,
       formatted_address: c.formatted_address as string,

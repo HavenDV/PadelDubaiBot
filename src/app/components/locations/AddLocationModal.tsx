@@ -3,14 +3,45 @@
 import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { supabase } from "@lib/supabase/client";
-import { Location } from "../../../../database.types";
+import { Location, LocationInsert } from "../../../../database.types";
 import MapEmbed from "./MapEmbed";
+
+// Extended Location type for API responses that may have additional fields
+type ExtendedLocation = Location & {
+  address?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  plus_code?: string | null;
+  rating?: number | null;
+  user_ratings_total?: number | null;
+  opening_hours?: string[] | null;
+  attributes?: unknown | null;
+  place_id?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};
+
+// Type for Places API response
+interface PlaceDetailsData {
+  name?: string;
+  url?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  plus_code?: string;
+  rating?: number;
+  user_ratings_total?: number;
+  opening_hours?: string[];
+  place_id?: string;
+  lat?: number;
+  lng?: number;
+}
 
 interface AddLocationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  editingLocation?: Location | null; // when provided, modal works in edit mode
+  editingLocation?: ExtendedLocation | null; // when provided, modal works in edit mode
 }
 
 export default function AddLocationModal({
@@ -75,7 +106,7 @@ export default function AddLocationModal({
     setLoading(true);
     setError("");
     try {
-      const payload: any = { name, url };
+      const payload: LocationInsert = { name, url };
       if (address) payload.address = address;
       if (phone) payload.phone = phone;
       if (website) payload.website = website;
@@ -140,19 +171,19 @@ export default function AddLocationModal({
     if (isEditMode && editingLocation) {
       setName(editingLocation.name || "");
       setUrl(editingLocation.url || "");
-      setAddress((editingLocation as any).address || "");
-      setPhone((editingLocation as any).phone || "");
-      setWebsite((editingLocation as any).website || "");
-      setPlusCode((editingLocation as any).plus_code || "");
-      setRating(((editingLocation as any).rating ?? "").toString());
-      setUserRatingsTotal(((editingLocation as any).user_ratings_total ?? "").toString());
-      const oh = (editingLocation as any).opening_hours as string[] | null;
+      setAddress(editingLocation.address || "");
+      setPhone(editingLocation.phone || "");
+      setWebsite(editingLocation.website || "");
+      setPlusCode(editingLocation.plus_code || "");
+      setRating((editingLocation.rating ?? "").toString());
+      setUserRatingsTotal((editingLocation.user_ratings_total ?? "").toString());
+      const oh = editingLocation.opening_hours;
       setOpeningHours(oh ? oh.join("\n") : "");
-      const attrs = (editingLocation as any).attributes;
+      const attrs = editingLocation.attributes;
       setAttributes(attrs ? JSON.stringify(attrs, null, 2) : "");
-      setPlaceId((editingLocation as any).place_id || "");
-      setLat(((editingLocation as any).lat ?? "").toString());
-      setLng(((editingLocation as any).lng ?? "").toString());
+      setPlaceId(editingLocation.place_id || "");
+      setLat((editingLocation.lat ?? "").toString());
+      setLng((editingLocation.lng ?? "").toString());
       setError("");
       setQuery("");
     } else if (!isEditMode) {
@@ -198,7 +229,7 @@ export default function AddLocationModal({
     try {
       const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(place_id)}`);
       const data = await res.json();
-      const d = data?.data as any;
+      const d = data?.data as PlaceDetailsData;
       if (d) {
         if (d.name) setName(d.name);
         if (d.url) setUrl(d.url);
@@ -215,7 +246,7 @@ export default function AddLocationModal({
         setQuery("");
         setSuggestions([]);
       }
-    } catch (e) {
+    } catch {
       setError("Failed to load place details");
     } finally {
       setDetailsLoading(false);

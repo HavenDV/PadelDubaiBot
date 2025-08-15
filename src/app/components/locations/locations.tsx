@@ -122,12 +122,12 @@ export default function Locations() {
                   {loc.url}
                 </a>
                 {/* Opening hours */}
-                {Array.isArray((loc as any).opening_hours) && (
+                {Array.isArray((loc as Location & { opening_hours?: string[] }).opening_hours) && (
                   <div className="mt-3">
                     <div className={`text-xs font-medium mb-2 ${theme.text}`}>Opening hours</div>
                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden max-w-md">
                       <div className="divide-y divide-gray-100">
-                        {((loc as any).opening_hours as string[]).map((line: string, idx: number) => {
+                        {((loc as Location & { opening_hours: string[] }).opening_hours).map((line: string, idx: number) => {
                           const [day, hours] = line.split(': ');
                           const isOpen24h = hours?.toLowerCase().includes('24 hours') || hours?.toLowerCase().includes('open 24 hours');
                           const isClosed = hours?.toLowerCase().includes('closed');
