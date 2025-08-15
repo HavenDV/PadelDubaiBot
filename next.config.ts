@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
     });
     return config;
   },
+  // Turbopack configuration
+  turbopack: {
+    rules: {
+      "angular/**/*.{ts,js}": {
+        loaders: ["ignore-loader"],
+      },
+    },
+  },
   // Also exclude from TypeScript checking
   typescript: {
     ignoreBuildErrors: true,
