@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { useTelegramTheme } from "../hooks/useTelegramTheme";
-import { setAuthToken } from "@lib/supabase/client";
+import { setAuthToken, supabase } from "@lib/supabase/client";
 import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
 import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
 
@@ -44,6 +44,24 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       "TelegramProvider: set Authorization header with JWT",
       accessToken.substring(0, 10) + "…"
     );
+  };
+
+  // Function to check if we have a valid session (Supabase handles refresh automatically)
+  const hasValidSession = async (): Promise<boolean> => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.log("TelegramProvider: No valid session found");
+        return false;
+      }
+
+      console.log("TelegramProvider: Valid session exists");
+      return true;
+    } catch (error) {
+      console.error("TelegramProvider: Error checking session:", error);
+      return false;
+    }
   };
 
   // Token helpers removed (web mode uses supabase-js session management directly)
@@ -94,40 +112,50 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           setThemeParams(webApp.themeParams || null);
         };
 
-        // Call our API to validate the data and get a Supabase token
-        try {
-          setIsAuthorizing(true);
-          const { access_token, refresh_token } =
-            await exchangeTelegramAuthViaInitData(webApp.initData);
-
-          // Set the token in Supabase client
-          initializeSupabase(access_token, refresh_token);
-
-          setWebApp(webApp);
-
-          // Set theme parameters safely
-          setThemeParams(webApp.themeParams || null);
-
-          // Parse init data from Telegram WebApp
-          let initData: WebAppInitData = { auth_date: 0, hash: "" };
+        // Check if we need to reauth by validating current session
+        const needsReauth = !(await hasValidSession());
+        
+        if (needsReauth) {
+          console.log("TelegramProvider: No valid session, authenticating...");
+          
+          // Call our API to validate the data and get a Supabase token
           try {
-            initData = webApp.initDataUnsafe as WebAppInitData;
+            setIsAuthorizing(true);
+            const { access_token, refresh_token } =
+              await exchangeTelegramAuthViaInitData(webApp.initData);
+
+            // Set the token in Supabase client
+            initializeSupabase(access_token, refresh_token);
           } catch (error) {
-            console.error("Error parsing initData:", error);
+            console.error("Authentication error:", error);
+            setIsLoading(false);
+            return;
+          } finally {
+            setIsAuthorizing(false);
           }
+        } else {
+          console.log("TelegramProvider: Valid session exists, skipping auth");
+        }
 
-          webApp.onEvent("themeChanged", handleThemeChange);
+        setWebApp(webApp);
 
-          if (initData?.user) {
-            const { id } = initData.user;
+        // Set theme parameters safely
+        setThemeParams(webApp.themeParams || null);
 
-            setUserId(id);
-          }
+        // Parse init data from Telegram WebApp
+        let initData: WebAppInitData = { auth_date: 0, hash: "" };
+        try {
+          initData = webApp.initDataUnsafe as WebAppInitData;
         } catch (error) {
-          console.error("Authentication error:", error);
-          setIsLoading(false);
-        } finally {
-          setIsAuthorizing(false);
+          console.error("Error parsing initData:", error);
+        }
+
+        webApp.onEvent("themeChanged", handleThemeChange);
+
+        if (initData?.user) {
+          const { id } = initData.user;
+
+          setUserId(id);
         }
 
         setIsLoading(false);
