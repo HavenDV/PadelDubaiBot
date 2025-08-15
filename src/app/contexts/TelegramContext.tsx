@@ -32,7 +32,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
-  const [isTelegram, setIsTelegram] = useState(false);
+  const [isTelegram, setIsTelegram] = useState(true);
 
   // Generate theme styles based on themeParams
   const theme = useTelegramTheme(themeParams);
@@ -58,14 +58,14 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       // Check if we're actually running in Telegram (not just having the script available)
       if (isBrowser && window.Telegram?.WebApp) {
         const webApp = window.Telegram.WebApp;
-        
+
         // Proper Telegram detection: check if we have actual Telegram context
         // Only rely on initData or actual user data, not version (version exists in web too)
         const isActuallyInTelegram = Boolean(
-          webApp.initData && webApp.initData.length > 0 ||
-          webApp.initDataUnsafe?.user
+          (webApp.initData && webApp.initData.length > 0) ||
+            webApp.initDataUnsafe?.user
         );
-        
+
         setIsTelegram(isActuallyInTelegram);
 
         if (!isActuallyInTelegram) {

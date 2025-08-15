@@ -16,20 +16,7 @@ export default function Home() {
   const { theme, isTelegram } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
-  // Different default screens for web vs Telegram
-  const getDefaultScreen = (): ScreenName => {
-    if (!isTelegram) {
-      // Web mode: show login when anonymous, settings when authenticated
-      return isAnonymous ? "login" : "settings";
-    } else {
-      // Telegram mode: show bookings when anonymous, settings when authenticated
-      return isAnonymous ? "bookings" : "settings";
-    }
-  };
-
-  const [activeScreen, setActiveScreen] = useState<ScreenName>(
-    getDefaultScreen()
-  );
+  const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");
 
   // Handle redirects after sign-in/sign-out
   useEffect(() => {
