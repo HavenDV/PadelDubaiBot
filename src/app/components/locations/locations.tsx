@@ -6,6 +6,7 @@ import { useUser } from "../../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
 import { Location } from "../../../../database.types";
 import Image from "next/image";
+import AddLocationModal from "./AddLocationModal";
 
 export default function Locations() {
   const { theme } = useTelegram();
@@ -13,10 +14,7 @@ export default function Locations() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-
-  // form state
-  const [newName, setNewName] = useState<string>("");
-  const [newUrl, setNewUrl] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   // edit state
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -45,31 +43,6 @@ export default function Locations() {
   useEffect(() => {
     load();
   }, []);
-
-  const resetNewForm = () => {
-    setNewName("");
-    setNewUrl("");
-  };
-
-  const handleCreate = async () => {
-    if (!newName || !newUrl) return;
-    setLoading(true);
-    setError("");
-    try {
-      const { error } = await supabase
-        .from("locations")
-        .insert({ name: newName, url: newUrl });
-      if (error) throw error;
-      resetNewForm();
-      await load();
-    } catch (e) {
-      setError("Failed to create location");
-
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const startEdit = (loc: Location) => {
     setEditingId(loc.id);
@@ -123,48 +96,23 @@ export default function Locations() {
 
   return (
     <div className="p-4 space-y-6">
-      <div className="flex items-center gap-2">
-        <Image src="/location.svg" alt="Locations" width={20} height={20} />
-        <h2 className={`text-xl font-bold ${theme.text}`}>Locations</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Image src="/location.svg" alt="Locations" width={20} height={20} />
+          <h2 className={`text-xl font-bold ${theme.text}`}>Locations</h2>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center"
+            title="Add Location"
+          >
+            +
+          </button>
+        )}
       </div>
 
       {error && <div className="text-red-500 text-sm">{error}</div>}
-
-      {isAdmin && (
-        <div className="space-y-2">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              placeholder="Name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
-            <input
-              type="url"
-              placeholder="Maps URL"
-              value={newUrl}
-              onChange={(e) => setNewUrl(e.target.value)}
-              className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
-            />
-            <button
-              onClick={handleCreate}
-              disabled={loading || !newName || !newUrl}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                loading
-                  ? "bg-gray-300 text-gray-500"
-                  : "bg-blue-500 hover:bg-blue-600 text-white"
-              }`}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-      )}
 
       {loading && locations.length === 0 ? (
         <div className="divide-y divide-gray-200/40">
@@ -261,6 +209,13 @@ export default function Locations() {
           )}
         </div>
       )}
+
+      {/* Add Location Modal */}
+      <AddLocationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={load}
+      />
     </div>
   );
 }
