@@ -55,11 +55,29 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       // Guard against server-side rendering - Telegram WebApp only exists in browser
       const isBrowser = typeof window !== "undefined";
 
-      // Check if Telegram WebApp is available (only in browser client-side)
+      // Check if we're actually running in Telegram (not just having the script available)
       if (isBrowser && window.Telegram?.WebApp) {
         const webApp = window.Telegram.WebApp;
-        setIsTelegram(true);
+        
+        // Proper Telegram detection: check if we have actual Telegram context
+        // Only rely on initData or actual user data, not version (version exists in web too)
+        const isActuallyInTelegram = Boolean(
+          webApp.initData && webApp.initData.length > 0 ||
+          webApp.initDataUnsafe?.user
+        );
+        
+        setIsTelegram(isActuallyInTelegram);
 
+        if (!isActuallyInTelegram) {
+          // Not actually in Telegram, just web mode with script loaded
+          setWebApp(null);
+          setThemeParams(null);
+          setIsAuthorizing(false);
+          setIsLoading(false);
+          return () => {};
+        }
+
+        // Only proceed with Telegram-specific initialization if actually in Telegram
         // Notify Telegram WebApp that we are ready
         window.Telegram.WebApp.ready();
 

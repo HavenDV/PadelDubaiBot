@@ -19,7 +19,7 @@ export default function Navigation({
   screenNames,
 }: NavigationProps) {
   const { theme, isLoading, isTelegram } = useTelegram();
-  const { isAnonymous, isAdmin, email, avatarUrl } = useUser();
+  const { isAnonymous, isAdmin, avatarUrl } = useUser();
 
   // Sign-in UI removed from navigation; handled on landing page
 
@@ -46,69 +46,85 @@ export default function Navigation({
       style={theme.borderStyle}
     >
       <div className="flex items-center gap-3">
-        {/* Telegram mode: prioritize auth status indicator */}
+        {/* Render based on mode and auth state */}
         {isTelegram && (isAnonymous || isLoading) ? (
           // Telegram mode: show auth status indicator when anonymous or still loading
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
             <span className="text-xs opacity-60">Authenticating</span>
           </div>
-        ) : !isTelegram ? (
-          // Web mode: avatar/signout only when fully authenticated
-          email && !isLoading ? (
-            <div className="flex items-center gap-2">
-              <div
-                className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
-                onClick={handleAvatarClick}
-                title="User Settings"
-              >
-                <div className="overflow-hidden rounded-full relative">
-                  <Image
-                    src={avatarUrl || "/settings.svg"}
-                    alt="User Photo"
-                    width={40}
-                    height={40}
-                    priority
-                    className="rounded-full transition-all duration-200 group-hover:brightness-110"
-                  />
-                  <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
-                </div>
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="px-2 py-1 text-xs rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800"
-                aria-label="Sign out"
-              >
-                Sign out
-              </button>
-            </div>
-          ) : (
-            // Login button in avatar position when not logged in
-            <button
-              onClick={() => setActiveScreen("login")}
-              className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
-                activeScreen === "login"
-                  ? `${theme.primaryButton} hover:brightness-110`
-                  : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
-              }`}
-              style={activeScreen === "login" ? theme.primaryButtonStyle : {}}
-              title="Login"
+        ) : !isTelegram && isAnonymous ? (
+          // Web mode: show login button when not authenticated
+          <button
+            onClick={() => setActiveScreen("login")}
+            className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
+              activeScreen === "login"
+                ? `${theme.primaryButton} hover:brightness-110`
+                : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
+            }`}
+            style={activeScreen === "login" ? theme.primaryButtonStyle : {}}
+            title="Login"
+          >
+            <Image
+              src="/login.svg"
+              alt="login"
+              width={24}
+              height={24}
+              priority
+              className={
+                activeScreen === "login" 
+                  ? "brightness-0 invert" 
+                  : "invert opacity-50"
+              }
+            />
+          </button>
+        ) : !isTelegram && !isAnonymous ? (
+          // Web mode: show avatar and sign out when authenticated
+          <div className="flex items-center gap-2">
+            <div
+              className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
+              onClick={handleAvatarClick}
+              title="User Settings"
             >
-              <Image
-                src="/login.svg"
-                alt="login"
-                width={24}
-                height={24}
-                priority
-                className={
-                  activeScreen === "login" 
-                    ? "brightness-0 invert" 
-                    : "invert opacity-50"
-                }
-              />
+              <div className="overflow-hidden rounded-full relative">
+                <Image
+                  src={avatarUrl || "/settings.svg"}
+                  alt="User Photo"
+                  width={40}
+                  height={40}
+                  priority
+                  className={`rounded-full transition-all duration-200 ${
+                    activeScreen === "settings"
+                      ? "ring-2 ring-offset-1 ring-[#4CD964]"
+                      : "group-hover:brightness-110"
+                  }`}
+                />
+                <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
+              </div>
+              {isAdmin && (
+                <div
+                  className="absolute bottom-0 right-0"
+                  style={{ transform: "translate(20%, 20%)" }}
+                >
+                  <div
+                    className="bg-[#0d1c2b] text-[#4CD964] text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
+                    style={{ boxShadow: "0 0 0 1px #1a2a3a" }}
+                  >
+                    Admin
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="px-2 py-1 text-xs rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800"
+              aria-label="Sign out"
+            >
+              Sign out
             </button>
-          )
+          </div>
         ) : (
+          // Telegram mode: show avatar when authenticated (no sign out)
           <div
             className="relative cursor-pointer transform transition-all duration-200 hover:scale-110 group"
             onClick={handleAvatarClick}
@@ -144,7 +160,6 @@ export default function Navigation({
             )}
           </div>
         )}
-        {/* Hide name label; use avatar only */}
       </div>
 
       <div className="flex space-x-4">
