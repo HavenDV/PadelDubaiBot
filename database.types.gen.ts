@@ -88,25 +88,58 @@ export type Database = {
       }
       locations: {
         Row: {
+          address: string | null
+          attributes: Json | null
           created_at: string | null
           id: number
+          lat: number | null
+          lng: number | null
           name: string
+          opening_hours: Json | null
+          phone: string | null
+          place_id: string | null
+          plus_code: string | null
+          rating: number | null
           updated_at: string | null
           url: string
+          user_ratings_total: number | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          attributes?: Json | null
           created_at?: string | null
           id?: number
+          lat?: number | null
+          lng?: number | null
           name: string
+          opening_hours?: Json | null
+          phone?: string | null
+          place_id?: string | null
+          plus_code?: string | null
+          rating?: number | null
           updated_at?: string | null
           url: string
+          user_ratings_total?: number | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          attributes?: Json | null
           created_at?: string | null
           id?: number
+          lat?: number | null
+          lng?: number | null
           name?: string
+          opening_hours?: Json | null
+          phone?: string | null
+          place_id?: string | null
+          plus_code?: string | null
+          rating?: number | null
           updated_at?: string | null
           url?: string
+          user_ratings_total?: number | null
+          website?: string | null
         }
         Relationships: []
       }

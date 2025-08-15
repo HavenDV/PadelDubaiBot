@@ -43,6 +43,41 @@ export interface EditMessageParams {
   };
 }
 
+export interface InlineKeyboardUrlButton {
+  text: string;
+  url: string;
+}
+
+export interface ReplyMarkupInlineUrl {
+  inline_keyboard: ReadonlyArray<ReadonlyArray<InlineKeyboardUrlButton>>;
+}
+
+export interface SendLocationParams {
+  chat_id: string | number;
+  latitude: number;
+  longitude: number;
+  horizontal_accuracy?: number;
+  live_period?: number;
+  heading?: number;
+  proximity_alert_radius?: number;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkupInlineUrl;
+}
+
+export interface SendVenueParams {
+  chat_id: string | number;
+  latitude: number;
+  longitude: number;
+  title: string;
+  address: string;
+  foursquare_id?: string;
+  foursquare_type?: string;
+  google_place_id?: string;
+  google_place_type?: string;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkupInlineUrl;
+}
+
 export interface AnswerCallbackQueryParams {
   callback_query_id: string;
   text?: string;
@@ -162,5 +197,13 @@ export class TelegramAPI {
     params: PinMessageParams
   ): Promise<TelegramResponse> {
     return this.makeRequest(`${this.baseUrl}/pinChatMessage`, params);
+  }
+
+  static async sendLocation(params: SendLocationParams): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/sendLocation`, params);
+  }
+
+  static async sendVenue(params: SendVenueParams): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/sendVenue`, params);
   }
 }

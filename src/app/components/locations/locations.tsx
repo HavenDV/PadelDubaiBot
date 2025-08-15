@@ -121,6 +121,17 @@ export default function Locations() {
                 >
                   {loc.url}
                 </a>
+                {/* Opening hours */}
+                {Array.isArray((loc as any).opening_hours) && (
+                  <div className="mt-2">
+                    <div className="text-xs font-medium text-gray-700">Opening hours</div>
+                    <ul className="mt-1 text-xs text-gray-600">
+                      {((loc as any).opening_hours as string[]).map((line: string, idx: number) => (
+                        <li key={idx}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {openMapId === loc.id && (
                   <div className="mt-3">
                     <MapEmbed name={loc.name} url={loc.url} height={220} className="w-full rounded-md" />
