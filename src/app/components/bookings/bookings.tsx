@@ -546,11 +546,11 @@ export default function Bookings() {
 
                   {/* Time & Duration Info */}
                   <div
-                    className="border rounded-lg p-3 mb-4 space-y-2"
+                    className="border rounded-lg p-3 mb-2 space-y-2"
                     style={{ ...styles.header, ...styles.border }}
                   >
                     {/* Date */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -622,7 +622,7 @@ export default function Bookings() {
                   {/* Note */}
                   {b.note && (
                     <div
-                      className="flex items-start gap-2 text-sm p-2 rounded-md border"
+                      className="flex items-start gap-2 text-sm p-2 rounded-md border mb-2"
                       style={{ ...styles.card, ...styles.border }}
                     >
                       <svg
@@ -676,7 +676,7 @@ export default function Bookings() {
 
                       {/* User Registration Control */}
                       {!isAdmin && (
-                        <div>
+                        <div className="sm:mt-0 mt-1">
                           {userRegistered ? (
                             <button
                               onClick={() => handleUnregister(b.id)}
