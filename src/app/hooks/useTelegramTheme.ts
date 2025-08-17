@@ -90,11 +90,14 @@ const telegramDarkTheme: ThemeParams = {
 export function useTelegramTheme(
   themeParams: ThemeParams | null
 ): TelegramTheme {
-  // Use default theme params if none provided
+  // Check if we have actual Telegram theme parameters
+  const hasTelegramTheme = themeParams !== null;
+  
+  // Use provided theme params or fall back to defaults
   const params = themeParams || defaultThemeParams;
 
-  // Determine if the theme is dark based on text color
-  const isDark = isColorDark(params.bg_color || "");
+  // Determine if the theme is dark based on background color
+  const isDark = isColorDark(params.bg_color || "#111827");
 
   // Get the actual colors
   const bgColor = params.bg_color || "#111827";
@@ -105,36 +108,43 @@ export function useTelegramTheme(
   const subtitleTextColor = params.subtitle_text_color || "#d1d5db";
   const buttonColor = params.button_color || "#2563eb";
 
+  // If we have Telegram theme, use minimal/transparent classes to let inline styles take precedence
+  // If no Telegram theme, use Tailwind classes as normal
+  const classes = {
+    // Backgrounds
+    bg: hasTelegramTheme ? "" : "bg-gray-900",
+    cardBg: hasTelegramTheme ? "" : "bg-gray-800", 
+    headerBg: hasTelegramTheme ? "" : "bg-gray-900",
+    tableHeaderBg: hasTelegramTheme ? "" : "bg-gray-900",
+
+    // Texts
+    text: hasTelegramTheme ? "" : "text-white",
+    secondaryText: hasTelegramTheme ? "" : "text-gray-300",
+    tableHeaderText: hasTelegramTheme ? "" : "text-gray-300",
+
+    // Borders
+    border: hasTelegramTheme ? "border" : "border-gray-700",
+    tableBorder: hasTelegramTheme ? "border" : "border-gray-700",
+
+    // Buttons
+    primaryButton: hasTelegramTheme ? "" : "bg-blue-600",
+    primaryButtonHover: "hover:brightness-110 transition-all",
+    secondaryButton: hasTelegramTheme ? "" : (isDark ? "bg-gray-700" : "bg-gray-600"),
+    secondaryButtonHover: "hover:brightness-90 transition-all",
+
+    // Selection
+    selectedBg: hasTelegramTheme ? "" : "bg-blue-900 bg-opacity-20",
+    selectedBorder: hasTelegramTheme ? "border" : "border-blue-600",
+
+    // Hovers
+    tableRowHover: "hover:brightness-110 transition-colors",
+  };
+
   return {
-    // Backgrounds - keep Tailwind classes for fallback
-    bg: "bg-gray-900",
-    cardBg: "bg-gray-800",
-    headerBg: "bg-gray-900",
-    tableHeaderBg: "bg-gray-900",
+    // CSS classes (empty when using Telegram theme, fallback Tailwind when not)
+    ...classes,
 
-    // Texts - keep Tailwind classes for fallback
-    text: "text-white",
-    secondaryText: "text-gray-300",
-    tableHeaderText: "text-gray-300",
-
-    // Borders - keep Tailwind classes for fallback
-    border: "border-gray-700",
-    tableBorder: "border-gray-700",
-
-    // Buttons - keep Tailwind classes for fallback
-    primaryButton: "bg-blue-600",
-    primaryButtonHover: "hover:bg-opacity-90",
-    secondaryButton: isDark ? "bg-gray-700" : "bg-gray-600",
-    secondaryButtonHover: isDark ? "hover:bg-gray-800" : "hover:bg-gray-700",
-
-    // Selection - keep Tailwind classes for fallback
-    selectedBg: "bg-blue-900 bg-opacity-20",
-    selectedBorder: "border-blue-600",
-
-    // Hovers - keep Tailwind classes for fallback
-    tableRowHover: isDark ? "hover:bg-gray-700" : "hover:bg-gray-50",
-
-    // Inline styles for dynamic colors
+    // Inline styles for dynamic colors (always provided)
     bgStyle: { backgroundColor: bgColor },
     cardBgStyle: { backgroundColor: secondaryBgColor },
     headerBgStyle: { backgroundColor: headerBgColor },
@@ -142,10 +152,10 @@ export function useTelegramTheme(
     textStyle: { color: textColor },
     secondaryTextStyle: { color: hintColor },
     tableHeaderTextStyle: { color: subtitleTextColor },
-    borderStyle: { borderColor: secondaryBgColor },
-    tableBorderStyle: { borderColor: secondaryBgColor },
-    primaryButtonStyle: { backgroundColor: buttonColor },
-    selectedBgStyle: { backgroundColor: `${buttonColor}33` }, // 33 is 20% opacity in hex
+    borderStyle: { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) },
+    tableBorderStyle: { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) },
+    primaryButtonStyle: { backgroundColor: buttonColor, color: params.button_text_color || "#ffffff" },
+    selectedBgStyle: { backgroundColor: adjustColorOpacity(buttonColor, 0.2) },
     selectedBorderStyle: { borderColor: buttonColor },
   };
 }
@@ -168,4 +178,17 @@ function isColorDark(color: string): boolean {
 
   // Return true if the color is dark (luminance < 0.5)
   return luminance < 0.5;
+}
+
+/**
+ * Adjusts the opacity of a hex color
+ */
+function adjustColorOpacity(color: string, opacity: number): string {
+  // Remove the hash if it exists
+  const hex = color.replace("#", "");
+  
+  // Convert opacity to hex (0-1 to 00-FF)
+  const alpha = Math.round(opacity * 255).toString(16).padStart(2, "0");
+  
+  return `#${hex}${alpha}`;
 }

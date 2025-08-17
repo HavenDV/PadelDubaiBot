@@ -63,7 +63,10 @@ export default function Home() {
 
   return (
     <>
-      <div className={`${theme.bg} flex min-h-[100dvh] w-full flex-col`}>
+      <div 
+        className={`${theme.bg} flex min-h-[100dvh] w-full flex-col`}
+        style={theme.bgStyle}
+      >
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}

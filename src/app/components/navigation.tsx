@@ -64,7 +64,7 @@ export default function Navigation({
                 ? `${theme.primaryButton} hover:brightness-110`
                 : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
             }`}
-            style={activeScreen === "login" ? theme.primaryButtonStyle : {}}
+            style={activeScreen === "login" ? theme.primaryButtonStyle : theme.cardBgStyle}
             title="Login"
           >
             <Image
@@ -176,7 +176,7 @@ export default function Navigation({
                   ? `${theme.primaryButton} hover:brightness-110`
                   : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
               }`}
-              style={activeScreen === screen ? theme.primaryButtonStyle : {}}
+              style={activeScreen === screen ? theme.primaryButtonStyle : theme.cardBgStyle}
               title={screen.charAt(0).toUpperCase() + screen.slice(1)}
             >
               <Image
