@@ -12,7 +12,7 @@ import {
 } from "@/app/lib/hooks/db/useUserMutations";
 
 export default function Settings() {
-  const { styles } = useTelegram();
+  const { styles, isTelegram, themePreference, setThemePreference } = useTelegram();
   const { isAnonymous, telegramUserId } = useUser();
   const [authMessage, setAuthMessage] = useState<string>("");
   const [skillMessage, setSkillMessage] = useState<string>("");
@@ -94,6 +94,30 @@ export default function Settings() {
   return (
     <div className="p-4 space-y-6">
       <h2 className="text-xl font-bold mb-4" style={styles.text}>Settings</h2>
+
+      {/* Appearance (Web only) */}
+      {!isTelegram && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium" style={styles.text}>Appearance</label>
+          <div className="flex gap-2">
+            {(["system", "light", "dark"] as const).map((pref) => {
+              const isActive = themePreference === pref;
+              return (
+                <button
+                  key={pref}
+                  onClick={() => setThemePreference(pref)}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors border"
+                  style={isActive ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }}
+                  aria-pressed={isActive}
+                >
+                  {pref.charAt(0).toUpperCase() + pref.slice(1)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs" style={styles.secondaryText}>Applies to web only. Telegram uses the in‑app theme.</p>
+        </div>
+      )}
 
       {/* Skill Level Section */}
       <div className="space-y-2">
