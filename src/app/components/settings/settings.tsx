@@ -3,9 +3,9 @@
 import { useTelegram } from "@contexts/TelegramContext";
 import { useState, useEffect } from "react";
 import { useUser } from "../../hooks/useUser";
-import { useUserProfile } from "@lib/hooks/useUserProfile";
-import { useLinkedProviders } from "@lib/hooks/useAuthProviders";
-import { useLinkProvider } from "@lib/hooks/useLinkProvider";
+import { useLinkedProviders } from "@lib/hooks/auth/useAuthProviders";
+import { useLinkProvider } from "@lib/hooks/auth/useLinkProvider";
+import { useUserById } from "@/app/lib/hooks/db";
 
 export default function Settings() {
   const { theme, webApp } = useTelegram();
@@ -22,8 +22,12 @@ export default function Settings() {
   }, [webApp]);
 
   // Use React Query hooks for data fetching
-  const { data: userProfile, error: userProfileError } = useUserProfile(userId);
-  const { data: linkedProviders = [], isLoading: providersLoading, error: providersError } = useLinkedProviders(isAnonymous);
+  const { data: userProfile, error: userProfileError } = useUserById(userId);
+  const {
+    data: linkedProviders = [],
+    isLoading: providersLoading,
+    error: providersError,
+  } = useLinkedProviders(isAnonymous);
   const linkProviderMutation = useLinkProvider();
 
   // Log user profile data when it loads
@@ -69,7 +73,9 @@ export default function Settings() {
             <button
               onClick={() => handleLinkProvider("google")}
               disabled={
-                linkProviderMutation.isPending || linkedProviders.includes("google") || providersLoading
+                linkProviderMutation.isPending ||
+                linkedProviders.includes("google") ||
+                providersLoading
               }
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
                 linkedProviders.includes("google")
@@ -79,15 +85,13 @@ export default function Settings() {
                   : "bg-white hover:bg-gray-50 text-gray-900 border-gray-300"
               }`}
             >
-              {providersLoading ? (
-                "Loading..."
-              ) : linkedProviders.includes("google") ? (
-                "Google linked"
-              ) : linkProviderMutation.isPending ? (
-                "Linking..."
-              ) : (
-                "Link Google"
-              )}
+              {providersLoading
+                ? "Loading..."
+                : linkedProviders.includes("google")
+                ? "Google linked"
+                : linkProviderMutation.isPending
+                ? "Linking..."
+                : "Link Google"}
             </button>
             {/* <button
               onClick={() => handleLinkProvider("apple")}
