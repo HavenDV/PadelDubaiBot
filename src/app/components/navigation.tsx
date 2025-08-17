@@ -99,8 +99,8 @@ export default function Navigation({
                   <div
                     className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
                     style={{ 
-                      ...styles.card,
-                      ...styles.border,
+                      backgroundColor: styles.card.backgroundColor,
+                      borderColor: styles.selectedBg.borderColor,
                       borderWidth: '1px',
                       color: styles.text.color,
                     }}
@@ -153,8 +153,8 @@ export default function Navigation({
                 <div
                   className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm`}
                   style={{ 
-                    ...styles.card,
-                    ...styles.border,
+                    backgroundColor: styles.card.backgroundColor,
+                    borderColor: styles.selectedBg.borderColor,
                     borderWidth: '1px',
                     color: styles.text.color,
                   }}
