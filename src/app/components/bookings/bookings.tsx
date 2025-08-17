@@ -4,15 +4,18 @@ import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
-import { Booking, Location } from "../../../../database.types";
+import { Booking, Location, Registration, User as DBUser } from "../../../../database.types";
 import Image from "next/image";
 import AddBookingModal from "./AddBookingModal";
 
 export default function Bookings() {
   const { theme } = useTelegram();
-  const { isAdmin } = useUser();
+  const { isAdmin, user } = useUser();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [registrations, setRegistrations] = useState<(Registration & { 
+    user: Pick<DBUser, 'id' | 'first_name' | 'last_name' | 'username' | 'photo_url' | 'explicit_name'> 
+  })[]>([]);
   const [telegramMessages, setTelegramMessages] = useState<{
     [key: number]: boolean;
   }>({});
@@ -25,17 +28,23 @@ export default function Bookings() {
     setLoading(true);
     setError("");
     try {
-      const [bRes, lRes, tRes] = await Promise.all([
+      const [bRes, lRes, tRes, rRes] = await Promise.all([
         supabase.from("bookings").select("*").order("id", { ascending: false }),
         supabase.from("locations").select("*").order("id"),
         supabase.from("messages").select("booking_id").eq("is_active", true),
+        supabase.from("registrations").select(`
+          *,
+          user:users(id, first_name, last_name, username, photo_url, explicit_name)
+        `).order("created_at", { ascending: true }),
       ]);
       if (bRes.error) throw bRes.error;
       if (lRes.error) throw lRes.error;
       if (tRes.error) throw tRes.error;
+      if (rRes.error) throw rRes.error;
 
       setBookings(bRes.data ?? []);
       setLocations(lRes.data ?? []);
+      setRegistrations(rRes.data ?? []);
 
       // Create a lookup for bookings that have been posted to Telegram
       const telegramMessageLookup: { [key: number]: boolean } = {};
@@ -124,6 +133,98 @@ export default function Bookings() {
     }
   };
 
+  const handleRegister = async (bookingId: number) => {
+    if (!user) {
+      alert("Please login to register for games");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const { error } = await supabase
+        .from("registrations")
+        .insert({
+          booking_id: bookingId,
+          user_id: parseInt(user.id)
+        });
+      
+      if (error) throw error;
+      await loadAll();
+      alert("Successfully registered!");
+    } catch (e) {
+      setError("Failed to register for game");
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnregister = async (bookingId: number) => {
+    if (!user) return;
+
+    if (!confirm("Cancel your registration?")) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      const { error } = await supabase
+        .from("registrations")
+        .delete()
+        .eq("booking_id", bookingId)
+        .eq("user_id", parseInt(user.id));
+      
+      if (error) throw error;
+      await loadAll();
+      alert("Registration cancelled");
+    } catch (e) {
+      setError("Failed to cancel registration");
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminRemoveRegistration = async (registrationId: number) => {
+    if (!confirm("Remove this player's registration?")) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      const { error } = await supabase
+        .from("registrations")
+        .delete()
+        .eq("id", registrationId);
+      
+      if (error) throw error;
+      await loadAll();
+    } catch (e) {
+      setError("Failed to remove registration");
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getBookingRegistrations = (bookingId: number) => {
+    return registrations.filter(r => r.booking_id === bookingId);
+  };
+
+  const isUserRegistered = (bookingId: number) => {
+    if (!user) return false;
+    return registrations.some(r => r.booking_id === bookingId && r.user_id === parseInt(user.id));
+  };
+
+  const getMaxPlayers = (courts: number) => courts * 4;
+
+  const getMainPlayers = (bookingRegs: typeof registrations, maxPlayers: number) => {
+    return bookingRegs.slice(0, maxPlayers);
+  };
+
+  const getWaitlistPlayers = (bookingRegs: typeof registrations, maxPlayers: number) => {
+    return bookingRegs.slice(maxPlayers);
+  };
+
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -176,6 +277,13 @@ export default function Bookings() {
               (end.getTime() - start.getTime()) / (1000 * 60)
             );
             const location = locations.find((l) => l.id === b.location_id);
+            const bookingRegs = getBookingRegistrations(b.id);
+            const userRegistered = isUserRegistered(b.id);
+            const maxPlayers = getMaxPlayers(b.courts);
+            const mainPlayers = getMainPlayers(bookingRegs, maxPlayers);
+            const waitlistPlayers = getWaitlistPlayers(bookingRegs, maxPlayers);
+            const isFull = bookingRegs.length >= maxPlayers;
+            const userOnWaitlist = userRegistered && waitlistPlayers.some(r => user && r.user_id === parseInt(user.id));
 
             return (
               <div key={b.id} className="relative py-4">
@@ -397,6 +505,155 @@ export default function Bookings() {
                       <span className="text-gray-600">{b.note}</span>
                     </div>
                   )}
+
+                  {/* Registrations */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-5 h-5 text-gray-600"
+                        >
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span className="font-semibold text-gray-800">
+                          Players ({bookingRegs.length}/{maxPlayers})
+                        </span>
+                      </div>
+                      
+                      {/* User Registration Control */}
+                      {!isAdmin && (
+                        <div>
+                          {userRegistered ? (
+                            <button
+                              onClick={() => handleUnregister(b.id)}
+                              className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-100 transition-colors"
+                            >
+                              {userOnWaitlist ? "Leave Waitlist" : "Cancel"}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRegister(b.id)}
+                              className="px-3 py-1.5 bg-green-50 text-green-600 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
+                            >
+                              {isFull ? "Join Waitlist" : "Register"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Main Players */}
+                    {mainPlayers.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Main Players</div>
+                        {mainPlayers.map((reg, index) => (
+                          <div key={reg.id} className="flex items-center justify-between p-2 bg-green-50 rounded-md border border-green-200">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold">
+                                {index + 1}
+                              </span>
+                              <span className="text-sm font-medium text-gray-800">
+                                {reg.user?.username || reg.user?.first_name || `User ${reg.user_id}`}
+                              </span>
+                              {userRegistered && user && reg.user_id === parseInt(user.id) && !userOnWaitlist && (
+                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">You</span>
+                              )}
+                            </div>
+                            
+                            {/* Admin Remove Control */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleAdminRemoveRegistration(reg.id)}
+                                className="w-6 h-6 text-red-500 hover:text-red-700 transition-colors"
+                                title="Remove player"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="w-4 h-4"
+                                >
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Waitlist */}
+                    {waitlistPlayers.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <span>Waitlist</span>
+                          <span className="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full">
+                            {waitlistPlayers.length} waiting
+                          </span>
+                        </div>
+                        {waitlistPlayers.map((reg, index) => (
+                          <div key={reg.id} className="flex items-center justify-between p-2 bg-yellow-50 rounded-md border border-yellow-200">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xs font-semibold">
+                                W{index + 1}
+                              </span>
+                              <span className="text-sm font-medium text-gray-800">
+                                {reg.user?.username || reg.user?.first_name || `User ${reg.user_id}`}
+                              </span>
+                              {userOnWaitlist && user && reg.user_id === parseInt(user.id) && (
+                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">You</span>
+                              )}
+                            </div>
+                            
+                            {/* Admin Remove Control */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleAdminRemoveRegistration(reg.id)}
+                                className="w-6 h-6 text-red-500 hover:text-red-700 transition-colors"
+                                title="Remove player"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="w-4 h-4"
+                                >
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty State */}
+                    {bookingRegs.length === 0 && (
+                      <div className="text-sm text-gray-500 text-center py-4">
+                        No players registered yet
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
