@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
@@ -8,41 +8,41 @@ import { Location } from "../../../../database.types";
 import Image from "next/image";
 import AddLocationModal from "./AddLocationModal";
 import dynamic from "next/dynamic";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
 export default function Locations() {
   const { theme } = useTelegram();
   const { isAdmin } = useUser();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [openMapId, setOpenMapId] = useState<number | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
+  // Fetch locations using React Query
+  const { data: locations = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("locations")
         .select("*")
         .order("id");
       if (error) throw error;
-      setLocations(data ?? []);
-    } catch (e) {
+      return data ?? [];
+    },
+  });
+
+  // Handle query errors
+  React.useEffect(() => {
+    if (queryError) {
       setError("Failed to load locations");
-
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.error(queryError);
+    } else {
+      setError("");
     }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  }, [queryError]);
 
   const openAddModal = () => {
     setEditingLocation(null);
@@ -53,21 +53,29 @@ export default function Locations() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this location?")) return;
-    setLoading(true);
-    setError("");
-    try {
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
       const { error } = await supabase.from("locations").delete().eq("id", id);
       if (error) throw error;
-      await load();
-    } catch (e) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+    },
+    onError: (error) => {
       setError("Failed to delete location");
+      console.error(error);
+    },
+  });
 
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  const handleDelete = (id: number) => {
+    if (!confirm("Delete this location?")) return;
+    setError("");
+    deleteMutation.mutate(id);
+  };
+
+  const handleModalSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['locations'] });
   };
 
   return (
@@ -205,26 +213,35 @@ export default function Locations() {
                   {/* Remove */}
                   <button
                     onClick={() => handleDelete(loc.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
-                    title="Remove"
-                    aria-label="Remove"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                      deleteMutation.isPending
+                        ? "text-red-400 bg-red-100 border-red-200 cursor-not-allowed"
+                        : "text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"
+                    }`}
+                    title={deleteMutation.isPending ? "Deleting..." : "Remove"}
+                    aria-label={deleteMutation.isPending ? "Deleting..." : "Remove"}
+                    disabled={deleteMutation.isPending}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                    </svg>
+                    {deleteMutation.isPending ? (
+                      <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               )}
@@ -243,7 +260,7 @@ export default function Locations() {
           setIsModalOpen(false);
           setEditingLocation(null);
         }}
-        onSuccess={load}
+        onSuccess={handleModalSuccess}
         editingLocation={editingLocation}
       />
     </div>

@@ -4,30 +4,23 @@ import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
 import { supabase } from "@lib/supabase/client";
-import { Booking, Location, Registration, User as DBUser } from "../../../../database.types";
+import { Booking } from "../../../../database.types";
 import Image from "next/image";
 import AddBookingModal from "./AddBookingModal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Bookings() {
   const { theme } = useTelegram();
   const { isAdmin, user } = useUser();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [registrations, setRegistrations] = useState<(Registration & { 
-    user: Pick<DBUser, 'id' | 'first_name' | 'last_name' | 'username' | 'photo_url' | 'explicit_name'> 
-  })[]>([]);
-  const [telegramMessages, setTelegramMessages] = useState<{
-    [key: number]: boolean;
-  }>({});
-  const [loading, setLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
-  const loadAll = async () => {
-    setLoading(true);
-    setError("");
-    try {
+  // Fetch all data using React Query
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['bookings-data'],
+    queryFn: async () => {
       const [bRes, lRes, tRes, rRes] = await Promise.all([
         supabase.from("bookings").select("*").order("id", { ascending: false }),
         supabase.from("locations").select("*").order("id"),
@@ -37,33 +30,45 @@ export default function Bookings() {
           user:users(id, first_name, last_name, username, photo_url, explicit_name)
         `).order("created_at", { ascending: true }),
       ]);
+      
       if (bRes.error) throw bRes.error;
       if (lRes.error) throw lRes.error;
       if (tRes.error) throw tRes.error;
       if (rRes.error) throw rRes.error;
 
-      setBookings(bRes.data ?? []);
-      setLocations(lRes.data ?? []);
-      setRegistrations(rRes.data ?? []);
+      const bookings = bRes.data ?? [];
+      const locations = lRes.data ?? [];
+      const registrations = rRes.data ?? [];
 
       // Create a lookup for bookings that have been posted to Telegram
       const telegramMessageLookup: { [key: number]: boolean } = {};
       (tRes.data ?? []).forEach((msg) => {
         telegramMessageLookup[msg.booking_id] = true;
       });
-      setTelegramMessages(telegramMessageLookup);
-    } catch (e) {
-      setError("Failed to load data");
 
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        bookings,
+        locations,
+        registrations,
+        telegramMessages: telegramMessageLookup
+      };
+    },
+  });
 
+  const bookings = data?.bookings ?? [];
+  const locations = data?.locations ?? [];
+  const registrations = data?.registrations ?? [];
+  const telegramMessages = data?.telegramMessages ?? {};
+
+  // Set up query error handling
   useEffect(() => {
-    loadAll();
-  }, []);
+    if (queryError) {
+      setError("Failed to load data");
+      console.error(queryError);
+    } else {
+      setError("");
+    }
+  }, [queryError]);
 
   const startEdit = (booking: Booking) => {
     setEditingBooking(booking);
@@ -75,28 +80,26 @@ export default function Bookings() {
     setIsModalOpen(true);
   };
 
+  const handleModalSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this booking?")) return;
-    setLoading(true);
     setError("");
     try {
       const { error } = await supabase.from("bookings").delete().eq("id", id);
       if (error) throw error;
-      await loadAll();
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
     } catch (e) {
       setError("Failed to delete booking");
-
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleRefreshMessages = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      // Call cleanup endpoint to check if messages still exist
+  // Refresh messages mutation
+  const refreshMessagesMutation = useMutation({
+    mutationFn: async () => {
       const response = await fetch("/api/telegram/cleanup-messages", {
         method: "POST",
         headers: {
@@ -108,27 +111,26 @@ export default function Bookings() {
         throw new Error("Failed to refresh message status");
       }
 
-      const result = await response.json();
+      return response.json();
+    },
+    onSuccess: (result) => {
       console.log("Message cleanup result:", result);
-      
       // Refresh the data to update button states
-      await loadAll();
-      
-      if (result.cleaned > 0) {
-        alert(`Refreshed! ${result.cleaned} deleted messages were cleaned up.`);
-      } else {
-        alert("All message statuses are up to date.");
-      }
-    } catch (e) {
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
+    },
+    onError: (error) => {
       setError(
         `Failed to refresh messages: ${
-          e instanceof Error ? e.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error"
         }`
       );
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+      console.error(error);
+    },
+  });
+
+  const handleRefreshMessages = () => {
+    setError("");
+    refreshMessagesMutation.mutate();
   };
 
   const handlePostToTelegram = async (booking: Booking) => {
@@ -140,7 +142,6 @@ export default function Bookings() {
     if (!confirm("Post this booking to Telegram chat for registrations?"))
       return;
 
-    setLoading(true);
     setError("");
     try {
       const response = await fetch("/api/telegram/post-booking", {
@@ -158,8 +159,7 @@ export default function Bookings() {
 
       const result = await response.json();
       console.log("Posted to Telegram:", result);
-      await loadAll(); // Refresh to show updated message_id
-      alert("Successfully posted to Telegram!");
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] }); // Refresh to show updated message_id
     } catch (e) {
       setError(
         `Failed to post to Telegram: ${
@@ -167,8 +167,6 @@ export default function Bookings() {
         }`
       );
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -178,7 +176,6 @@ export default function Bookings() {
       return;
     }
 
-    setLoading(true);
     setError("");
     try {
       const { error } = await supabase
@@ -189,13 +186,10 @@ export default function Bookings() {
         });
       
       if (error) throw error;
-      await loadAll();
-      alert("Successfully registered!");
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
     } catch (e) {
       setError("Failed to register for game");
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -204,7 +198,6 @@ export default function Bookings() {
 
     if (!confirm("Cancel your registration?")) return;
 
-    setLoading(true);
     setError("");
     try {
       const { error } = await supabase
@@ -214,20 +207,16 @@ export default function Bookings() {
         .eq("user_id", parseInt(user.id));
       
       if (error) throw error;
-      await loadAll();
-      alert("Registration cancelled");
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
     } catch (e) {
       setError("Failed to cancel registration");
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleAdminRemoveRegistration = async (registrationId: number) => {
     if (!confirm("Remove this player's registration?")) return;
 
-    setLoading(true);
     setError("");
     try {
       const { error } = await supabase
@@ -236,12 +225,10 @@ export default function Bookings() {
         .eq("id", registrationId);
       
       if (error) throw error;
-      await loadAll();
+      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
     } catch (e) {
       setError("Failed to remove registration");
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -275,25 +262,33 @@ export default function Bookings() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefreshMessages}
-              className="w-8 h-8 bg-gray-600 hover:bg-gray-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center shadow-sm"
-              title="Refresh message status"
-              disabled={loading}
+              className={`w-8 h-8 rounded-full text-sm font-medium transition-colors flex items-center justify-center shadow-sm ${
+                refreshMessagesMutation.isPending
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gray-600 hover:bg-gray-700"
+              } text-white`}
+              title={refreshMessagesMutation.isPending ? "Refreshing..." : "Refresh message status"}
+              disabled={refreshMessagesMutation.isPending}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
+              {refreshMessagesMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+              )}
             </button>
             <button
               onClick={startAdd}
@@ -391,25 +386,33 @@ export default function Bookings() {
                     {telegramMessages[b.id] && (
                       <button
                         onClick={handleRefreshMessages}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
-                        title="Check if message still exists"
-                        disabled={loading}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                          refreshMessagesMutation.isPending
+                            ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                            : "text-gray-600 hover:bg-gray-50 border-gray-200 hover:border-gray-300"
+                        }`}
+                        title={refreshMessagesMutation.isPending ? "Checking..." : "Check if message still exists"}
+                        disabled={refreshMessagesMutation.isPending}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4"
-                        >
-                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                          <path d="M21 3v5h-5" />
-                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                          <path d="M3 21v-5h5" />
-                        </svg>
+                        {refreshMessagesMutation.isPending ? (
+                          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4"
+                          >
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                            <path d="M21 3v5h-5" />
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                            <path d="M3 21v-5h5" />
+                          </svg>
+                        )}
                       </button>
                     )}
 
@@ -757,9 +760,9 @@ export default function Bookings() {
       <AddBookingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={loadAll}
+        onSuccess={handleModalSuccess}
         locations={locations}
-        onLocationUpdate={loadAll}
+        onLocationUpdate={handleModalSuccess}
         editingBooking={editingBooking}
       />
     </div>
