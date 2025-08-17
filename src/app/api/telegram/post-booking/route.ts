@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   TelegramAPI,
-  SKILL_LEVEL_BUTTONS,
+  REGISTRATION_BUTTONS,
   GameDataManager,
   MessageFormatter,
 } from "@/app/lib/telegram";
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
       reply_markup: booking.cancelled
         ? undefined
         : {
-            inline_keyboard: SKILL_LEVEL_BUTTONS,
+            inline_keyboard: REGISTRATION_BUTTONS,
           },
     });
 

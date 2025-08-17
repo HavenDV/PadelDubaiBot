@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   TelegramAPI,
   type TelegramResponse,
-  SKILL_LEVEL_BUTTONS,
+  REGISTRATION_BUTTONS,
   GameDataManager,
   MessageFormatter,
 } from "@/app/lib/telegram";
@@ -142,7 +142,7 @@ export async function GET() {
         reply_markup: game.cancelled
           ? undefined
           : {
-              inline_keyboard: SKILL_LEVEL_BUTTONS,
+              inline_keyboard: REGISTRATION_BUTTONS,
             },
       });
 

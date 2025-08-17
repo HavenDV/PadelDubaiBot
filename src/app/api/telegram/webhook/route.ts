@@ -20,13 +20,14 @@ async function handleDatabaseRegistration(
   messageId: number,
   userId: number,
   userName: string,
-  skillLevel: PlayerAction,
+  action: "join" | "leave",
   chatId: number
 ): Promise<{
   success: boolean;
   notification?: string;
   error?: string;
   updatedMessage?: string;
+  userSkill?: string;
 }> {
   try {
     console.log(
@@ -80,37 +81,46 @@ async function handleDatabaseRegistration(
       return { success: false, error: "This booking has been cancelled" };
     }
 
-    // Ensure user exists in database
+    // Ensure user exists in database and get their skill level
     const { data: existingUser, error: userCheckError } = await supabaseAdmin
       .from("users")
-      .select("id")
+      .select("id, skill_level")
       .eq("id", userId)
       .single();
 
     let dbUserId: number;
+    let userSkill: string | null = null;
 
     if (userCheckError || !existingUser) {
-      // Create user if doesn't exist
+      // Create user if doesn't exist with default skill level "E"
       const { data: newUser, error: createUserError } = await supabaseAdmin
         .from("users")
         .insert({
           id: userId,
           username: userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim(), // Clean HTML tags
           first_name: userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim(),
+          skill_level: "E", // Default skill level for new players
         })
-        .select("id")
+        .select("id, skill_level")
         .single();
 
       if (createUserError || !newUser) {
         return { success: false, error: "Failed to create user" };
       }
       dbUserId = newUser.id;
+      userSkill = newUser.skill_level;
     } else {
       dbUserId = existingUser.id;
+      userSkill = existingUser.skill_level;
     }
 
-    // Handle "not_coming" - remove registration
-    if (skillLevel === "not_coming") {
+    // If user somehow doesn't have a skill level, default to "E" as fallback
+    if (action === "join" && !userSkill) {
+      userSkill = "E";
+    }
+
+    // Handle leave action - remove registration
+    if (action === "leave") {
       const { error: deleteError } = await supabaseAdmin
         .from("registrations")
         .delete()
@@ -120,9 +130,9 @@ async function handleDatabaseRegistration(
       if (deleteError) {
         return { success: false, error: "Failed to remove registration" };
       }
-    } else {
-      // Handle skill level registration
-      // First, remove any existing registration for this user
+    } else if (action === "join") {
+      // Handle join action - add registration
+      // First, remove any existing registration for this user (in case they're re-joining)
       await supabaseAdmin
         .from("registrations")
         .delete()
@@ -142,7 +152,7 @@ async function handleDatabaseRegistration(
       }
     }
 
-    // Get all current registrations for this booking
+    // Get all current registrations for this booking with user skill levels
     const { data: registrations, error: regError } = await supabaseAdmin
       .from("registrations")
       .select(
@@ -151,7 +161,8 @@ async function handleDatabaseRegistration(
         users:user_id (
           id,
           username,
-          first_name
+          first_name,
+          skill_level
         )
       `
       )
@@ -171,7 +182,7 @@ async function handleDatabaseRegistration(
 
     const cleanUserName = userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim();
     const notification =
-      skillLevel === "not_coming"
+      action === "leave"
         ? `${cleanUserName} отменил участие`
         : undefined;
 
@@ -179,6 +190,7 @@ async function handleDatabaseRegistration(
       success: true,
       updatedMessage,
       notification,
+      userSkill: userSkill || undefined,
     };
   } catch (error) {
     console.error("Database registration error:", error);
@@ -209,6 +221,7 @@ interface RegistrationWithUser {
     id: number;
     username: string | null;
     first_name: string;
+    skill_level: string | null;
   };
 }
 
@@ -249,13 +262,13 @@ async function generateMessageFromDatabase(
     .padStart(2, "0")}`;
   const time = `${startTimeStr}-${endTimeStr}`;
 
-  // Convert registrations to player format
+  // Convert registrations to player format with skill levels
   const players = registrations.map((reg) => ({
     id: reg.users.id,
     userName: reg.users.username
       ? `@${reg.users.username}`
       : reg.users.first_name,
-    skillLevel: "registered", // We don't store skill level in new system
+    skillLevel: reg.users.skill_level || "N/A", // Show skill level from profile
     registrationTime: new Date(), // Use current time as placeholder
   }));
 
@@ -333,7 +346,7 @@ export async function updateTelegramMessageFromDatabase(
       return { success: false, error: "Booking not found" };
     }
 
-    // Get current registrations
+    // Get current registrations with skill levels
     const { data: registrations, error: regError } = await supabaseAdmin
       .from("registrations")
       .select(
@@ -342,7 +355,8 @@ export async function updateTelegramMessageFromDatabase(
         users:user_id (
           id,
           username,
-          first_name
+          first_name,
+          skill_level
         )
       `
       )
@@ -467,31 +481,41 @@ export async function POST(req: NextRequest) {
 
   const callbackQuery = update.callback_query;
 
-  // Handle button callbacks for skill level selection
-  if (callbackQuery && callbackQuery.data?.startsWith("skill_")) {
+  // Handle button callbacks for join/leave actions and legacy skill buttons
+  if (callbackQuery && (callbackQuery.data === "join_game" || callbackQuery.data === "leave_game" || callbackQuery.data?.startsWith("skill_"))) {
     const chatId = callbackQuery.message.chat.id;
     const messageId = callbackQuery.message.message_id;
-    const selectedLevel = callbackQuery.data.replace(
-      "skill_",
-      ""
-    ) as PlayerAction;
+    
+    // Handle both new and legacy button formats
+    let action: "join" | "leave";
+    if (callbackQuery.data === "join_game") {
+      action = "join";
+    } else if (callbackQuery.data === "leave_game") {
+      action = "leave";
+    } else if (callbackQuery.data?.startsWith("skill_")) {
+      // Legacy skill button - convert to new format
+      const skillLevel = callbackQuery.data.replace("skill_", "");
+      action = skillLevel === "not_coming" ? "leave" : "join";
+    } else {
+      action = "leave"; // fallback
+    }
+    
     const user = callbackQuery.from;
     const displayName = user.username
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
       : user.first_name || "Unknown";
 
     console.log(
-      `Webhook received: chatId=${chatId}, messageId=${messageId}, user=${user.id}, action=${selectedLevel}`
+      `Webhook received: chatId=${chatId}, messageId=${messageId}, user=${user.id}, action=${action}`
     );
 
     // Answer callback query immediately to prevent timeout
     try {
       await TelegramAPI.answerCallbackQuery({
         callback_query_id: callbackQuery.id,
-        text:
-          selectedLevel === "not_coming"
-            ? CALLBACK_MESSAGES.NOT_COMING
-            : CALLBACK_MESSAGES.REGISTERED(selectedLevel),
+        text: action === "leave" 
+          ? CALLBACK_MESSAGES.NOT_COMING
+          : "Записываем вас на игру...",
       });
       console.log("Callback query answered immediately");
     } catch (error) {
@@ -515,11 +539,11 @@ export async function POST(req: NextRequest) {
 
       // Check for late cancellation penalty
       const isCancellation =
-        selectedLevel === "not_coming" ||
+        action === "leave" ||
         gameInfo.registeredPlayers.some((p) => p.id === user.id) ||
         gameInfo.waitlist.some((p) => p.id === user.id);
 
-      if (isCancellation && selectedLevel === "not_coming") {
+      if (isCancellation && action === "leave") {
         const lateCancellationCheck =
           GameDataManager.isLateCancellation(gameInfo);
 
@@ -549,7 +573,7 @@ export async function POST(req: NextRequest) {
         messageId,
         user.id,
         displayName,
-        selectedLevel,
+        action,
         chatId
       );
 
@@ -561,6 +585,19 @@ export async function POST(req: NextRequest) {
         updatedMessage = dbResult.updatedMessage;
         notification = dbResult.notification;
         console.log("Using database-driven registration system");
+      } else if (dbResult.error) {
+        // Handle specific errors like missing skill level
+        try {
+          await TelegramAPI.answerCallbackQuery({
+            callback_query_id: callbackQuery.id,
+            text: dbResult.error,
+            show_alert: true,
+          });
+          return NextResponse.json({ ok: true });
+        } catch (error) {
+          console.error("Error sending error message:", error);
+          return NextResponse.json({ ok: true });
+        }
       } else {
         // Fallback to message-based system for backward compatibility
         console.warn(
@@ -568,12 +605,15 @@ export async function POST(req: NextRequest) {
           dbResult.error
         );
 
+        // Convert action to legacy format for backward compatibility  
+        const legacyAction: PlayerAction = action === "leave" ? "not_coming" : "D";
+        
         // Update game state with user action (message-based system)
         const { updatedGame, notification: fallbackNotification } =
           GameDataManager.updateGameWithUserAction(
             gameInfo,
             { id: user.id, userName: displayName },
-            selectedLevel
+            legacyAction
           );
 
         // Format the updated message

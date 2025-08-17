@@ -9,7 +9,7 @@ export type {
 } from "./api";
 
 export {
-  SKILL_LEVEL_BUTTONS,
+  REGISTRATION_BUTTONS,
   ADMIN_BUTTONS,
   ADMIN_USER_IDS,
   AdminUtils,

@@ -12,15 +12,10 @@ export const ADMIN_BUTTONS = [
   [{ text: "📊 Статистика игры", callback_data: "admin_game_stats" }],
 ] as const;
 
-// Telegram padel constants - using official grading system
-export const SKILL_LEVEL_BUTTONS = [
-  [{ text: "E (First time)", callback_data: "skill_E" }],
-  [{ text: "D (Beginner)", callback_data: "skill_D" }],
-  [{ text: "D+ (Control direction, know rules)", callback_data: "skill_D+" }],
-  [{ text: "C- (Defense & attack)", callback_data: "skill_C-" }],
-  [{ text: "C (Defense to attack)", callback_data: "skill_C" }],
-  [{ text: "C+ (Change pace & play)", callback_data: "skill_C+" }],
-  [{ text: "❌ Не приду", callback_data: "skill_not_coming" }],
+// Simplified registration buttons - users select from their profile skill level
+export const REGISTRATION_BUTTONS = [
+  [{ text: "🎾 Записаться", callback_data: "join_game" }],
+  [{ text: "❌ Не приду", callback_data: "leave_game" }],
 ];
 
 // Weekly schedule template for the main message
@@ -179,12 +174,12 @@ export const AdminUtils = {
   },
 
   /**
-   * Gets skill level buttons only (admin controls are sent privately)
+   * Gets registration buttons (admin controls are sent privately)
    */
   getButtonsForUser: () => {
-    // Always return only skill level buttons for public messages
+    // Always return only registration buttons for public messages
     // Admin controls are handled via private messages
-    return [...SKILL_LEVEL_BUTTONS];
+    return [...REGISTRATION_BUTTONS];
   },
 
   /**
