@@ -1,21 +1,16 @@
 "use client";
 
 import { useTelegram } from "@contexts/TelegramContext";
-import { useState, useEffect, useCallback } from "react";
-import { getUser } from "@lib/supabase-queries";
-import { supabase } from "@lib/supabase/client";
+import { useState, useEffect } from "react";
 import { useUser } from "../../hooks/useUser";
+import { useUserProfile } from "@lib/hooks/useUserProfile";
+import { useLinkedProviders } from "@lib/hooks/useAuthProviders";
+import { useLinkProvider } from "@lib/hooks/useLinkProvider";
 
 export default function Settings() {
   const { theme, webApp } = useTelegram();
   const { isAnonymous } = useUser();
   const [userId, setUserId] = useState<number | undefined>(undefined);
-
-  // Linked accounts state
-  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
-  const [linkingProvider, setLinkingProvider] = useState<
-    "google" | "apple" | null
-  >(null);
   const [authMessage, setAuthMessage] = useState<string>("");
 
   // Safely get the user ID only on the client
@@ -26,71 +21,35 @@ export default function Settings() {
     }
   }, [webApp]);
 
-  const fetchUserData = useCallback(async () => {
-    if (!userId) return;
+  // Use React Query hooks for data fetching
+  const { data: userProfile, error: userProfileError } = useUserProfile(userId);
+  const { data: linkedProviders = [], isLoading: providersLoading, error: providersError } = useLinkedProviders(isAnonymous);
+  const linkProviderMutation = useLinkProvider();
 
-    try {
-      const user = await getUser(userId);
-      console.log("Fetched user data:", user);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  }, [userId]);
-
+  // Log user profile data when it loads
   useEffect(() => {
-    // Fetch the user's current pickup height when component mounts
-    if (userId) {
-      fetchUserData();
+    if (userProfile) {
+      console.log("Fetched user data:", userProfile);
     }
-  }, [userId, fetchUserData]);
+  }, [userProfile]);
 
-  // Fetch auth profile (email + linked identities) only when logged in
+  // Handle query errors
   useEffect(() => {
-    if (isAnonymous) return;
-    const loadAuthProfile = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error("Error loading auth user:", error);
-          return;
-        }
-        const user = data.user;
-        const providers = (user?.identities ?? [])
-          .map((i) => i.provider)
-          .filter(Boolean) as string[];
-        setLinkedProviders(providers);
-      } catch (e) {
-        // Some versions throw AuthSessionMissingError when no session exists.
-        console.error("Error loading auth user (caught):", e);
-      }
-    };
-    loadAuthProfile();
-  }, [isAnonymous]);
+    if (userProfileError) {
+      console.error("Error fetching user data:", userProfileError);
+    }
+    if (providersError) {
+      console.error("Error loading auth providers:", providersError);
+    }
+  }, [userProfileError, providersError]);
 
-  const handleLinkProvider = async (provider: "google" | "apple") => {
+  const handleLinkProvider = (provider: "google" | "apple") => {
     setAuthMessage("");
-    setLinkingProvider(provider);
-    try {
-      const { data, error } = await supabase.auth.linkIdentity({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) {
-        console.error("Link identity error:", error.message);
-        setAuthMessage(`Error linking ${provider}: ${error.message}`);
-        return;
-      }
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (e) {
-      console.error(e);
-      setAuthMessage("Unexpected error starting link flow");
-    } finally {
-      setLinkingProvider(null);
-    }
+    linkProviderMutation.mutate(provider, {
+      onError: (error) => {
+        setAuthMessage(error.message || "Unexpected error starting link flow");
+      },
+    });
   };
 
   return (
@@ -102,24 +61,33 @@ export default function Settings() {
         <label className={`block text-sm font-medium ${theme.text}`}>
           Linked accounts
         </label>
+        {providersLoading && (
+          <div className="text-sm text-gray-500">Loading account status...</div>
+        )}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleLinkProvider("google")}
               disabled={
-                linkingProvider !== null || linkedProviders.includes("google")
+                linkProviderMutation.isPending || linkedProviders.includes("google") || providersLoading
               }
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
                 linkedProviders.includes("google")
                   ? "bg-green-50 border-green-200 text-green-700 cursor-default"
-                  : linkingProvider === "google"
+                  : linkProviderMutation.isPending
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-white hover:bg-gray-50 text-gray-900 border-gray-300"
               }`}
             >
-              {linkedProviders.includes("google")
-                ? "Google linked"
-                : "Link Google"}
+              {providersLoading ? (
+                "Loading..."
+              ) : linkedProviders.includes("google") ? (
+                "Google linked"
+              ) : linkProviderMutation.isPending ? (
+                "Linking..."
+              ) : (
+                "Link Google"
+              )}
             </button>
             {/* <button
               onClick={() => handleLinkProvider("apple")}
