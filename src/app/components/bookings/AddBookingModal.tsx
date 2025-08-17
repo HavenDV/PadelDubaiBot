@@ -309,7 +309,8 @@ export default function AddBookingModal({
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-2xl transition-colors hover:brightness-110"
+            style={styles.secondaryText}
           >
             ×
           </button>
@@ -318,10 +319,11 @@ export default function AddBookingModal({
         {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
 
         {/* Smart Paste Section */}
-        <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+        <div className="mb-6 border rounded-lg p-4" style={{ ...styles.header, ...styles.border }}>
           <button
             onClick={() => setShowSmartPaste(!showSmartPaste)}
-            className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="flex items-center gap-2 text-sm font-medium transition-colors hover:brightness-110"
+            style={{ color: styles.link?.color || styles.primaryButton.backgroundColor }}
           >
             <span>🪄</span>
             Smart Paste
@@ -332,7 +334,7 @@ export default function AddBookingModal({
           
           {showSmartPaste && (
             <div className="mt-3 space-y-3">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs" style={styles.secondaryText}>
                 Paste booking details from messages, emails, or any text and we&apos;ll auto-fill the form fields.
               </p>
               <textarea
@@ -340,38 +342,47 @@ export default function AddBookingModal({
                 onChange={(e) => setSmartPasteText(e.target.value)}
                 placeholder="Paste booking details here... e.g. 'Game at Oxygen Tennis tomorrow at 7 PM for 90 minutes, 110 AED per person'"
                 className={`w-full px-3 py-2 border rounded-md text-sm resize-none`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
                 rows={3}
               />
               <div className="flex gap-2">
                 <button
                   onClick={handlePasteFromClipboard}
                   disabled={clipboardLoading}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    clipboardLoading
-                      ? "bg-gray-300 text-gray-500"
-                      : "bg-green-500 hover:bg-green-600 text-white"
-                  }`}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors`}
+                  style={{
+                    ...(clipboardLoading ? { ...styles.secondaryButton, opacity: 0.6 } : styles.secondaryButton),
+                    ...(styles.border || {}),
+                  }}
                   title="Paste from clipboard"
                 >
-                  {clipboardLoading ? "Reading..." : "📋 Paste"}
+                  <span style={styles.text}>{clipboardLoading ? "Reading..." : "📋 Paste"}</span>
                 </button>
                 <button
                   onClick={handleSmartPaste}
                   disabled={smartPasteLoading || !smartPasteText.trim()}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors`}
+                  style={
                     smartPasteLoading || !smartPasteText.trim()
-                      ? "bg-gray-300 text-gray-500"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                  }`}
+                      ? { ...styles.primaryButton, opacity: 0.6 }
+                      : styles.primaryButton
+                  }
                 >
-                  {smartPasteLoading ? "Processing..." : "Auto-fill"}
+                  <span style={{ color: styles.primaryButton.color }}>
+                    {smartPasteLoading ? "Processing..." : "Auto-fill"}
+                  </span>
                 </button>
                 <button
                   onClick={() => setSmartPasteText("")}
-                  className="px-3 py-1 rounded-md text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700"
+                  className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                  style={{ ...styles.secondaryButton, ...styles.border }}
                 >
-                  Clear
+                  <span style={styles.text}>Clear</span>
                 </button>
               </div>
             </div>
@@ -390,9 +401,14 @@ export default function AddBookingModal({
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs mt-1" style={styles.secondaryText}>
                 The date players should arrive.
               </p>
             </div>
@@ -406,9 +422,14 @@ export default function AddBookingModal({
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs mt-1" style={styles.secondaryText}>
                 Local time the game starts.
               </p>
             </div>
@@ -421,7 +442,12 @@ export default function AddBookingModal({
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               >
                 <option value={60}>1 hour</option>
                 <option value={90}>1.5 hours</option>
@@ -429,7 +455,7 @@ export default function AddBookingModal({
                 <option value={150}>2.5 hours</option>
                 <option value={180}>3 hours</option>
               </select>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs mt-1" style={styles.secondaryText}>
                 How long the game session lasts.
               </p>
             </div>
@@ -447,7 +473,12 @@ export default function AddBookingModal({
                   setForm((f) => ({ ...f, location_id: Number(e.target.value) }))
                 }
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               >
                 <option value="" disabled>
                   Select location
@@ -458,7 +489,7 @@ export default function AddBookingModal({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs mt-1" style={styles.secondaryText}>
                 Club where the game happens.
               </p>
             </div>
@@ -474,9 +505,14 @@ export default function AddBookingModal({
                 value={Number(form.price) || 0}
                 onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               />
-              <p className="text-xs text-gray-400 mt-1">Amount in AED per player.</p>
+              <p className="text-xs mt-1" style={styles.secondaryText}>Amount in AED per player.</p>
             </div>
 
             <div>
@@ -490,9 +526,14 @@ export default function AddBookingModal({
                 value={form.courts as number}
                 onChange={(e) => setForm((f) => ({ ...f, courts: Number(e.target.value) }))}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{ ...styles.card, ...styles.text, ...styles.border }}
+                style={{
+                  ...styles.card,
+                  ...styles.text,
+                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderWidth: '1px',
+                }}
               />
-              <p className="text-xs text-gray-400 mt-1">Number of courts reserved.</p>
+              <p className="text-xs mt-1" style={styles.secondaryText}>Number of courts reserved.</p>
             </div>
           </div>
 
@@ -506,35 +547,39 @@ export default function AddBookingModal({
               value={(form.note as string) || ""}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }}
+            style={{
+              ...styles.card,
+              ...styles.text,
+              borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+              borderWidth: '1px',
+            }}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs mt-1" style={styles.secondaryText}>
               Extra info (parking, coach, etc.).
             </p>
           </div>
 
         </div>
 
-        <div className="flex gap-3 mt-6 pt-4 border-t">
+        <div className="flex gap-3 mt-6">
           <button
             onClick={handleSave}
             disabled={loading}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              loading
-                ? "bg-gray-300 text-gray-500"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors`}
+            style={loading ? { ...styles.primaryButton, opacity: 0.6 } : styles.primaryButton}
           >
-            {loading 
-              ? (isEditMode ? "Updating..." : "Creating...") 
-              : (isEditMode ? "Update booking" : "Add booking")
-            }
+            <span style={{ color: styles.primaryButton.color }}>
+              {loading 
+                ? (isEditMode ? "Updating..." : "Creating...") 
+                : (isEditMode ? "Update booking" : "Add booking")}
+            </span>
           </button>
           <button
             onClick={handleClose}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-gray-200 hover:bg-gray-300 text-gray-800"
+            className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            style={{ ...styles.secondaryButton, ...styles.border }}
           >
-            Cancel
+            <span style={styles.text}>Cancel</span>
           </button>
         </div>
       </div>
