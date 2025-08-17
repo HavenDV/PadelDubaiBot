@@ -1,6 +1,8 @@
 "use client";
 
 import { useTelegram } from "@contexts/TelegramContext";
+import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
+import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import { useState, useEffect } from "react";
 import { useUser } from "../../hooks/useUser";
 import { useLinkedProviders } from "@lib/hooks/auth/useAuthProviders";
@@ -12,8 +14,10 @@ import {
 } from "@/app/lib/hooks/db/useUserMutations";
 
 export default function Settings() {
-  const { styles, isTelegram, themePreference, setThemePreference } = useTelegram();
-  const { isAnonymous, telegramUserId } = useUser();
+  const { styles, isTelegram } = useTelegram();
+  const { isAnonymous, isAdmin, telegramUserId } = useUser();
+  const { themePreference, setThemePreference } = useThemePreference();
+  const { showLogs, setShowLogs } = useShowLogs();
   const [authMessage, setAuthMessage] = useState<string>("");
   const [skillMessage, setSkillMessage] = useState<string>("");
   const [pendingSkillLevel, setPendingSkillLevel] = useState<SkillLevel | null>(
@@ -118,6 +122,8 @@ export default function Settings() {
           <p className="text-xs" style={styles.secondaryText}>Applies to web only. Telegram uses the in‑app theme.</p>
         </div>
       )}
+
+      
 
       {/* Skill Level Section */}
       <div className="space-y-2">
@@ -270,6 +276,26 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Developer / Logs (Admin only, visible in both Telegram/Web) */}
+      {!isAnonymous && isAdmin && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium" style={styles.text}>Developer</label>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowLogs(!showLogs)}
+              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors border"
+              style={showLogs ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }}
+              aria-pressed={showLogs}
+            >
+              <span style={showLogs ? { color: styles.primaryButton.color } : styles.text}>
+                {showLogs ? 'Hide Logs' : 'Show Logs'}
+              </span>
+            </button>
+            <span className="text-xs" style={styles.secondaryText}>Toggle showing console logs overlay for debugging.</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

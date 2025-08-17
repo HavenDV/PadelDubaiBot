@@ -13,9 +13,8 @@ import {
 } from "../hooks/useTelegramTheme";
 import { setAuthToken, supabase } from "@lib/supabase/client";
 import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
+import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
 import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
-
-type ThemePreference = "system" | "light" | "dark";
 
 interface TelegramContextType {
   webApp: WebApp | null; // Make webApp nullable for SSR
@@ -25,8 +24,6 @@ interface TelegramContextType {
   styles: TelegramThemeResult["styles"];
   userId: number | null; // Add userId for easier access
   isTelegram: boolean; // Better Telegram mode detection
-  themePreference: ThemePreference; // Web-only preference
-  setThemePreference: (pref: ThemePreference) => void;
 }
 
 const TelegramContext = createContext<TelegramContextType | undefined>(
@@ -42,8 +39,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   // Default to false to avoid SSR/client hydration mismatches
   const [isTelegram, setIsTelegram] = useState(false);
   // Web theme preference and system dark detection
-  const [themePreference, setThemePreferenceState] = useState<ThemePreference>("system");
-  const [systemPrefersDark, setSystemPrefersDark] = useState(false);
+  const { themePreference, systemPrefersDark } = useThemePreference();
 
   // Compute effective dark mode for web (ignored when themeParams provided in Telegram)
   const preferDark = themePreference === "system" ? systemPrefersDark : themePreference === "dark";
@@ -82,33 +78,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
   // Token helpers removed (web mode uses supabase-js session management directly)
 
-  useEffect(() => {
-    // Load saved preference on client
-    if (typeof window !== "undefined") {
-      const stored = window.localStorage.getItem("themePreference");
-      if (stored === "system" || stored === "light" || stored === "dark") {
-        setThemePreferenceState(stored);
-      }
-    }
-    // Detect OS color scheme on client only
-    const mql =
-      typeof window !== "undefined" && window.matchMedia
-        ? window.matchMedia("(prefers-color-scheme: dark)")
-        : null;
-    if (mql) {
-      setSystemPrefersDark(mql.matches);
-      const handler = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
-      mql.addEventListener("change", handler);
-      return () => mql.removeEventListener("change", handler);
-    }
-  }, []);
-
-  const setThemePreference = (pref: ThemePreference) => {
-    setThemePreferenceState(pref);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("themePreference", pref);
-    }
-  };
+  // OS color scheme detection moved to useLocalSettings
 
   useEffect(() => {
     const fetchData = async () => {
@@ -238,8 +208,6 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         styles,
         userId,
         isTelegram,
-        themePreference,
-        setThemePreference,
       }}
     >
       {children}

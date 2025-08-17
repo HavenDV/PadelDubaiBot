@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at timestamp without time zone DEFAULT now(),
     explicit_name text,
     skill_level text CHECK (skill_level IN ('E','D-','D','D+','D++','C-','C','C+')),
+    theme_preference text CHECK (theme_preference IN ('system','light','dark')) DEFAULT 'system',
+    show_logs boolean DEFAULT false,
 
     -- Admin data
     admin boolean DEFAULT false
@@ -58,10 +60,10 @@ REVOKE ALL ON TABLE public.users FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.users TO service_role;
 
 -- Allow clients to read safe profile columns
-GRANT SELECT (id, first_name, last_name, username, photo_url, explicit_name, created_at, updated_at, admin, skill_level) ON public.users TO anon, authenticated;
+GRANT SELECT (id, first_name, last_name, username, photo_url, explicit_name, created_at, updated_at, admin, skill_level, theme_preference, show_logs) ON public.users TO anon, authenticated;
 
 -- Allow clients to update ONLY the explicit_name and skill_level columns (combined with RLS policy below)
-GRANT UPDATE (explicit_name, skill_level) ON public.users TO authenticated;
+GRANT UPDATE (explicit_name, skill_level, theme_preference, show_logs) ON public.users TO authenticated;
 
 -- Create policies
 CREATE POLICY "Public users are viewable by everyone" 

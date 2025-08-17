@@ -233,7 +233,9 @@ export type Database = {
           language_code: string | null
           last_name: string | null
           photo_url: string | null
+          show_logs: boolean | null
           skill_level: string | null
+          theme_preference: string | null
           updated_at: string | null
           username: string | null
         }
@@ -249,7 +251,9 @@ export type Database = {
           language_code?: string | null
           last_name?: string | null
           photo_url?: string | null
+          show_logs?: boolean | null
           skill_level?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -265,7 +269,9 @@ export type Database = {
           language_code?: string | null
           last_name?: string | null
           photo_url?: string | null
+          show_logs?: boolean | null
           skill_level?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
           username?: string | null
         }

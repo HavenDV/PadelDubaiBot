@@ -2,7 +2,8 @@
 
 import { JSX, useState, useEffect } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
-import { useUser } from "./hooks/useUser";
+import { useUser } from "@hooks/useUser";
+import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import Settings from "@/app/components/settings/settings";
 import Navigation from "@components/navigation";
 import ConsoleLoggerScript from "./components/debug/ConsoleLoggerScript";
@@ -15,6 +16,7 @@ export type ScreenName = "settings" | "locations" | "bookings" | "login";
 export default function Home() {
   const { styles, isTelegram } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
+  const { showLogs } = useShowLogs();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");
 
@@ -62,19 +64,22 @@ export default function Home() {
       // Web mode: show login when anonymous; Locations only for admins
       return isAnonymous
         ? (["login", "bookings"] as ScreenName[])
-        : (["bookings", ...(isAdmin ? (["locations"] as ScreenName[]) : [])] as ScreenName[]);
+        : ([
+            "bookings",
+            ...(isAdmin ? (["locations"] as ScreenName[]) : []),
+          ] as ScreenName[]);
     } else {
       // Telegram mode: never show login; Locations only for admins
-      return (["bookings", ...(isAdmin ? (["locations"] as ScreenName[]) : [])] as ScreenName[]);
+      return [
+        "bookings",
+        ...(isAdmin ? (["locations"] as ScreenName[]) : []),
+      ] as ScreenName[];
     }
   })();
 
   return (
     <>
-      <div 
-        className={`flex min-h-[100dvh] w-full flex-col`}
-        style={styles.bg}
-      >
+      <div className={`flex min-h-[100dvh] w-full flex-col`} style={styles.bg}>
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}
@@ -83,7 +88,7 @@ export default function Home() {
         {screens[activeScreen]}
         {/* <Footer setActiveScreen={setActiveScreen}/> */}
       </div>
-      {isAdmin && <ConsoleLoggerScript />}
+      {isAdmin && showLogs && <ConsoleLoggerScript />}
     </>
   );
 }
