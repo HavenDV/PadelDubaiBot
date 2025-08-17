@@ -250,7 +250,8 @@ export default function Bookings() {
             </button>
             <button
               onClick={startAdd}
-              className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center shadow-sm"
+              className={`w-8 h-8 ${theme.primaryButton} ${theme.primaryButtonHover} text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center shadow-sm`}
+              style={theme.primaryButtonStyle}
               title="Add Booking"
             >
               +
@@ -312,8 +313,9 @@ export default function Bookings() {
                       className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
                         telegramMessages[b.id]
                           ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                          : "text-blue-600 hover:bg-blue-50 border-blue-200 hover:border-blue-300"
+                          : `${theme.primaryButton} text-white hover:brightness-110 border`
                       }`}
+                      style={!telegramMessages[b.id] ? theme.primaryButtonStyle : {}}
                       title={
                         telegramMessages[b.id]
                           ? "Already posted to Telegram"
@@ -347,8 +349,9 @@ export default function Bookings() {
                         className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
                           refreshMessagesMutation.isPending
                             ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                            : "text-gray-600 hover:bg-gray-50 border-gray-200 hover:border-gray-300"
+                            : `${theme.secondaryButton} ${theme.text} hover:brightness-110 border`
                         }`}
+                        style={!refreshMessagesMutation.isPending ? { ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle } : {}}
                         title={refreshMessagesMutation.isPending ? "Checking..." : "Check if message still exists"}
                         disabled={refreshMessagesMutation.isPending}
                       >
@@ -432,7 +435,8 @@ export default function Bookings() {
                         href={location.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-10 h-10 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group"
+                        className={`w-10 h-10 ${theme.secondaryButton} ${theme.secondaryButtonHover} rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group`}
+                        style={theme.cardBgStyle}
                         title="Open in Google Maps"
                       >
                         <svg
@@ -443,14 +447,15 @@ export default function Bookings() {
                           strokeWidth="1.8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="w-5 h-5 text-blue-600 group-hover:text-blue-700"
+                          className={`w-5 h-5 ${theme.text} group-hover:brightness-110`}
+                          style={theme.textStyle}
                         >
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                           <circle cx="12" cy="10" r="3" />
                         </svg>
                       </a>
                     ) : (
-                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className={`w-10 h-10 ${theme.secondaryButton} rounded-lg flex items-center justify-center flex-shrink-0`} style={theme.cardBgStyle}>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -459,7 +464,8 @@ export default function Bookings() {
                           strokeWidth="1.8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="w-5 h-5 text-blue-600"
+                          className={`w-5 h-5 ${theme.text}`}
+                          style={theme.textStyle}
                         >
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                           <circle cx="12" cy="10" r="3" />
@@ -467,17 +473,17 @@ export default function Bookings() {
                       </div>
                     )}
                     <div className="flex-1">
-                      <div className={`font-semibold ${theme.text} text-base`}>
+                      <div className={`font-semibold ${theme.text} text-base`} style={theme.textStyle}>
                         {location?.name || `Location #${b.location_id}`}
                       </div>
-                      <div className="text-sm text-gray-600 mt-0.5">
+                      <div className={`text-sm ${theme.secondaryText} mt-0.5`} style={theme.secondaryTextStyle}>
                         Courts {b.courts}
                       </div>
                     </div>
                   </div>
 
                   {/* Time & Duration Info */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-2 space-y-3">
+                  <div className={`${theme.cardBg} border ${theme.border} rounded-lg p-4 mb-2 space-y-3`} style={theme.cardBgStyle}>
                     {/* Date */}
                     <div className="flex items-center gap-3">
                       <svg
@@ -502,7 +508,7 @@ export default function Bookings() {
                         <line x1="8" y1="2" x2="8" y2="6" />
                         <line x1="3" y1="10" x2="21" y2="10" />
                       </svg>
-                      <span className="font-semibold text-gray-800 text-base">
+                      <span className={`font-semibold ${theme.text} text-base`} style={theme.textStyle}>
                         {dateStr}
                       </span>
                     </div>
@@ -523,11 +529,11 @@ export default function Bookings() {
                           <circle cx="12" cy="12" r="10" />
                           <polyline points="12,6 12,12 16,14" />
                         </svg>
-                        <span className="font-semibold text-gray-800 text-base">
+                        <span className={`font-semibold ${theme.text} text-base`} style={theme.textStyle}>
                           {startTime} - {endTime}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-700 bg-gray-200 px-3 py-1.5 rounded-md font-semibold">
+                      <span className={`text-sm ${theme.text} px-3 py-1.5 rounded-md font-semibold`} style={{ ...theme.textStyle, backgroundColor: theme.cardBgStyle.backgroundColor, opacity: 0.8 }}>
                         {duration}min
                       </span>
                     </div>
@@ -552,12 +558,12 @@ export default function Bookings() {
                         <line x1="16" y1="17" x2="8" y2="17" />
                         <polyline points="10,9 9,9 8,9" />
                       </svg>
-                      <span className="text-gray-600">{b.note}</span>
+                      <span className={`${theme.secondaryText}`} style={theme.secondaryTextStyle}>{b.note}</span>
                     </div>
                   )}
 
                   {/* Registrations */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className={`${theme.cardBg} border ${theme.border} rounded-lg p-4 space-y-3`} style={theme.cardBgStyle}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <svg
@@ -568,7 +574,8 @@ export default function Bookings() {
                           strokeWidth="1.8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="w-5 h-5 text-gray-600"
+                          className={`w-5 h-5 ${theme.secondaryText}`}
+                          style={theme.secondaryTextStyle}
                         >
                           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                           <circle cx="9" cy="7" r="4" />
@@ -586,14 +593,16 @@ export default function Bookings() {
                           {userRegistered ? (
                             <button
                               onClick={() => handleUnregister(b.id)}
-                              className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-100 transition-colors"
+                              className={`px-3 py-1.5 ${theme.secondaryButton} ${theme.secondaryButtonHover} border rounded-md text-sm font-medium transition-colors`}
+                              style={{ ...theme.cardBgStyle, ...theme.textStyle, borderColor: '#ef4444' }}
                             >
                               {userOnWaitlist ? "Leave Waitlist" : "Cancel"}
                             </button>
                           ) : (
                             <button
                               onClick={() => handleRegister(b.id)}
-                              className="px-3 py-1.5 bg-green-50 text-green-600 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
+                              className={`px-3 py-1.5 ${theme.primaryButton} ${theme.primaryButtonHover} text-white border rounded-md text-sm font-medium transition-colors`}
+                              style={theme.primaryButtonStyle}
                             >
                               {isFull ? "Join Waitlist" : "Register"}
                             </button>
@@ -605,18 +614,18 @@ export default function Bookings() {
                     {/* Main Players */}
                     {mainPlayers.length > 0 && (
                       <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-700 mb-2">Main Players</div>
+                        <div className={`text-sm font-medium ${theme.text} mb-2`} style={theme.textStyle}>Main Players</div>
                         {mainPlayers.map((reg, index) => (
-                          <div key={reg.id} className="flex items-center justify-between p-2 bg-green-50 rounded-md border border-green-200">
+                          <div key={reg.id} className={`flex items-center justify-between p-2 ${theme.selectedBg} rounded-md border ${theme.selectedBorder}`} style={theme.selectedBgStyle}>
                             <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold">
+                              <span className={`w-6 h-6 ${theme.primaryButton} text-white rounded-full flex items-center justify-center text-xs font-semibold`} style={theme.primaryButtonStyle}>
                                 {index + 1}
                               </span>
-                              <span className="text-sm font-medium text-gray-800">
+                              <span className={`text-sm font-medium ${theme.text}`} style={theme.textStyle}>
                                 {reg.user?.username || reg.user?.first_name || `User ${reg.user_id}`}
                               </span>
                               {userRegistered && user && reg.user_id === parseInt(user.id) && !userOnWaitlist && (
-                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">You</span>
+                                <span className={`text-xs ${theme.primaryButton} text-white px-2 py-1 rounded-full`} style={theme.primaryButtonStyle}>You</span>
                               )}
                             </div>
                             
@@ -650,7 +659,7 @@ export default function Bookings() {
                     {/* Waitlist */}
                     {waitlistPlayers.length > 0 && (
                       <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <div className={`text-sm font-medium ${theme.text} mb-2 flex items-center gap-2`} style={theme.textStyle}>
                           <span>Waitlist</span>
                           <span className="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full">
                             {waitlistPlayers.length} waiting
@@ -662,11 +671,11 @@ export default function Bookings() {
                               <span className="w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xs font-semibold">
                                 W{index + 1}
                               </span>
-                              <span className="text-sm font-medium text-gray-800">
+                              <span className={`text-sm font-medium ${theme.text}`} style={theme.textStyle}>
                                 {reg.user?.username || reg.user?.first_name || `User ${reg.user_id}`}
                               </span>
                               {userOnWaitlist && user && reg.user_id === parseInt(user.id) && (
-                                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">You</span>
+                                <span className={`text-xs ${theme.primaryButton} text-white px-2 py-1 rounded-full`} style={theme.primaryButtonStyle}>You</span>
                               )}
                             </div>
                             
@@ -699,7 +708,7 @@ export default function Bookings() {
 
                     {/* Empty State */}
                     {bookingRegs.length === 0 && (
-                      <div className="text-sm text-gray-500 text-center py-4">
+                      <div className={`text-sm ${theme.secondaryText} text-center py-4`} style={theme.secondaryTextStyle}>
                         No players registered yet
                       </div>
                     )}
@@ -709,7 +718,7 @@ export default function Bookings() {
             );
           })}
           {!loading && bookings.length === 0 && (
-            <div className="py-6 text-sm text-gray-500">No bookings yet</div>
+            <div className={`py-6 text-sm ${theme.secondaryText}`} style={theme.secondaryTextStyle}>No bookings yet</div>
           )}
         </div>
       )}

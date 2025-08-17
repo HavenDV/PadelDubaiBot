@@ -53,7 +53,7 @@ export default function Navigation({
           // Telegram mode: show auth status indicator when anonymous or still loading
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
-            <span className="text-xs opacity-60">Authenticating</span>
+            <span className={`text-xs ${theme.secondaryText}`} style={theme.secondaryTextStyle}>Authenticating</span>
           </div>
         ) : !isTelegram && isAnonymous ? (
           // Web mode: show login button when not authenticated
@@ -62,7 +62,7 @@ export default function Navigation({
             className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
               activeScreen === "login"
                 ? `${theme.primaryButton} hover:brightness-110`
-                : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
+                : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
             }`}
             style={activeScreen === "login" ? theme.primaryButtonStyle : theme.cardBgStyle}
             title="Login"
@@ -97,11 +97,15 @@ export default function Navigation({
                   priority
                   className={`rounded-full transition-all duration-200 ${
                     activeScreen === "settings"
-                      ? "ring-2 ring-offset-1 ring-[#4CD964]"
+                      ? `ring-2 ring-offset-1 ${theme.selectedBorder}`
                       : "group-hover:brightness-110"
                   }`}
+                  style={activeScreen === "settings" ? theme.selectedBorderStyle : {}}
                 />
-                <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
+                  style={{ backgroundColor: theme.selectedBgStyle.backgroundColor || '#4CD964' }}
+                ></div>
               </div>
               {isAdmin && (
                 <div
@@ -119,7 +123,8 @@ export default function Navigation({
             </div>
             <button
               onClick={handleSignOut}
-              className="px-2 py-1 text-xs rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800"
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${theme.secondaryButton} ${theme.secondaryButtonHover}`}
+              style={theme.cardBgStyle}
               aria-label="Sign out"
             >
               Sign out
@@ -141,11 +146,15 @@ export default function Navigation({
                 priority
                 className={`rounded-full transition-all duration-200 ${
                   activeScreen === "settings"
-                    ? "ring-2 ring-offset-1 ring-[#4CD964]"
+                    ? `ring-2 ring-offset-1 ${theme.selectedBorder}`
                     : "group-hover:brightness-110"
                 }`}
+                style={activeScreen === "settings" ? theme.selectedBorderStyle : {}}
               />
-              <div className="absolute inset-0 bg-[#4CD964] opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"></div>
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
+                style={{ backgroundColor: theme.selectedBgStyle.backgroundColor || '#4CD964' }}
+              ></div>
             </div>
             {isAdmin && (
               <div
@@ -153,8 +162,12 @@ export default function Navigation({
                 style={{ transform: "translate(20%, 20%)" }}
               >
                 <div
-                  className="bg-[#0d1c2b] text-[#4CD964] text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
-                  style={{ boxShadow: "0 0 0 1px #1a2a3a" }}
+                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm ${theme.cardBg}`}
+                  style={{ 
+                    ...theme.cardBgStyle, 
+                    color: theme.selectedBorderStyle.borderColor || '#4CD964',
+                    boxShadow: `0 0 0 1px ${theme.borderStyle.borderColor || '#1a2a3a'}` 
+                  }}
                 >
                   Admin
                 </div>
@@ -174,7 +187,7 @@ export default function Navigation({
               className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
                 activeScreen === screen
                   ? `${theme.primaryButton} hover:brightness-110`
-                  : `${theme.secondaryButton} hover:bg-opacity-80 hover:shadow-md`
+                  : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
               }`}
               style={activeScreen === screen ? theme.primaryButtonStyle : theme.cardBgStyle}
               title={screen.charAt(0).toUpperCase() + screen.slice(1)}

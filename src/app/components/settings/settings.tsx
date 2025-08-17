@@ -93,12 +93,12 @@ export default function Settings() {
 
   return (
     <div className="p-4 space-y-6">
-      <h2 className={`text-xl font-bold ${theme.text} mb-4`}>Settings</h2>
+      <h2 className={`text-xl font-bold ${theme.text} mb-4`} style={theme.textStyle}>Settings</h2>
 
       {/* Skill Level Section */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className={`text-sm font-medium ${theme.text}`}>
+          <label className={`text-sm font-medium ${theme.text}`} style={theme.textStyle}>
             Skill Level:
           </label>
           <div className="flex gap-1">
@@ -115,11 +115,18 @@ export default function Settings() {
                     disabled={isDisabled}
                     className={`px-2 py-1 text-xs rounded transition-colors relative ${
                       isSelected
-                        ? "bg-blue-500 text-white"
+                        ? `${theme.primaryButton} text-white`
                         : isDisabled
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
                     }`}
+                    style={
+                      isSelected
+                        ? theme.primaryButtonStyle
+                        : !isDisabled
+                        ? { ...theme.cardBgStyle, ...theme.textStyle }
+                        : {}
+                    }
                   >
                     {isPending ? (
                       <span className="inline-block animate-spin">⏳</span>
@@ -150,11 +157,11 @@ export default function Settings() {
 
       {/* Linked Accounts Section */}
       <div className="space-y-3">
-        <label className={`block text-sm font-medium ${theme.text}`}>
+        <label className={`block text-sm font-medium ${theme.text}`} style={theme.textStyle}>
           Linked accounts
         </label>
         {providersLoading && (
-          <div className="text-sm text-gray-500">Loading account status...</div>
+          <div className={`text-sm ${theme.secondaryText}`} style={theme.secondaryTextStyle}>Loading account status...</div>
         )}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -170,8 +177,13 @@ export default function Settings() {
                   ? "bg-green-50 border-green-200 text-green-700 cursor-default"
                   : linkProviderMutation.isPending
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-50 text-gray-900 border-gray-300"
+                  : `${theme.secondaryButton} ${theme.secondaryButtonHover} ${theme.border}`
               }`}
+              style={
+                !linkedProviders.includes("google") && !linkProviderMutation.isPending
+                  ? { ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }
+                  : {}
+              }
             >
               {providersLoading
                 ? "Loading..."
@@ -212,7 +224,8 @@ export default function Settings() {
           )}
           <div className="pt-2 space-y-2">
             <div
-              className={`text-xs ${theme.secondaryText || "text-gray-500"}`}
+              className={`text-xs ${theme.secondaryText}`}
+              style={theme.secondaryTextStyle}
             >
               You can link Google to sign in next time outside Telegram.
             </div>

@@ -96,8 +96,8 @@ export function useTelegramTheme(
   // Use provided theme params or fall back to defaults
   const params = themeParams || defaultThemeParams;
 
-  // Determine if the theme is dark based on background color
-  const isDark = isColorDark(params.bg_color || "#111827");
+  // Determine if the theme is dark based on background color (for future use)
+  // const isDark = isColorDark(params.bg_color || "#111827");
 
   // Get the actual colors
   const bgColor = params.bg_color || "#111827";
@@ -128,57 +128,58 @@ export function useTelegramTheme(
 
     // Buttons
     primaryButton: hasTelegramTheme ? "" : "bg-blue-600",
-    primaryButtonHover: "hover:brightness-110 transition-all",
-    secondaryButton: hasTelegramTheme ? "" : (isDark ? "bg-gray-700" : "bg-gray-600"),
-    secondaryButtonHover: "hover:brightness-90 transition-all",
+    primaryButtonHover: hasTelegramTheme ? "hover:brightness-110 transition-all" : "hover:bg-blue-700 transition-all",
+    secondaryButton: hasTelegramTheme ? "" : "bg-gray-700",
+    secondaryButtonHover: hasTelegramTheme ? "hover:brightness-90 transition-all" : "hover:bg-gray-600 transition-all",
 
     // Selection
     selectedBg: hasTelegramTheme ? "" : "bg-blue-900 bg-opacity-20",
     selectedBorder: hasTelegramTheme ? "border" : "border-blue-600",
 
     // Hovers
-    tableRowHover: "hover:brightness-110 transition-colors",
+    tableRowHover: hasTelegramTheme ? "hover:brightness-110 transition-colors" : "hover:bg-gray-700 transition-colors",
   };
 
   return {
     // CSS classes (empty when using Telegram theme, fallback Tailwind when not)
     ...classes,
 
-    // Inline styles for dynamic colors (always provided)
-    bgStyle: { backgroundColor: bgColor },
-    cardBgStyle: { backgroundColor: secondaryBgColor },
-    headerBgStyle: { backgroundColor: headerBgColor },
-    tableHeaderBgStyle: { backgroundColor: headerBgColor },
-    textStyle: { color: textColor },
-    secondaryTextStyle: { color: hintColor },
-    tableHeaderTextStyle: { color: subtitleTextColor },
-    borderStyle: { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) },
-    tableBorderStyle: { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) },
-    primaryButtonStyle: { backgroundColor: buttonColor, color: params.button_text_color || "#ffffff" },
-    selectedBgStyle: { backgroundColor: adjustColorOpacity(buttonColor, 0.2) },
-    selectedBorderStyle: { borderColor: buttonColor },
+    // Inline styles for dynamic colors (only when using Telegram theme)
+    bgStyle: hasTelegramTheme ? { backgroundColor: bgColor } : {},
+    cardBgStyle: hasTelegramTheme ? { backgroundColor: secondaryBgColor } : {},
+    headerBgStyle: hasTelegramTheme ? { backgroundColor: headerBgColor } : {},
+    tableHeaderBgStyle: hasTelegramTheme ? { backgroundColor: headerBgColor } : {},
+    textStyle: hasTelegramTheme ? { color: textColor } : {},
+    secondaryTextStyle: hasTelegramTheme ? { color: hintColor } : {},
+    tableHeaderTextStyle: hasTelegramTheme ? { color: subtitleTextColor } : {},
+    borderStyle: hasTelegramTheme ? { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) } : {},
+    tableBorderStyle: hasTelegramTheme ? { borderColor: adjustColorOpacity(secondaryBgColor, 0.3) } : {},
+    primaryButtonStyle: hasTelegramTheme ? { backgroundColor: buttonColor, color: params.button_text_color || "#ffffff" } : {},
+    selectedBgStyle: hasTelegramTheme ? { backgroundColor: adjustColorOpacity(buttonColor, 0.2) } : {},
+    selectedBorderStyle: hasTelegramTheme ? { borderColor: buttonColor } : {},
   };
 }
 
 /**
  * Determines if a color is dark based on its luminance
+ * Currently unused but kept for future theme detection needs
  */
-function isColorDark(color: string): boolean {
-  // Remove the hash if it exists
-  const hex = color.replace("#", "");
+// function isColorDark(color: string): boolean {
+//   // Remove the hash if it exists
+//   const hex = color.replace("#", "");
 
-  // Parse the hex values
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
+//   // Parse the hex values
+//   const r = parseInt(hex.substring(0, 2), 16);
+//   const g = parseInt(hex.substring(2, 4), 16);
+//   const b = parseInt(hex.substring(4, 6), 16);
 
-  // Calculate luminance (perceived brightness)
-  // Formula: 0.299*R + 0.587*G + 0.114*B
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+//   // Calculate luminance (perceived brightness)
+//   // Formula: 0.299*R + 0.587*G + 0.114*B
+//   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-  // Return true if the color is dark (luminance < 0.5)
-  return luminance < 0.5;
-}
+//   // Return true if the color is dark (luminance < 0.5)
+//   return luminance < 0.5;
+// }
 
 /**
  * Adjusts the opacity of a hex color

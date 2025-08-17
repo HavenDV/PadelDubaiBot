@@ -64,12 +64,13 @@ export default function Locations() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image src="/location.svg" alt="Locations" width={20} height={20} />
-          <h2 className={`text-xl font-bold ${theme.text}`}>Locations</h2>
+          <h2 className={`text-xl font-bold ${theme.text}`} style={theme.textStyle}>Locations</h2>
         </div>
         {isAdmin && (
           <button
             onClick={openAddModal}
-            className="w-8 h-8 bg-gray-700 hover:bg-gray-800 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center"
+            className={`w-8 h-8 ${theme.primaryButton} ${theme.primaryButtonHover} text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center`}
+            style={theme.primaryButtonStyle}
             title="Add Location"
           >
             +
@@ -87,8 +88,8 @@ export default function Locations() {
               className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 animate-pulse"
             >
               <div className="flex-1">
-                <div className="h-5 bg-gray-300 rounded w-48 mb-1" />
-                <div className="h-4 bg-gray-200 rounded w-72" />
+                <div className={`h-5 ${theme.cardBg} rounded w-48 mb-1`} style={theme.cardBgStyle} />
+                <div className={`h-4 ${theme.cardBg} rounded w-72`} style={{ ...theme.cardBgStyle, opacity: 0.7 }} />
               </div>
             </div>
           ))}
@@ -101,20 +102,21 @@ export default function Locations() {
               className="relative py-3 flex flex-col sm:flex-row sm:items-start gap-2"
             >
               <div className="flex-1 pr-24">
-                <div className={`font-medium ${theme.text}`}>{loc.name}</div>
+                <div className={`font-medium ${theme.text}`} style={theme.textStyle}>{loc.name}</div>
                 <a
                   href={loc.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
+                  className={`text-sm ${theme.primaryButton} hover:underline`}
+                  style={{ ...theme.primaryButtonStyle, backgroundColor: 'transparent' }}
                 >
                   {loc.url}
                 </a>
                 {/* Opening hours */}
                 {Array.isArray((loc as Location & { opening_hours?: string[] }).opening_hours) && (
                   <div className="mt-3">
-                    <div className={`text-xs font-medium mb-2 ${theme.text}`}>Opening hours</div>
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden max-w-md">
+                    <div className={`text-xs font-medium mb-2 ${theme.text}`} style={theme.textStyle}>Opening hours</div>
+                    <div className={`${theme.cardBg} border ${theme.border} rounded-lg shadow-sm overflow-hidden max-w-md`} style={theme.cardBgStyle}>
                       <div className="divide-y divide-gray-100">
                         {((loc as Location & { opening_hours: string[] }).opening_hours).map((line: string, idx: number) => {
                           const [day, hours] = line.split(': ');
@@ -122,13 +124,14 @@ export default function Locations() {
                           const isClosed = hours?.toLowerCase().includes('closed');
                           
                           return (
-                            <div key={idx} className="px-4 py-2.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                              <span className="text-sm font-medium text-gray-800 min-w-[80px]">{day}</span>
+                            <div key={idx} className={`px-4 py-2.5 flex justify-between items-center ${theme.tableRowHover} transition-colors`}>
+                              <span className={`text-sm font-medium ${theme.text} min-w-[80px]`} style={theme.textStyle}>{day}</span>
                               <span className={`text-sm font-medium ${
                                 isOpen24h ? 'text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs' :
                                 isClosed ? 'text-red-600' : 
-                                'text-gray-600'
-                              }`}>
+`${theme.secondaryText}`
+                              }`}
+                              style={!isOpen24h && !isClosed ? theme.secondaryTextStyle : {}}>
                                 {isOpen24h ? '24/7' : hours || 'Closed'}
                               </span>
                             </div>
@@ -149,7 +152,8 @@ export default function Locations() {
                   {/* Toggle Map */}
                   <button
                     onClick={() => setOpenMapId((prev) => (prev === loc.id ? null : loc.id))}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 border border-blue-200 hover:border-blue-300 transition-colors"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.secondaryButton} ${theme.secondaryButtonHover} border ${theme.border} transition-colors`}
+                    style={theme.cardBgStyle}
                     title={openMapId === loc.id ? "Hide map" : "Show map"}
                     aria-label={openMapId === loc.id ? "Hide map" : "Show map"}
                   >
@@ -161,7 +165,8 @@ export default function Locations() {
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="w-4 h-4"
+                      className={`w-4 h-4 ${theme.text}`}
+                      style={theme.textStyle}
                     >
                       <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
                       <path d="M9 4v16" />
@@ -172,7 +177,8 @@ export default function Locations() {
                   {/* Edit */}
                   <button
                     onClick={() => openEditModal(loc)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.secondaryButton} ${theme.secondaryButtonHover} border ${theme.border} transition-colors`}
+                    style={theme.cardBgStyle}
                     title="Edit"
                     aria-label="Edit"
                   >
@@ -184,7 +190,8 @@ export default function Locations() {
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="w-4 h-4"
+                      className={`w-4 h-4 ${theme.text}`}
+                      style={theme.textStyle}
                     >
                       <path d="M12 20h9" />
                       <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
@@ -229,7 +236,7 @@ export default function Locations() {
             </div>
           ))}
           {!loading && locations.length === 0 && (
-            <div className="py-6 text-sm text-gray-500">No locations yet</div>
+            <div className={`py-6 text-sm ${theme.secondaryText}`} style={theme.secondaryTextStyle}>No locations yet</div>
           )}
         </div>
       )}
