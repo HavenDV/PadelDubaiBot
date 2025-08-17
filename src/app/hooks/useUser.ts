@@ -1,37 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/app/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
 
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
 
+  // Use React Query for the initial auth state
+  const { data: user = null, isLoading } = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return sessionData.session?.user ?? null;
+    },
+    staleTime: 30 * 1000,      // Consider fresh for 30 seconds
+    gcTime: 5 * 60 * 1000,     // Keep in cache for 5 minutes
+    retry: 1,                   // Retry once on failure
+    refetchOnWindowFocus: true, // Refresh when window gains focus
+  });
+
+  // Set up auth state listener to update the query cache
   useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        setUser(sessionData.session?.user ?? null);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-    load();
-
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return;
-      setUser(session?.user ?? null);
-      setIsLoading(false);
+      const newUser = session?.user ?? null;
+      // Update the query cache immediately when auth state changes
+      queryClient.setQueryData(['auth-user'], newUser);
     });
+    
     return () => {
-      isMounted = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
+  // Computed properties based on user data
   const email = user?.email ?? null;
 
   const avatarUrl = useMemo(() => {
