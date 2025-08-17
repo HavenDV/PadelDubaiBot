@@ -14,7 +14,7 @@ export const useUserById = (userId?: number) => {
       const result = await supabase
         .from("users")
         .select(
-          "id, first_name, last_name, username, photo_url, explicit_name, admin"
+          "id, first_name, last_name, username, photo_url, explicit_name, admin, skill_level"
         )
         .eq("id", userId);
 

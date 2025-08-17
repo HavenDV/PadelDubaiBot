@@ -64,6 +64,12 @@ export function useUser() {
 
   const isAdmin = Boolean(user?.app_metadata?.admin);
   const isAnonymous = !user;
+  
+  const telegramUserId = useMemo(() => {
+    // Try to get Telegram user ID from app_metadata
+    const appMeta = user?.app_metadata as { tg_id?: number } | undefined;
+    return appMeta?.tg_id || null;
+  }, [user]);
 
   return {
     user,
@@ -73,5 +79,6 @@ export function useUser() {
     isAdmin,
     isAnonymous,
     isLoading,
+    telegramUserId,
   } as const;
 }

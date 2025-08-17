@@ -58,10 +58,10 @@ REVOKE ALL ON TABLE public.users FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.users TO service_role;
 
 -- Allow clients to read safe profile columns
-GRANT SELECT (id, first_name, last_name, username, photo_url, explicit_name, created_at, updated_at, admin) ON public.users TO anon, authenticated;
+GRANT SELECT (id, first_name, last_name, username, photo_url, explicit_name, created_at, updated_at, admin, skill_level) ON public.users TO anon, authenticated;
 
--- Allow clients to update ONLY the explicit_name column (combined with RLS policy below)
-GRANT UPDATE (explicit_name) ON public.users TO authenticated;
+-- Allow clients to update ONLY the explicit_name and skill_level columns (combined with RLS policy below)
+GRANT UPDATE (explicit_name, skill_level) ON public.users TO authenticated;
 
 -- Create policies
 CREATE POLICY "Public users are viewable by everyone" 

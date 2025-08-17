@@ -6,36 +6,41 @@ import { useUser } from "../../hooks/useUser";
 import { useLinkedProviders } from "@lib/hooks/auth/useAuthProviders";
 import { useLinkProvider } from "@lib/hooks/auth/useLinkProvider";
 import { useUserById } from "@/app/lib/hooks/db";
+import {
+  useUpdateUserSkillLevel,
+  type SkillLevel,
+} from "@/app/lib/hooks/db/useUserMutations";
 
 export default function Settings() {
-  const { theme, webApp } = useTelegram();
-  const { isAnonymous } = useUser();
-  const [userId, setUserId] = useState<number | undefined>(undefined);
+  const { theme } = useTelegram();
+  const { isAnonymous, telegramUserId } = useUser();
   const [authMessage, setAuthMessage] = useState<string>("");
-
-  // Safely get the user ID only on the client
-  useEffect(() => {
-    // Only try to access webApp properties on the client side
-    if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-      setUserId(webApp.initDataUnsafe.user.id);
-    }
-  }, [webApp]);
+  const [skillMessage, setSkillMessage] = useState<string>("");
+  const [pendingSkillLevel, setPendingSkillLevel] = useState<SkillLevel | null>(
+    null
+  );
 
   // Use React Query hooks for data fetching
-  const { data: userProfile, error: userProfileError } = useUserById(userId);
+  const { data: userProfile, error: userProfileError } = useUserById(
+    telegramUserId ?? undefined
+  );
   const {
     data: linkedProviders = [],
     isLoading: providersLoading,
     error: providersError,
   } = useLinkedProviders(isAnonymous);
   const linkProviderMutation = useLinkProvider();
+  const updateSkillLevelMutation = useUpdateUserSkillLevel();
 
   // Log user profile data when it loads
   useEffect(() => {
     if (userProfile) {
       console.log("Fetched user data:", userProfile);
     }
-  }, [userProfile]);
+    if (userProfileError) {
+      console.error("User profile error:", userProfileError);
+    }
+  }, [userProfile, userProfileError]);
 
   // Handle query errors
   useEffect(() => {
@@ -56,9 +61,92 @@ export default function Settings() {
     });
   };
 
+  const handleSkillLevelUpdate = (skillLevel: SkillLevel) => {
+    console.log("handleSkillLevelUpdate called with:", skillLevel);
+    console.log("telegramUserId:", telegramUserId);
+
+    if (!telegramUserId) {
+      console.error("No telegramUserId available");
+      setSkillMessage("Telegram User ID not available");
+      return;
+    }
+
+    setSkillMessage("");
+    setPendingSkillLevel(skillLevel);
+    console.log("Starting mutation...");
+    updateSkillLevelMutation.mutate(
+      { userId: telegramUserId, skillLevel },
+      {
+        onSuccess: (data) => {
+          console.log("Skill level update successful:", data);
+          setSkillMessage(`Skill level updated to ${skillLevel}`);
+          setPendingSkillLevel(null);
+        },
+        onError: (error) => {
+          console.error("Skill level update error:", error);
+          setSkillMessage(error.message || "Failed to update skill level");
+          setPendingSkillLevel(null);
+        },
+      }
+    );
+  };
+
   return (
     <div className="p-4 space-y-6">
       <h2 className={`text-xl font-bold ${theme.text} mb-4`}>Settings</h2>
+
+      {/* Skill Level Section */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className={`text-sm font-medium ${theme.text}`}>
+            Skill Level:
+          </label>
+          <div className="flex gap-1">
+            {(["E", "D", "D+", "C-", "C", "C+"] as SkillLevel[]).map(
+              (level) => {
+                const isSelected = (userProfile?.skill_level || "E") === level;
+                const isPending = pendingSkillLevel === level;
+                const isDisabled = updateSkillLevelMutation.isPending;
+
+                return (
+                  <button
+                    key={level}
+                    onClick={() => handleSkillLevelUpdate(level)}
+                    disabled={isDisabled}
+                    className={`px-2 py-1 text-xs rounded transition-colors relative ${
+                      isSelected
+                        ? "bg-blue-500 text-white"
+                        : isDisabled
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {isPending ? (
+                      <span className="inline-block animate-spin">⏳</span>
+                    ) : (
+                      level
+                    )}
+                  </button>
+                );
+              }
+            )}
+          </div>
+        </div>
+        {skillMessage && (
+          <p
+            className={`text-xs ${
+              skillMessage.startsWith("Failed") ||
+              skillMessage.includes("not available") ||
+              skillMessage.includes("error") ||
+              skillMessage.includes("Error")
+                ? "text-red-500"
+                : "text-green-600"
+            }`}
+          >
+            {skillMessage}
+          </p>
+        )}
+      </div>
 
       {/* Linked Accounts Section */}
       <div className="space-y-3">
