@@ -255,28 +255,28 @@ export default function AddLocationModal({
             className={`w-full px-3 py-2 border rounded-md text-sm`}
             style={{ ...styles.card, ...styles.text, ...styles.border }}
           />
-          {(searchLoading || isDebouncing) && <div className="text-xs text-gray-400 mt-1">{isDebouncing ? "Typing…" : "Searching…"}</div>}
+          {(searchLoading || isDebouncing) && <div className="text-xs mt-1" style={styles.secondaryText}>{isDebouncing ? "Typing…" : "Searching…"}</div>}
           {suggestions.length > 0 && (
-            <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md divide-y max-h-56 overflow-auto bg-white text-black shadow-lg">
+            <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md max-h-56 overflow-auto shadow-lg" style={{ ...styles.card, ...styles.border }}>
               {suggestions.map((s) => (
                 <button
                   key={s.place_id}
                   type="button"
                   onClick={() => selectPlace(s.place_id)}
-                  className="w-full text-left px-3 py-2 hover:bg-gray-50"
+                  className="w-full text-left px-3 py-2 transition-colors hover:brightness-110"
                 >
-                  <div className="font-medium">{s.name}</div>
-                  <div className="text-xs text-gray-500">{s.formatted_address}</div>
+                  <div className="font-medium" style={styles.text}>{s.name}</div>
+                  <div className="text-xs" style={styles.secondaryText}>{s.formatted_address}</div>
                 </button>
               ))}
             </div>
           )}
           {!searchLoading && !isDebouncing && query.trim() && suggestions.length === 0 && (
-            <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md bg-white text-black shadow-lg px-3 py-2 text-xs">
+            <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md shadow-lg px-3 py-2 text-xs" style={{ ...styles.card, ...styles.border, ...styles.text }}>
               No results. Try a different query.
             </div>
           )}
-          {detailsLoading && <div className="text-xs text-gray-400 mt-1">Loading details…</div>}
+          {detailsLoading && <div className="text-xs mt-1" style={styles.secondaryText}>Loading details…</div>}
         </div>
 
         <div className="space-y-4">
@@ -290,9 +290,9 @@ export default function AddLocationModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={`w-full px-3 py-2 border rounded-md text-sm`}
-              style={{ ...styles.card, ...styles.text, ...styles.border }}
+              style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs mt-1" style={styles.secondaryText}>
               Name of the padel club or venue.
             </p>
           </div>
@@ -307,9 +307,9 @@ export default function AddLocationModal({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className={`w-full px-3 py-2 border rounded-md text-sm`}
-              style={{ ...styles.card, ...styles.text, ...styles.border }}
+              style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs mt-1" style={styles.secondaryText}>
               Google Maps link or website URL for directions.
             </p>
           </div>
@@ -333,7 +333,7 @@ export default function AddLocationModal({
         </div>
 
         {/* Details section */}
-        <div className="mt-6 pt-4 border-t space-y-4">
+        <div className="mt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Website</label>
