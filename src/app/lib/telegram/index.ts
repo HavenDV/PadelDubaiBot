@@ -23,5 +23,4 @@ export {
 
 // New data-first architecture exports
 export * from "./types";
-export { GameDataManager } from "./game-data";
 export { MessageFormatter } from "./message-formatter";

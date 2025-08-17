@@ -1,8 +1,15 @@
 import { Bot, Context } from "grammy";
 import type { InlineKeyboardMarkup } from "grammy/types";
-import { AdminUtils, CALLBACK_MESSAGES, GameDataManager, MessageFormatter } from "@/app/lib/telegram";
+import {
+  AdminUtils,
+  CALLBACK_MESSAGES,
+  MessageFormatter,
+} from "@/app/lib/telegram";
 import { OpenAIUtils } from "@/app/lib/openai";
-import { handleDatabaseRegistration } from "@/app/lib/telegram/booking";
+import {
+  handleDatabaseRegistration,
+  isLateCancellationByMessage,
+} from "@/app/lib/telegram/booking";
 
 const token = process.env.TELEGRAM_BOT_TOKEN!;
 
@@ -35,20 +42,19 @@ bot.on("callback_query:data", async (ctx) => {
       });
     } catch {}
 
-    // Late cancellation warning (only for leave)
-    if (action === "leave" && msg.text) {
-      const gameInfo = GameDataManager.extractGameDataFromMessage(msg.text);
-      if (gameInfo) {
-        const lc = GameDataManager.isLateCancellation(gameInfo);
-        if (lc.isLate && lc.hoursRemaining !== null) {
-          try {
-            await ctx.answerCallbackQuery({
-              text: CALLBACK_MESSAGES.LATE_CANCELLATION_WARNING(lc.hoursRemaining),
-              show_alert: true,
-            });
-          } catch {}
-          return; // Stop processing to avoid removing registration
-        }
+    // Late cancellation warning (only for leave) - DB-based
+    if (action === "leave") {
+      const lc = await isLateCancellationByMessage(chatId, messageId);
+      if (lc.isLate && lc.hoursRemaining !== null) {
+        try {
+          await ctx.answerCallbackQuery({
+            text: CALLBACK_MESSAGES.LATE_CANCELLATION_WARNING(
+              lc.hoursRemaining
+            ),
+            show_alert: true,
+          });
+        } catch {}
+        return; // Stop processing to avoid removing registration
       }
     }
     try {
@@ -62,7 +68,10 @@ bot.on("callback_query:data", async (ctx) => {
 
       if (!dbResult.success) {
         if (dbResult.error) {
-          await ctx.answerCallbackQuery({ text: dbResult.error, show_alert: true });
+          await ctx.answerCallbackQuery({
+            text: dbResult.error,
+            show_alert: true,
+          });
         }
         return;
       }
@@ -73,11 +82,16 @@ bot.on("callback_query:data", async (ctx) => {
             row.map((b) => ({ text: b.text, callback_data: b.callback_data }))
           ),
         };
-        await ctx.api.editMessageText(chatId, messageId, dbResult.updatedMessage, {
-          parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
-          reply_markup: replyMarkup,
-        });
+        await ctx.api.editMessageText(
+          chatId,
+          messageId,
+          dbResult.updatedMessage,
+          {
+            parse_mode: "HTML",
+            link_preview_options: { is_disabled: true },
+            reply_markup: replyMarkup,
+          }
+        );
       }
 
       if (dbResult.notification) {

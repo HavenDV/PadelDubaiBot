@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTelegramMessageFromDatabase } from "../webhook/route";
+import { updateTelegramMessageFromDatabase } from "@/app/lib/telegram/booking";
 
 export const runtime = "edge";
 

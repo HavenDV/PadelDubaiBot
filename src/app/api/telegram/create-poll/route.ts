@@ -3,9 +3,9 @@ import {
   TelegramAPI,
   type TelegramResponse,
   REGISTRATION_BUTTONS,
-  GameDataManager,
   MessageFormatter,
 } from "@/app/lib/telegram";
+import { GameDataManager } from "@/app/lib/telegram/game-data";
 
 export const runtime = "edge";
 

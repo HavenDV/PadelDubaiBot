@@ -1,5 +1,6 @@
-import { AdminUtils, GameDataManager, MessageFormatter, TelegramAPI } from "@/app/lib/telegram";
+import { AdminUtils, MessageFormatter, TelegramAPI } from "@/app/lib/telegram";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { GameDataManager } from "./game-data";
 
 // Types for database booking with location
 interface BookingWithLocation {
@@ -180,9 +181,7 @@ export async function handleDatabaseRegistration(
 
     const cleanUserName = userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim();
     const notification =
-      action === "leave"
-        ? `${cleanUserName} отменил участие`
-        : undefined;
+      action === "leave" ? `${cleanUserName} отменил участие` : undefined;
 
     return {
       success: true,
@@ -193,6 +192,46 @@ export async function handleDatabaseRegistration(
   } catch (error) {
     console.error("Database registration error:", error);
     return { success: false, error: "Database error" };
+  }
+}
+
+// Check late cancellation using DB booking times via message mapping
+export async function isLateCancellationByMessage(
+  chatId: number,
+  messageId: number
+): Promise<{ isLate: boolean; hoursRemaining: number | null }> {
+  try {
+    const { data: telegramMessage, error: messageError } = await supabaseAdmin
+      .from("messages")
+      .select("booking_id")
+      .eq("message_id", messageId)
+      .eq("chat_id", chatId)
+      .eq("is_active", true)
+      .single();
+
+    if (messageError || !telegramMessage) {
+      return { isLate: false, hoursRemaining: null };
+    }
+
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from("bookings")
+      .select("start_time")
+      .eq("id", telegramMessage.booking_id)
+      .single();
+
+    if (bookingError || !booking?.start_time) {
+      return { isLate: false, hoursRemaining: null };
+    }
+
+    const now = new Date();
+    const start = new Date(booking.start_time);
+    const diffHours = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return {
+      isLate: diffHours < 24 && diffHours > 0,
+      hoursRemaining: diffHours > 0 ? diffHours : null,
+    };
+  } catch {
+    return { isLate: false, hoursRemaining: null };
   }
 }
 
@@ -231,7 +270,9 @@ export async function generateMessageFromDatabase(
 
   const players = registrations.map((reg) => ({
     id: reg.users.id,
-    userName: reg.users.username ? `@${reg.users.username}` : reg.users.first_name,
+    userName: reg.users.username
+      ? `@${reg.users.username}`
+      : reg.users.first_name,
     skillLevel: reg.users.skill_level || "E",
     registrationTime: new Date(),
   }));
@@ -338,4 +379,3 @@ export async function updateTelegramMessageFromDatabase(
     return { success: false, error: "Failed to update message" };
   }
 }
-

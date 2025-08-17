@@ -1,7 +1,6 @@
 // Message formatting utilities - converts data to display messages
 
 import { GameInfo } from "./types";
-import { GameDataManager } from "./game-data";
 
 // Helper function to format Date objects back to display strings
 function formatGameDateTime(
@@ -126,38 +125,6 @@ ${waitlistSection}`;
   }
 
   /**
-   * Formats an admin control message for private admin chats
-   */
-  static formatAdminControlMessage(gameInfo: GameInfo): string {
-    const stats = GameDataManager.getGameStats(gameInfo);
-
-    const statusIcon = gameInfo.cancelled ? "🚫" : "✅";
-    const statusText = gameInfo.cancelled ? "ОТМЕНЕНА" : "АКТИВНА";
-
-    return `🔧 <b>Панель администратора</b>
-
-${statusIcon} <b>Игра:</b> ${gameInfo.title}
-📊 <b>Статус:</b> ${statusText}
-
-📍 <b>Место:</b> ${gameInfo.location.name}
-💵 <b>Цена:</b> ${gameInfo.price}
-🏟️ <b>Кортов:</b> ${gameInfo.courts}
-
-📈 <b>Статистика:</b>
-👥 Записано: ${stats.registeredCount}/${gameInfo.maxPlayers}
-⏳ В waitlist: ${stats.waitlistCount}
-📊 Всего участников: ${stats.totalParticipants}
-
-🔗 <b>Ссылка на игру:</b>
-Chat ID: ${gameInfo.chatId}
-Message ID: ${gameInfo.messageId}
-
-⏰ <b>Последнее обновление:</b> ${gameInfo.updatedAt.toLocaleString("ru-RU", {
-      timeZone: "Asia/Dubai",
-    })}`;
-  }
-
-  /**
    * Formats a welcome message for new group members
    */
   static formatWelcomeMessage(firstName: string): string {
@@ -192,25 +159,6 @@ Message ID: ${gameInfo.messageId}
 Выберите подходящие вам игры и укажите ваш уровень! 🎾
 
 📅 Неделя: ${weekRange}`;
-  }
-
-  /**
-   * Formats a cancelled game message
-   */
-  static formatCancelledGameMessage(gameInfo: GameInfo): string {
-    const cancelledGame = GameDataManager.cancelGame(gameInfo);
-    return this.formatGameMessage(cancelledGame);
-  }
-
-  /**
-   * Formats a restored game message
-   */
-  static formatRestoredGameMessage(gameInfo: GameInfo): string {
-    const restoredGame = GameDataManager.restoreGame(gameInfo);
-    // Clear all registrations when restoring
-    restoredGame.registeredPlayers = [];
-    restoredGame.waitlist = [];
-    return this.formatGameMessage(restoredGame);
   }
 
   /**

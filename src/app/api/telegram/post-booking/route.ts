@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import {
   TelegramAPI,
   REGISTRATION_BUTTONS,
-  GameDataManager,
   MessageFormatter,
 } from "@/app/lib/telegram";
 import { CLUB_LOCATIONS } from "@/app/lib/telegram/constants";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { GameDataManager } from "@/app/lib/telegram/game-data";
 
 export const runtime = "edge";
 
