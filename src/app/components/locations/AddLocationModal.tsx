@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
-import { supabase } from "@lib/supabase/client";
 import { Location, LocationInsert } from "../../../../database.types";
 import { useDebouncedPlacesSearch, usePlaceDetails } from "@lib/hooks/api";
+import { useCreateLocation, useUpdateLocation } from "@lib/hooks/db";
 import MapEmbed from "./MapEmbed";
 
 // Extended Location type for API responses that may have additional fields
@@ -38,7 +38,11 @@ export default function AddLocationModal({
   editingLocation,
 }: AddLocationModalProps) {
   const { theme } = useTelegram();
-  const [loading, setLoading] = useState<boolean>(false);
+  // React Query mutations
+  const createLocationMutation = useCreateLocation();
+  const updateLocationMutation = useUpdateLocation();
+  
+  const loading = createLocationMutation.isPending || updateLocationMutation.isPending;
   const [error, setError] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [url, setUrl] = useState<string>("");
@@ -90,8 +94,8 @@ export default function AddLocationModal({
 
   const handleSave = async () => {
     if (!name || !url) return;
-    setLoading(true);
     setError("");
+    
     try {
       const payload: LocationInsert = { name, url };
       if (address) payload.address = address;
@@ -127,23 +131,20 @@ export default function AddLocationModal({
       if (lng) payload.lng = Number(lng);
 
       if (isEditMode && editingLocation) {
-        const { error } = await supabase
-          .from("locations")
-          .update(payload)
-          .eq("id", editingLocation.id);
-        if (error) throw error;
+        await updateLocationMutation.mutateAsync({
+          id: editingLocation.id,
+          updates: payload
+        });
       } else {
-        const { error } = await supabase.from("locations").insert(payload);
-        if (error) throw error;
+        await createLocationMutation.mutateAsync(payload);
       }
+      
       resetForm();
       onSuccess();
       onClose();
     } catch (e) {
       setError(isEditMode ? "Failed to update location" : "Failed to create location");
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 

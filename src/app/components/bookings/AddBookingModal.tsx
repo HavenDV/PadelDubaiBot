@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
-import { supabase } from "@lib/supabase/client";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
+import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
 
 interface AddBookingModalProps {
   isOpen: boolean;
@@ -50,7 +50,11 @@ export default function AddBookingModal({
   editingBooking,
 }: AddBookingModalProps) {
   const { theme } = useTelegram();
-  const [loading, setLoading] = useState<boolean>(false);
+  // React Query mutations
+  const createBookingMutation = useCreateBooking();
+  const updateBookingMutation = useUpdateBooking();
+  
+  const loading = createBookingMutation.isPending || updateBookingMutation.isPending;
   const [error, setError] = useState<string>("");
   const [smartPasteText, setSmartPasteText] = useState<string>("");
   const [smartPasteLoading, setSmartPasteLoading] = useState<boolean>(false);
@@ -103,28 +107,15 @@ export default function AddBookingModal({
     }
   }, [editingBooking, isOpen, isEditMode]);
 
-  // When a location is selected and price is empty, try to preload recent price for that location
+  // Use React Query to get recent price for the selected location
+  const { data: recentPrice } = useRecentPrice(form.location_id || undefined);
+  
+  // Auto-populate price when location changes and no price is set
   useEffect(() => {
-    const preloadPrice = async () => {
-      if (!form.location_id || (typeof form.price === 'number' && form.price > 0)) return;
-      try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select("price")
-          .eq("location_id", form.location_id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!error && typeof data?.price === 'number') {
-          setForm((f) => ({ ...f, price: data.price as number }));
-        }
-      } catch {
-        // ignore
-      }
-    };
-    preloadPrice();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.location_id]);
+    if (recentPrice && (!form.price || form.price === 0)) {
+      setForm((f) => ({ ...f, price: recentPrice }));
+    }
+  }, [recentPrice, form.price]);
 
   const resetForm = () => {
     setForm({
@@ -157,30 +148,28 @@ export default function AddBookingModal({
     const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
     const endISO = endDateTime.toISOString();
     
-    setLoading(true);
     setError("");
-    try {
-      const payload = {
-        start_time: startISO,
-        end_time: endISO,
-        location_id: form.location_id,
-        price: form.price,
-        courts: form.courts,
-        note: form.note,
-        cancelled: editingBooking?.cancelled || false,
-      };
+    
+    const payload = {
+      start_time: startISO,
+      end_time: endISO,
+      location_id: form.location_id,
+      price: form.price,
+      courts: form.courts,
+      note: form.note,
+      cancelled: editingBooking?.cancelled || false,
+    };
 
+    try {
       if (isEditMode && editingBooking) {
         // Update existing booking
-        const { error } = await supabase
-          .from("bookings")
-          .update(payload)
-          .eq("id", editingBooking.id);
-        if (error) throw error;
+        await updateBookingMutation.mutateAsync({
+          id: editingBooking.id,
+          updates: payload
+        });
       } else {
         // Create new booking
-        const { error } = await supabase.from("bookings").insert(payload);
-        if (error) throw error;
+        await createBookingMutation.mutateAsync(payload);
       }
       
       resetForm();
@@ -189,8 +178,6 @@ export default function AddBookingModal({
     } catch (e) {
       setError(isEditMode ? "Failed to update booking" : "Failed to create booking");
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 

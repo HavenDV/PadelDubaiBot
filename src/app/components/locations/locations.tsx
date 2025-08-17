@@ -8,14 +8,14 @@ import { Location } from "../../../../database.types";
 import Image from "next/image";
 import AddLocationModal from "./AddLocationModal";
 import dynamic from "next/dynamic";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useDeleteLocation } from "@lib/hooks/db";
 
 const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
 export default function Locations() {
   const { theme } = useTelegram();
   const { isAdmin } = useUser();
-  const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -53,29 +53,22 @@ export default function Locations() {
     setIsModalOpen(true);
   };
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const { error } = await supabase.from("locations").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-    },
-    onError: (error) => {
-      setError("Failed to delete location");
-      console.error(error);
-    },
-  });
+  // Use the centralized delete mutation
+  const deleteMutation = useDeleteLocation();
 
   const handleDelete = (id: number) => {
     if (!confirm("Delete this location?")) return;
     setError("");
-    deleteMutation.mutate(id);
+    deleteMutation.mutate(id, {
+      onError: (error) => {
+        setError("Failed to delete location");
+        console.error(error);
+      },
+    });
   };
 
   const handleModalSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['locations'] });
+    // Query invalidation is handled by the mutation hooks automatically
   };
 
   return (
