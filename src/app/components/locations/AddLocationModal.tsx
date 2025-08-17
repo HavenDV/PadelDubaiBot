@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { supabase } from "@lib/supabase/client";
 import { Location, LocationInsert } from "../../../../database.types";
+import { useDebouncedPlacesSearch, usePlaceDetails } from "@lib/hooks/api";
 import MapEmbed from "./MapEmbed";
 
 // Extended Location type for API responses that may have additional fields
@@ -21,21 +22,7 @@ type ExtendedLocation = Location & {
   lng?: number | null;
 };
 
-// Type for Places API response
-interface PlaceDetailsData {
-  name?: string;
-  url?: string;
-  address?: string;
-  phone?: string;
-  website?: string;
-  plus_code?: string;
-  rating?: number;
-  user_ratings_total?: number;
-  opening_hours?: string[];
-  place_id?: string;
-  lat?: number;
-  lng?: number;
-}
+// PlaceDetailsData is now imported from the hook
 
 interface AddLocationModalProps {
   isOpen: boolean;
@@ -57,11 +44,13 @@ export default function AddLocationModal({
   const [url, setUrl] = useState<string>("");
   // Places search state
   const [query, setQuery] = useState<string>("");
-  const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  const [suggestions, setSuggestions] = useState<
-    { place_id: string; name: string; formatted_address: string; lat: number | null; lng: number | null }[]
-  >([]);
-  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>(undefined);
+  
+  // Use React Query hooks for Places API
+  const { data: searchData, isLoading: searchLoading, isDebouncing } = useDebouncedPlacesSearch(query);
+  const { data: placeDetails, isLoading: detailsLoading } = usePlaceDetails(selectedPlaceId);
+  
+  const suggestions = searchData?.candidates || [];
 
   const isEditMode = !!editingLocation;
 
@@ -85,9 +74,7 @@ export default function AddLocationModal({
     setUrl("");
     setError("");
     setQuery("");
-    setSearchLoading(false);
-    setSuggestions([]);
-    setDetailsLoading(false);
+    setSelectedPlaceId(undefined);
     setAddress("");
     setPhone("");
     setWebsite("");
@@ -196,62 +183,36 @@ export default function AddLocationModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isEditMode, editingLocation?.id]);
 
-  // Debounced Places search
+  // Clear search when modal closes
   useEffect(() => {
-    if (!isOpen) return;
-    const q = query.trim();
-    if (!q || q.length < 2) {
-      setSuggestions([]);
-      return;
+    if (!isOpen) {
+      setQuery("");
+      setSelectedPlaceId(undefined);
     }
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        setSearchLoading(true);
-        const res = await fetch(`/api/places/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
-        const data = await res.json();
-        if (data?.success) setSuggestions(data.candidates || []);
-      } catch {
-        // ignore
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query, isOpen]);
+  }, [isOpen]);
 
-  const selectPlace = async (place_id: string) => {
-    setDetailsLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(place_id)}`);
-      const data = await res.json();
-      const d = data?.data as PlaceDetailsData;
-      if (d) {
-        if (d.name) setName(d.name);
-        if (d.url) setUrl(d.url);
-        if (d.address) setAddress(d.address);
-        if (d.phone) setPhone(d.phone);
-        if (d.website) setWebsite(d.website);
-        if (d.plus_code) setPlusCode(d.plus_code);
-        if (typeof d.rating === "number") setRating(String(d.rating));
-        if (typeof d.user_ratings_total === "number") setUserRatingsTotal(String(d.user_ratings_total));
-        if (Array.isArray(d.opening_hours)) setOpeningHours(d.opening_hours.join("\n"));
-        if (d.place_id) setPlaceId(d.place_id);
-        if (typeof d.lat === "number") setLat(String(d.lat));
-        if (typeof d.lng === "number") setLng(String(d.lng));
-        setQuery("");
-        setSuggestions([]);
-      }
-    } catch {
-      setError("Failed to load place details");
-    } finally {
-      setDetailsLoading(false);
-    }
+  const selectPlace = (place_id: string) => {
+    setSelectedPlaceId(place_id);
   };
+  
+  // Auto-populate form when place details are loaded
+  useEffect(() => {
+    if (placeDetails) {
+      if (placeDetails.name) setName(placeDetails.name);
+      if (placeDetails.url) setUrl(placeDetails.url);
+      if (placeDetails.address) setAddress(placeDetails.address);
+      if (placeDetails.phone) setPhone(placeDetails.phone);
+      if (placeDetails.website) setWebsite(placeDetails.website);
+      if (placeDetails.plus_code) setPlusCode(placeDetails.plus_code);
+      if (typeof placeDetails.rating === "number") setRating(String(placeDetails.rating));
+      if (typeof placeDetails.user_ratings_total === "number") setUserRatingsTotal(String(placeDetails.user_ratings_total));
+      if (Array.isArray(placeDetails.opening_hours)) setOpeningHours(placeDetails.opening_hours.join("\n"));
+      if (placeDetails.place_id) setPlaceId(placeDetails.place_id);
+      if (typeof placeDetails.lat === "number") setLat(String(placeDetails.lat));
+      if (typeof placeDetails.lng === "number") setLng(String(placeDetails.lng));
+      setQuery("");
+    }
+  }, [placeDetails]);
 
   if (!isOpen) return null;
 
@@ -286,7 +247,7 @@ export default function AddLocationModal({
             placeholder="Type club name or address…"
             className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg || "border-gray-300 bg-white"} ${theme.text || "text-black"}`}
           />
-          {searchLoading && <div className="text-xs text-gray-400 mt-1">Searching…</div>}
+          {(searchLoading || isDebouncing) && <div className="text-xs text-gray-400 mt-1">{isDebouncing ? "Typing…" : "Searching…"}</div>}
           {suggestions.length > 0 && (
             <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md divide-y max-h-56 overflow-auto bg-white text-black shadow-lg">
               {suggestions.map((s) => (
@@ -302,7 +263,7 @@ export default function AddLocationModal({
               ))}
             </div>
           )}
-          {!searchLoading && query.trim() && suggestions.length === 0 && (
+          {!searchLoading && !isDebouncing && query.trim() && suggestions.length === 0 && (
             <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md bg-white text-black shadow-lg px-3 py-2 text-xs">
               No results. Try a different query.
             </div>
