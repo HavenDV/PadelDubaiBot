@@ -122,8 +122,19 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         }
 
         // Subscribe to theme changes
+        const applyThemeToRoot = (params: ThemeParams | null) => {
+          if (typeof document === "undefined") return;
+          const root = document.documentElement;
+          if (params?.bg_color) root.style.setProperty("--background", params.bg_color);
+          if (params?.text_color) root.style.setProperty("--foreground", params.text_color);
+          // Hint browsers for built-in widgets (scrollbars, inputs)
+          if (webApp.colorScheme) root.style.setProperty("color-scheme", webApp.colorScheme);
+        };
+
         const handleThemeChange = () => {
-          setThemeParams(webApp.themeParams || null);
+          const params = webApp.themeParams || null;
+          setThemeParams(params);
+          applyThemeToRoot(params);
         };
 
         // Check if we need to reauth by validating current session
@@ -153,8 +164,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
         setWebApp(webApp);
 
-        // Set theme parameters safely
-        setThemeParams(webApp.themeParams || null);
+        // Set theme parameters safely and apply to root once on init
+        const initialParams = webApp.themeParams || null;
+        setThemeParams(initialParams);
+        applyThemeToRoot(initialParams);
 
         // Parse init data from Telegram WebApp
         let initData: WebAppInitData = { auth_date: 0, hash: "" };
