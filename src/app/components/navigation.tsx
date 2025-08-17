@@ -88,7 +88,7 @@ export default function Navigation({
                 />
                 <div 
                   className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
-                  style={{ backgroundColor: styles.selectedBg.backgroundColor || '#4CD964' }}
+                  style={{ backgroundColor: styles.selectedBg.backgroundColor }}
                 ></div>
               </div>
               {isAdmin && (
@@ -99,9 +99,10 @@ export default function Navigation({
                   <div
                     className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
                     style={{ 
-                      ...styles.card, 
-                      color: styles.selectedBg.borderColor || '#4CD964',
-                      boxShadow: `0 0 0 1px ${styles.border.borderColor || '#1a2a3a'}` 
+                      ...styles.card,
+                      ...styles.border,
+                      borderWidth: '1px',
+                      color: styles.text.color,
                     }}
                   >
                     Admin
@@ -141,7 +142,7 @@ export default function Navigation({
               />
               <div 
                 className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
-                style={{ backgroundColor: styles.selectedBg.backgroundColor || '#4CD964' }}
+                style={{ backgroundColor: styles.selectedBg.backgroundColor }}
               ></div>
             </div>
             {isAdmin && (
@@ -152,9 +153,10 @@ export default function Navigation({
                 <div
                   className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm`}
                   style={{ 
-                    ...styles.card, 
-                    color: styles.selectedBg.borderColor || '#4CD964',
-                    boxShadow: `0 0 0 1px ${styles.border.borderColor || '#1a2a3a'}` 
+                    ...styles.card,
+                    ...styles.border,
+                    borderWidth: '1px',
+                    color: styles.text.color,
                   }}
                 >
                   Admin
