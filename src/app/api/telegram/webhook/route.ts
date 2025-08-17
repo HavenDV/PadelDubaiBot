@@ -22,10 +22,17 @@ async function handleDatabaseRegistration(
   userName: string,
   skillLevel: PlayerAction,
   chatId: number
-): Promise<{ success: boolean; notification?: string; error?: string; updatedMessage?: string }> {
+): Promise<{
+  success: boolean;
+  notification?: string;
+  error?: string;
+  updatedMessage?: string;
+}> {
   try {
-    console.log(`Looking for message: messageId=${messageId}, chatId=${chatId}`);
-    
+    console.log(
+      `Looking for message: messageId=${messageId}, chatId=${chatId}`
+    );
+
     // Find booking through messages table
     const { data: telegramMessage, error: messageError } = await supabaseAdmin
       .from("messages")
@@ -35,7 +42,11 @@ async function handleDatabaseRegistration(
       .eq("is_active", true)
       .single();
 
-    console.log(`Database query result: found=${!!telegramMessage}, error=${messageError?.message}`);
+    console.log(
+      `Database query result: found=${!!telegramMessage}, error=${
+        messageError?.message
+      }`
+    );
     if (telegramMessage) {
       console.log(`Found booking_id: ${telegramMessage.booking_id}`);
     }
@@ -47,14 +58,16 @@ async function handleDatabaseRegistration(
     // Get booking data with location
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from("bookings")
-      .select(`
+      .select(
+        `
         *,
         locations:location_id (
           id,
           name,
           url
         )
-      `)
+      `
+      )
       .eq("id", telegramMessage.booking_id)
       .single();
 
@@ -132,14 +145,16 @@ async function handleDatabaseRegistration(
     // Get all current registrations for this booking
     const { data: registrations, error: regError } = await supabaseAdmin
       .from("registrations")
-      .select(`
+      .select(
+        `
         id,
         users:user_id (
           id,
           username,
           first_name
         )
-      `)
+      `
+      )
       .eq("booking_id", booking.id)
       .order("created_at");
 
@@ -149,17 +164,21 @@ async function handleDatabaseRegistration(
     }
 
     // Generate updated message based on database state
-    const updatedMessage = await generateMessageFromDatabase(booking, registrations || []);
+    const updatedMessage = await generateMessageFromDatabase(
+      booking,
+      registrations || []
+    );
 
     const cleanUserName = userName.replace(/@|<a[^>]*>|<\/a>/g, "").trim();
-    const notification = skillLevel === "not_coming" 
-      ? `${cleanUserName} отменил участие` 
-      : undefined;
+    const notification =
+      skillLevel === "not_coming"
+        ? `${cleanUserName} отменил участие`
+        : undefined;
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       updatedMessage,
-      notification
+      notification,
     };
   } catch (error) {
     console.error("Database registration error:", error);
@@ -194,7 +213,10 @@ interface RegistrationWithUser {
 }
 
 // Helper function to generate message from database state
-async function generateMessageFromDatabase(booking: BookingWithLocation, registrations: RegistrationWithUser[]): Promise<string> {
+async function generateMessageFromDatabase(
+  booking: BookingWithLocation,
+  registrations: RegistrationWithUser[]
+): Promise<string> {
   const location = booking.locations;
   const startTime = new Date(booking.start_time);
   const endTime = new Date(booking.end_time);
@@ -202,7 +224,7 @@ async function generateMessageFromDatabase(booking: BookingWithLocation, registr
   // Format dates for display
   const days = [
     "Воскресенье",
-    "Понедельник", 
+    "Понедельник",
     "Вторник",
     "Среда",
     "Четверг",
@@ -228,11 +250,13 @@ async function generateMessageFromDatabase(booking: BookingWithLocation, registr
   const time = `${startTimeStr}-${endTimeStr}`;
 
   // Convert registrations to player format
-  const players = registrations.map(reg => ({
+  const players = registrations.map((reg) => ({
     id: reg.users.id,
-    userName: reg.users.username ? `@${reg.users.username}` : reg.users.first_name,
+    userName: reg.users.username
+      ? `@${reg.users.username}`
+      : reg.users.first_name,
     skillLevel: "registered", // We don't store skill level in new system
-    registrationTime: new Date() // Use current time as placeholder
+    registrationTime: new Date(), // Use current time as placeholder
   }));
 
   // Create GameInfo object
@@ -292,14 +316,16 @@ export async function updateTelegramMessageFromDatabase(
     // Get booking data with location
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from("bookings")
-      .select(`
+      .select(
+        `
         *,
         locations:location_id (
           id,
           name,
           url
         )
-      `)
+      `
+      )
       .eq("id", telegramMessage.booking_id)
       .single();
 
@@ -310,14 +336,16 @@ export async function updateTelegramMessageFromDatabase(
     // Get current registrations
     const { data: registrations, error: regError } = await supabaseAdmin
       .from("registrations")
-      .select(`
+      .select(
+        `
         id,
         users:user_id (
           id,
           username,
           first_name
         )
-      `)
+      `
+      )
       .eq("booking_id", booking.id)
       .order("created_at");
 
@@ -326,7 +354,10 @@ export async function updateTelegramMessageFromDatabase(
     }
 
     // Generate updated message
-    const updatedMessage = await generateMessageFromDatabase(booking, registrations || []);
+    const updatedMessage = await generateMessageFromDatabase(
+      booking,
+      registrations || []
+    );
 
     // Update Telegram message
     await TelegramAPI.editMessageText({
@@ -335,9 +366,11 @@ export async function updateTelegramMessageFromDatabase(
       text: updatedMessage,
       parse_mode: "HTML",
       disable_web_page_preview: true,
-      reply_markup: booking.cancelled ? undefined : {
-        inline_keyboard: AdminUtils.getButtonsForUser(),
-      },
+      reply_markup: booking.cancelled
+        ? undefined
+        : {
+            inline_keyboard: AdminUtils.getButtonsForUser(),
+          },
     });
 
     return { success: true };
@@ -348,16 +381,27 @@ export async function updateTelegramMessageFromDatabase(
 }
 
 export async function POST(req: NextRequest) {
+  const url = new URL(req.url);
+  if (url.searchParams.get("secret") !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+    return NextResponse.json(
+      { ok: false, error: "Not allowed" },
+      { status: 405 }
+    );
+  }
+
   const update = await req.json();
   const timestamp = new Date().toISOString();
   const updateId = update.update_id;
-  
+
   // Log every webhook message with full data for exploration
   console.log(`=== TELEGRAM WEBHOOK UPDATE [${timestamp}] ===`);
   console.log(`Update ID: ${updateId}`);
   console.log("Full update object:", JSON.stringify(update, null, 2));
-  console.log("Update type:", Object.keys(update).filter(key => key !== 'update_id'));
-  
+  console.log(
+    "Update type:",
+    Object.keys(update).filter((key) => key !== "update_id")
+  );
+
   // Log specific message types
   if (update.message) {
     console.log("MESSAGE received:");
@@ -367,7 +411,7 @@ export async function POST(req: NextRequest) {
     console.log("- Text:", update.message.text);
     console.log("- Date:", new Date(update.message.date * 1000).toISOString());
   }
-  
+
   if (update.callback_query) {
     console.log("CALLBACK_QUERY received:");
     console.log("- Callback ID:", update.callback_query.id);
@@ -376,48 +420,51 @@ export async function POST(req: NextRequest) {
     console.log("- Message Chat ID:", update.callback_query.message?.chat?.id);
     console.log("- Message ID:", update.callback_query.message?.message_id);
   }
-  
+
   if (update.edited_message) {
     console.log("EDITED_MESSAGE received:");
     console.log("- Chat ID:", update.edited_message.chat.id);
     console.log("- Message ID:", update.edited_message.message_id);
-    console.log("- Edit date:", new Date(update.edited_message.edit_date * 1000).toISOString());
+    console.log(
+      "- Edit date:",
+      new Date(update.edited_message.edit_date * 1000).toISOString()
+    );
   }
-  
+
   if (update.channel_post) {
     console.log("CHANNEL_POST received:", update.channel_post);
   }
-  
+
   if (update.inline_query) {
     console.log("INLINE_QUERY received:", update.inline_query);
   }
-  
+
   if (update.chosen_inline_result) {
     console.log("CHOSEN_INLINE_RESULT received:", update.chosen_inline_result);
   }
-  
+
   if (update.my_chat_member) {
     console.log("MY_CHAT_MEMBER received:", update.my_chat_member);
   }
-  
+
   if (update.chat_member) {
     console.log("CHAT_MEMBER received:", update.chat_member);
   }
-  
+
   if (update.chat_join_request) {
     console.log("CHAT_JOIN_REQUEST received:", update.chat_join_request);
   }
-  
+
   if (update.poll) {
     console.log("POLL received:", update.poll);
   }
-  
+
   if (update.poll_answer) {
     console.log("POLL_ANSWER received:", update.poll_answer);
   }
-  
+
   console.log(`=== END WEBHOOK UPDATE ${updateId} ===\n`);
-  
+
   const callbackQuery = update.callback_query;
 
   // Handle button callbacks for skill level selection
@@ -433,7 +480,9 @@ export async function POST(req: NextRequest) {
       ? `<a href="https://t.me/${user.username}">@${user.username}</a>`
       : user.first_name || "Unknown";
 
-    console.log(`Webhook received: chatId=${chatId}, messageId=${messageId}, user=${user.id}, action=${selectedLevel}`);
+    console.log(
+      `Webhook received: chatId=${chatId}, messageId=${messageId}, user=${user.id}, action=${selectedLevel}`
+    );
 
     // Answer callback query immediately to prevent timeout
     try {
@@ -514,8 +563,11 @@ export async function POST(req: NextRequest) {
         console.log("Using database-driven registration system");
       } else {
         // Fallback to message-based system for backward compatibility
-        console.warn("Database registration failed, falling back to message parsing:", dbResult.error);
-        
+        console.warn(
+          "Database registration failed, falling back to message parsing:",
+          dbResult.error
+        );
+
         // Update game state with user action (message-based system)
         const { updatedGame, notification: fallbackNotification } =
           GameDataManager.updateGameWithUserAction(
@@ -529,8 +581,10 @@ export async function POST(req: NextRequest) {
         notification = fallbackNotification;
       }
 
-      console.log(`About to update Telegram message: chatId=${chatId}, messageId=${messageId}`);
-      
+      console.log(
+        `About to update Telegram message: chatId=${chatId}, messageId=${messageId}`
+      );
+
       // Update the message
       try {
         await TelegramAPI.editMessageText({
