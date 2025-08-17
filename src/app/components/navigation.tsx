@@ -5,7 +5,7 @@ import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../hooks/useUser";
 import { ScreenName } from "../page";
 import {} from "react";
-import { supabase } from "@lib/supabase/client";
+import { useSignOut } from "@lib/hooks/auth";
 
 interface NavigationProps {
   activeScreen: ScreenName;
@@ -23,8 +23,10 @@ export default function Navigation({
 
   // Sign-in UI removed from navigation; handled on landing page
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const signOutMutation = useSignOut();
+  
+  const handleSignOut = () => {
+    signOutMutation.mutate();
   };
 
   const iconMap: Record<ScreenName, string> = {

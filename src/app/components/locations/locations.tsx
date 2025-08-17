@@ -3,13 +3,11 @@
 import React, { useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
-import { supabase } from "@lib/supabase/client";
 import { Location } from "../../../../database.types";
 import Image from "next/image";
 import AddLocationModal from "./AddLocationModal";
 import dynamic from "next/dynamic";
-import { useQuery } from "@tanstack/react-query";
-import { useDeleteLocation } from "@lib/hooks/db";
+import { useLocations, useDeleteLocation } from "@lib/hooks/db";
 
 const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
@@ -22,17 +20,7 @@ export default function Locations() {
   const [openMapId, setOpenMapId] = useState<number | null>(null);
 
   // Fetch locations using React Query
-  const { data: locations = [], isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("*")
-        .order("id");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data: locations = [], isLoading: loading, error: queryError } = useLocations();
 
   // Handle query errors
   React.useEffect(() => {

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
-import { supabase } from "@lib/supabase/client";
 import { Booking } from "../../../../database.types";
 import Image from "next/image";
 import AddBookingModal from "./AddBookingModal";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useBookingsData, useDeleteBooking, useAddRegistration, useRemoveRegistration, useRemoveRegistrationById } from "@lib/hooks/db";
 
 export default function Bookings() {
   const { theme } = useTelegram();
@@ -18,47 +18,12 @@ export default function Bookings() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   // Fetch all data using React Query
-  const { data, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['bookings-data'],
-    queryFn: async () => {
-      const [bRes, lRes, tRes, rRes] = await Promise.all([
-        supabase.from("bookings").select("*").order("id", { ascending: false }),
-        supabase.from("locations").select("*").order("id"),
-        supabase.from("messages").select("booking_id").eq("is_active", true),
-        supabase.from("registrations").select(`
-          *,
-          user:users(id, first_name, last_name, username, photo_url, explicit_name)
-        `).order("created_at", { ascending: true }),
-      ]);
-      
-      if (bRes.error) throw bRes.error;
-      if (lRes.error) throw lRes.error;
-      if (tRes.error) throw tRes.error;
-      if (rRes.error) throw rRes.error;
-
-      const bookings = bRes.data ?? [];
-      const locations = lRes.data ?? [];
-      const registrations = rRes.data ?? [];
-
-      // Create a lookup for bookings that have been posted to Telegram
-      const telegramMessageLookup: { [key: number]: boolean } = {};
-      (tRes.data ?? []).forEach((msg) => {
-        telegramMessageLookup[msg.booking_id] = true;
-      });
-
-      return {
-        bookings,
-        locations,
-        registrations,
-        telegramMessages: telegramMessageLookup
-      };
-    },
-  });
+  const { data, isLoading: loading, error: queryError } = useBookingsData();
 
   const bookings = data?.bookings ?? [];
   const locations = data?.locations ?? [];
   const registrations = data?.registrations ?? [];
-  const telegramMessages = data?.telegramMessages ?? {};
+  const telegramMessages = data?.telegramMessageLookup ?? {};
 
   // Set up query error handling
   useEffect(() => {
@@ -84,17 +49,18 @@ export default function Bookings() {
     queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
   };
 
-  const handleDelete = async (id: number) => {
+  // Use centralized delete mutation
+  const deleteBookingMutation = useDeleteBooking();
+  
+  const handleDelete = (id: number) => {
     if (!confirm("Delete this booking?")) return;
     setError("");
-    try {
-      const { error } = await supabase.from("bookings").delete().eq("id", id);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
-    } catch (e) {
-      setError("Failed to delete booking");
-      console.error(e);
-    }
+    deleteBookingMutation.mutate(id, {
+      onError: (error) => {
+        setError("Failed to delete booking");
+        console.error(error);
+      },
+    });
   };
 
   // Refresh messages mutation
@@ -170,66 +136,58 @@ export default function Bookings() {
     }
   };
 
-  const handleRegister = async (bookingId: number) => {
+  // Use centralized registration mutations
+  const addRegistrationMutation = useAddRegistration();
+  
+  const handleRegister = (bookingId: number) => {
     if (!user) {
       alert("Please login to register for games");
       return;
     }
 
     setError("");
-    try {
-      const { error } = await supabase
-        .from("registrations")
-        .insert({
-          booking_id: bookingId,
-          user_id: parseInt(user.id)
-        });
-      
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
-    } catch (e) {
-      setError("Failed to register for game");
-      console.error(e);
-    }
+    addRegistrationMutation.mutate({
+      bookingId,
+      userId: parseInt(user.id)
+    }, {
+      onError: (error) => {
+        setError("Failed to register for game");
+        console.error(error);
+      },
+    });
   };
 
-  const handleUnregister = async (bookingId: number) => {
+  const removeRegistrationMutation = useRemoveRegistration();
+  
+  const handleUnregister = (bookingId: number) => {
     if (!user) return;
 
     if (!confirm("Cancel your registration?")) return;
 
     setError("");
-    try {
-      const { error } = await supabase
-        .from("registrations")
-        .delete()
-        .eq("booking_id", bookingId)
-        .eq("user_id", parseInt(user.id));
-      
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
-    } catch (e) {
-      setError("Failed to cancel registration");
-      console.error(e);
-    }
+    removeRegistrationMutation.mutate({
+      bookingId,
+      userId: parseInt(user.id)
+    }, {
+      onError: (error) => {
+        setError("Failed to cancel registration");
+        console.error(error);
+      },
+    });
   };
 
-  const handleAdminRemoveRegistration = async (registrationId: number) => {
+  const removeRegistrationByIdMutation = useRemoveRegistrationById();
+  
+  const handleAdminRemoveRegistration = (registrationId: number) => {
     if (!confirm("Remove this player's registration?")) return;
 
     setError("");
-    try {
-      const { error } = await supabase
-        .from("registrations")
-        .delete()
-        .eq("id", registrationId);
-      
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['bookings-data'] });
-    } catch (e) {
-      setError("Failed to remove registration");
-      console.error(e);
-    }
+    removeRegistrationByIdMutation.mutate(registrationId, {
+      onError: (error) => {
+        setError("Failed to remove registration");
+        console.error(error);
+      },
+    });
   };
 
   const getBookingRegistrations = (bookingId: number) => {

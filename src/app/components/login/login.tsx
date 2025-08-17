@@ -1,6 +1,6 @@
 "use client";
 
-import { supabase } from "@lib/supabase/client";
+import { useOAuthSignIn } from "@lib/hooks/auth";
 import TelegramLoginButton from "./TelegramLoginButton";
 
 interface LoginProps {
@@ -8,19 +8,10 @@ interface LoginProps {
 }
 
 export default function Login({ className = "" }: LoginProps) {
-  const handleOAuthLogin = async (provider: "google") => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { access_type: "offline", prompt: "consent" },
-      },
-    });
-    if (error) {
-      console.error(`OAuth ${provider} error:`, error.message);
-      return;
-    }
-    if (data?.url) window.location.href = data.url;
+  const oAuthSignInMutation = useOAuthSignIn();
+  
+  const handleOAuthLogin = (provider: "google") => {
+    oAuthSignInMutation.mutate(provider);
   };
 
   return (

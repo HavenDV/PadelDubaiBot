@@ -7,10 +7,12 @@ export { useAdminUsers } from "./useAdminUsers";
 export { useUserById } from "./useUserById";
 
 // Booking-related hooks
+export { useBookingsData } from "./useBookingsData";
 export { useRecentPrice } from "./useRecentPrice";
 export { useCreateBooking, useUpdateBooking, useDeleteBooking } from "./useBookingMutations";
 
 // Location-related hooks
+export { useLocations } from "./useLocations";
 export { useCreateLocation, useUpdateLocation, useDeleteLocation } from "./useLocationMutations";
 
 // Registration-related hooks
