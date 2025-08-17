@@ -339,55 +339,55 @@ export default function AddLocationModal({
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Website</label>
               <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..."
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Phone</label>
               <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 ..."
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div className="md:col-span-2">
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Address</label>
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full address"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Plus code</label>
               <input type="text" value={plusCode} onChange={(e) => setPlusCode(e.target.value)} placeholder="e.g. J56C+42 Dubai"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Rating</label>
               <input type="number" step="0.1" min="0" max="5" value={rating} onChange={(e) => setRating(e.target.value)} placeholder="4.5"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Ratings count</label>
               <input type="number" min="0" value={userRatingsTotal} onChange={(e) => setUserRatingsTotal(e.target.value)} placeholder="123"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Latitude</label>
               <input type="number" step="0.000001" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="25.2048"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Longitude</label>
               <input type="number" step="0.000001" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="55.2708"
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div>
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Place ID</label>
               <input type="text" value={placeId} onChange={(e) => setPlaceId(e.target.value)} placeholder="ChIJ..."
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{ ...styles.card, ...styles.text, ...styles.border }} />
+            style={{ ...styles.card, ...styles.text, borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor, borderWidth: '1px' }} />
             </div>
             <div className="md:col-span-2">
               <label className={`block text-sm font-medium mb-1`} style={styles.text}>Opening hours (one per line or JSON array)</label>
