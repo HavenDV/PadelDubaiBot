@@ -8,9 +8,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev` - Start development server with Turbopack
 - `npm run build` - Build production bundle
 - `npm run lint` - Run ESLint for code quality
-- `npm test` - Run Jest test suite
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage report
 
 ### Supabase Database Commands
 - `npm run supabase:start` - Start local Supabase instance
@@ -42,7 +39,6 @@ This is a **Telegram Bot for Padel Game Organization** built with:
 - `src/app/lib/supabase/` - Database client and queries
 - `src/app/components/` - React components for admin interface
 - `supabase/` - Database schema, migrations, and RLS policies
-- `__tests__/` - Jest test suite
 
 ### Telegram Bot Architecture
 The bot uses a **data-first architecture** with clear separation:
@@ -74,12 +70,6 @@ The bot uses a **data-first architecture** with clear separation:
 ### Row Level Security (RLS)
 All tables use RLS policies for secure data access. Admin users have elevated permissions.
 
-## Testing
-
-- **Jest** with TypeScript support
-- Tests located in `__tests__/` directory
-- Coverage reports generated in `coverage/` directory
-- Setup file: `jest.setup.js`
 
 ## Environment Variables Required
 
