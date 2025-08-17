@@ -268,7 +268,7 @@ async function generateMessageFromDatabase(
     userName: reg.users.username
       ? `@${reg.users.username}`
       : reg.users.first_name,
-    skillLevel: reg.users.skill_level || "N/A", // Show skill level from profile
+    skillLevel: reg.users.skill_level || "E", // Show skill level from profile, default to E
     registrationTime: new Date(), // Use current time as placeholder
   }));
 
