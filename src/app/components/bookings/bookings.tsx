@@ -92,6 +92,45 @@ export default function Bookings() {
     }
   };
 
+  const handleRefreshMessages = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Call cleanup endpoint to check if messages still exist
+      const response = await fetch("/api/telegram/cleanup-messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to refresh message status");
+      }
+
+      const result = await response.json();
+      console.log("Message cleanup result:", result);
+      
+      // Refresh the data to update button states
+      await loadAll();
+      
+      if (result.cleaned > 0) {
+        alert(`Refreshed! ${result.cleaned} deleted messages were cleaned up.`);
+      } else {
+        alert("All message statuses are up to date.");
+      }
+    } catch (e) {
+      setError(
+        `Failed to refresh messages: ${
+          e instanceof Error ? e.message : "Unknown error"
+        }`
+      );
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePostToTelegram = async (booking: Booking) => {
     if (telegramMessages[booking.id]) {
       alert("This booking has already been posted to Telegram");
@@ -233,13 +272,37 @@ export default function Bookings() {
           <h2 className={`text-xl font-bold ${theme.text}`}>Bookings</h2>
         </div>
         {isAdmin && (
-          <button
-            onClick={startAdd}
-            className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center shadow-sm"
-            title="Add Booking"
-          >
-            +
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefreshMessages}
+              className="w-8 h-8 bg-gray-600 hover:bg-gray-700 text-white rounded-full text-sm font-medium transition-colors flex items-center justify-center shadow-sm"
+              title="Refresh message status"
+              disabled={loading}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+            </button>
+            <button
+              onClick={startAdd}
+              className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center shadow-sm"
+              title="Add Booking"
+            >
+              +
+            </button>
+          </div>
         )}
       </div>
 
@@ -323,6 +386,32 @@ export default function Bookings() {
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                       </svg>
                     </button>
+
+                    {/* Check message status (only show if message was posted) */}
+                    {telegramMessages[b.id] && (
+                      <button
+                        onClick={handleRefreshMessages}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
+                        title="Check if message still exists"
+                        disabled={loading}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-4 h-4"
+                        >
+                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                          <path d="M21 3v5h-5" />
+                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                          <path d="M3 21v-5h5" />
+                        </svg>
+                      </button>
+                    )}
 
                     {/* Edit */}
                     <button

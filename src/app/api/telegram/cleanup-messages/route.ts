@@ -5,7 +5,8 @@ export const runtime = "edge";
 
 /**
  * Admin endpoint to check and cleanup messages that have been deleted from Telegram
- * This endpoint verifies if messages still exist in Telegram and marks deleted ones as inactive
+ * This endpoint verifies if messages still exist in Telegram by attempting to edit their reply markup
+ * If the edit fails due to "message not found", the message is marked as inactive in our database
  */
 export async function POST() {
   try {
@@ -40,9 +41,10 @@ export async function POST() {
       try {
         checkedCount++;
         
-        // Try to get the message from Telegram
+        // Try to edit the message to check if it still exists
+        // We'll make a minimal edit that doesn't actually change anything
         const response = await fetch(
-          `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMessage`,
+          `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`,
           {
             method: "POST",
             headers: {
@@ -51,14 +53,15 @@ export async function POST() {
             body: JSON.stringify({
               chat_id: message.chat_id,
               message_id: message.message_id,
+              reply_markup: {}, // Empty markup - this won't visually change anything
             }),
           }
         );
 
         const result = await response.json();
 
-        // If message doesn't exist (400 error), mark as inactive
-        if (!result.ok && result.error_code === 400) {
+        // If message doesn't exist, API will return error
+        if (!result.ok && (result.error_code === 400 || result.description?.includes("message to edit not found"))) {
           const { error: updateError } = await supabaseAdmin
             .from("messages")
             .update({ is_active: false })
