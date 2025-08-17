@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@lib/supabase/client";
 
 // Type for skill levels
-export type SkillLevel = "E" | "D" | "D+" | "C-" | "C" | "C+";
+export type SkillLevel = "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
 
 // Mutation hook for updating user skill level
 export const useUpdateUserSkillLevel = () => {

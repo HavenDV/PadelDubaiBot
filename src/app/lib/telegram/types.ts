@@ -64,8 +64,10 @@ export interface AdminControlData {
 // Skill level definitions
 export const SKILL_LEVELS = {
   E: "First time",
+  "D-": "Basic strokes, learning rules",
   D: "Beginner",
   "D+": "Control direction, know rules",
+  "D++": "Good control, placement improving",
   "C-": "Defense & attack",
   C: "Defense to attack",
   "C+": "Change pace & play",

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
     explicit_name text,
-    skill_level text CHECK (skill_level IN ('E','D','D+','C-','C','C+')),
+    skill_level text CHECK (skill_level IN ('E','D-','D','D+','D++','C-','C','C+')),
 
     -- Admin data
     admin boolean DEFAULT false

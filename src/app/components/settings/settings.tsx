@@ -102,7 +102,7 @@ export default function Settings() {
             Skill Level:
           </label>
           <div className="flex gap-1">
-            {(["E", "D", "D+", "C-", "C", "C+"] as SkillLevel[]).map(
+            {(["E", "D-", "D", "D+", "D++", "C-", "C", "C+"] as SkillLevel[]).map(
               (level) => {
                 const isSelected = (userProfile?.skill_level || "E") === level;
                 const isPending = pendingSkillLevel === level;
