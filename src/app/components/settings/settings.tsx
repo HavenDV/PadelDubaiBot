@@ -129,7 +129,7 @@ export default function Settings() {
             {(["E", "D-", "D", "D+", "D++", "C-", "C", "C+"] as SkillLevel[]).map(
               (level) => {
                 const isSelected = (userProfile?.skill_level || "E") === level;
-                const isPending = pendingSkillLevel === level;
+                const isPending = pendingSkillLevel === level && updateSkillLevelMutation.isPending;
                 const isDisabled = updateSkillLevelMutation.isPending;
 
                 return (
@@ -138,17 +138,12 @@ export default function Settings() {
                     onClick={() => handleSkillLevelUpdate(level)}
                     disabled={isDisabled}
                     className={`px-2 py-1 text-xs rounded transition-colors relative ${
-                      isDisabled && !isSelected
-                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        : ""
+                      isDisabled ? "cursor-not-allowed" : ""
                     }`}
-                    style={
-                      isSelected
-                        ? styles.primaryButton
-                        : !isDisabled
-                        ? styles.secondaryButton
-                        : {}
-                    }
+                    style={{
+                      ...(isSelected ? styles.primaryButton : styles.secondaryButton),
+                      opacity: isDisabled ? 0.6 : 1,
+                    }}
                   >
                     {isPending ? (
                       <span className="inline-block animate-spin">⏳</span>
