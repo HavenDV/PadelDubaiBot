@@ -12,7 +12,7 @@ import {
 } from "@/app/lib/hooks/db/useUserMutations";
 
 export default function Settings() {
-  const { theme } = useTelegram();
+  const { styles } = useTelegram();
   const { isAnonymous, telegramUserId } = useUser();
   const [authMessage, setAuthMessage] = useState<string>("");
   const [skillMessage, setSkillMessage] = useState<string>("");
@@ -93,12 +93,12 @@ export default function Settings() {
 
   return (
     <div className="p-4 space-y-6">
-      <h2 className={`text-xl font-bold ${theme.text} mb-4`} style={theme.textStyle}>Settings</h2>
+      <h2 className="text-xl font-bold mb-4" style={styles.text}>Settings</h2>
 
       {/* Skill Level Section */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className={`text-sm font-medium ${theme.text}`} style={theme.textStyle}>
+          <label className="text-sm font-medium" style={styles.text}>
             Skill Level:
           </label>
           <div className="flex gap-1">
@@ -114,17 +114,15 @@ export default function Settings() {
                     onClick={() => handleSkillLevelUpdate(level)}
                     disabled={isDisabled}
                     className={`px-2 py-1 text-xs rounded transition-colors relative ${
-                      isSelected
-                        ? `${theme.primaryButton} text-white`
-                        : isDisabled
+                      isDisabled && !isSelected
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
+                        : ""
                     }`}
                     style={
                       isSelected
-                        ? theme.primaryButtonStyle
+                        ? styles.primaryButton
                         : !isDisabled
-                        ? { ...theme.cardBgStyle, ...theme.textStyle }
+                        ? styles.secondaryButton
                         : {}
                     }
                   >
@@ -157,11 +155,11 @@ export default function Settings() {
 
       {/* Linked Accounts Section */}
       <div className="space-y-3">
-        <label className={`block text-sm font-medium ${theme.text}`} style={theme.textStyle}>
+        <label className="block text-sm font-medium" style={styles.text}>
           Linked accounts
         </label>
         {providersLoading && (
-          <div className={`text-sm ${theme.secondaryText}`} style={theme.secondaryTextStyle}>Loading account status...</div>
+          <div className="text-sm" style={styles.secondaryText}>Loading account status...</div>
         )}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -177,11 +175,11 @@ export default function Settings() {
                   ? "bg-green-50 border-green-200 text-green-700 cursor-default"
                   : linkProviderMutation.isPending
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : `${theme.secondaryButton} ${theme.secondaryButtonHover} ${theme.border}`
+                  : ""
               }`}
               style={
                 !linkedProviders.includes("google") && !linkProviderMutation.isPending
-                  ? { ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }
+                  ? { ...styles.secondaryButton, ...styles.border }
                   : {}
               }
             >
@@ -224,8 +222,8 @@ export default function Settings() {
           )}
           <div className="pt-2 space-y-2">
             <div
-              className={`text-xs ${theme.secondaryText}`}
-              style={theme.secondaryTextStyle}
+              className="text-xs"
+              style={styles.secondaryText}
             >
               You can link Google to sign in next time outside Telegram.
             </div>

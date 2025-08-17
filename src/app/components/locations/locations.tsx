@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { LocationIcon } from "@components/icons/Icons";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../../hooks/useUser";
 import { Location } from "../../../../database.types";
-import Image from "next/image";
 import AddLocationModal from "./AddLocationModal";
 import dynamic from "next/dynamic";
 import { useLocations, useDeleteLocation } from "@lib/hooks/db";
@@ -12,7 +12,7 @@ import { useLocations, useDeleteLocation } from "@lib/hooks/db";
 const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
 export default function Locations() {
-  const { theme } = useTelegram();
+  const { styles } = useTelegram();
   const { isAdmin } = useUser();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -20,7 +20,11 @@ export default function Locations() {
   const [openMapId, setOpenMapId] = useState<number | null>(null);
 
   // Fetch locations using React Query
-  const { data: locations = [], isLoading: loading, error: queryError } = useLocations();
+  const {
+    data: locations = [],
+    isLoading: loading,
+    error: queryError,
+  } = useLocations();
 
   // Handle query errors
   React.useEffect(() => {
@@ -63,14 +67,16 @@ export default function Locations() {
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Image src="/location.svg" alt="Locations" width={20} height={20} />
-          <h2 className={`text-xl font-bold ${theme.text}`} style={theme.textStyle}>Locations</h2>
+          <LocationIcon size={20} style={styles.text} />
+          <h2 className="text-xl font-bold" style={styles.text}>
+            Locations
+          </h2>
         </div>
         {isAdmin && (
           <button
             onClick={openAddModal}
-            className={`w-8 h-8 ${theme.primaryButton} ${theme.primaryButtonHover} text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center`}
-            style={theme.primaryButtonStyle}
+            className="w-8 h-8 text-white rounded-full text-lg font-medium transition-colors flex items-center justify-center hover:brightness-110"
+            style={styles.primaryButton}
             title="Add Location"
           >
             +
@@ -88,8 +94,11 @@ export default function Locations() {
               className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 animate-pulse"
             >
               <div className="flex-1">
-                <div className={`h-5 ${theme.cardBg} rounded w-48 mb-1`} style={theme.cardBgStyle} />
-                <div className={`h-4 ${theme.cardBg} rounded w-72`} style={{ ...theme.cardBgStyle, opacity: 0.7 }} />
+                <div className="h-5 rounded w-48 mb-1" style={styles.card} />
+                <div
+                  className="h-4 rounded w-72"
+                  style={{ ...styles.card, opacity: 0.7 }}
+                />
               </div>
             </div>
           ))}
@@ -102,37 +111,71 @@ export default function Locations() {
               className="relative py-3 flex flex-col sm:flex-row sm:items-start gap-2"
             >
               <div className="flex-1 pr-24">
-                <div className={`font-medium ${theme.text}`} style={theme.textStyle}>{loc.name}</div>
+                <div className="font-medium" style={styles.text}>
+                  {loc.name}
+                </div>
                 <a
                   href={loc.url}
                   target="_blank"
                   rel="noreferrer"
-                  className={`text-sm ${theme.primaryButton} hover:underline`}
-                  style={{ ...theme.primaryButtonStyle, backgroundColor: 'transparent' }}
+                  className="text-sm hover:underline"
+                  style={{ color: styles.primaryButton.backgroundColor }}
                 >
                   {loc.url}
                 </a>
                 {/* Opening hours */}
-                {Array.isArray((loc as Location & { opening_hours?: string[] }).opening_hours) && (
+                {Array.isArray(
+                  (loc as Location & { opening_hours?: string[] }).opening_hours
+                ) && (
                   <div className="mt-3">
-                    <div className={`text-xs font-medium mb-2 ${theme.text}`} style={theme.textStyle}>Opening hours</div>
-                    <div className={`${theme.cardBg} border ${theme.border} rounded-lg shadow-sm overflow-hidden max-w-md`} style={theme.cardBgStyle}>
+                    <div
+                      className="text-xs font-medium mb-2"
+                      style={styles.text}
+                    >
+                      Opening hours
+                    </div>
+                    <div
+                      className="border rounded-lg shadow-sm overflow-hidden max-w-md"
+                      style={{ ...styles.card, ...styles.border }}
+                    >
                       <div className="divide-y divide-gray-100">
-                        {((loc as Location & { opening_hours: string[] }).opening_hours).map((line: string, idx: number) => {
-                          const [day, hours] = line.split(': ');
-                          const isOpen24h = hours?.toLowerCase().includes('24 hours') || hours?.toLowerCase().includes('open 24 hours');
-                          const isClosed = hours?.toLowerCase().includes('closed');
-                          
+                        {(
+                          loc as Location & { opening_hours: string[] }
+                        ).opening_hours.map((line: string, idx: number) => {
+                          const [day, hours] = line.split(": ");
+                          const isOpen24h =
+                            hours?.toLowerCase().includes("24 hours") ||
+                            hours?.toLowerCase().includes("open 24 hours");
+                          const isClosed = hours
+                            ?.toLowerCase()
+                            .includes("closed");
+
                           return (
-                            <div key={idx} className={`px-4 py-2.5 flex justify-between items-center ${theme.tableRowHover} transition-colors`}>
-                              <span className={`text-sm font-medium ${theme.text} min-w-[80px]`} style={theme.textStyle}>{day}</span>
-                              <span className={`text-sm font-medium ${
-                                isOpen24h ? 'text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs' :
-                                isClosed ? 'text-red-600' : 
-`${theme.secondaryText}`
-                              }`}
-                              style={!isOpen24h && !isClosed ? theme.secondaryTextStyle : {}}>
-                                {isOpen24h ? '24/7' : hours || 'Closed'}
+                            <div
+                              key={idx}
+                              className="px-4 py-2.5 flex justify-between items-center hover:brightness-110 transition-colors"
+                            >
+                              <span
+                                className="text-sm font-medium min-w-[80px]"
+                                style={styles.text}
+                              >
+                                {day}
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  isOpen24h
+                                    ? "text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs"
+                                    : isClosed
+                                    ? "text-red-600"
+                                    : ""
+                                }`}
+                                style={
+                                  !isOpen24h && !isClosed
+                                    ? styles.secondaryText
+                                    : {}
+                                }
+                              >
+                                {isOpen24h ? "24/7" : hours || "Closed"}
                               </span>
                             </div>
                           );
@@ -143,7 +186,12 @@ export default function Locations() {
                 )}
                 {openMapId === loc.id && (
                   <div className="mt-3">
-                    <MapEmbed name={loc.name} url={loc.url} height={220} className="w-full rounded-md" />
+                    <MapEmbed
+                      name={loc.name}
+                      url={loc.url}
+                      height={220}
+                      className="w-full rounded-md"
+                    />
                   </div>
                 )}
               </div>
@@ -151,9 +199,11 @@ export default function Locations() {
                 <div className="absolute top-1 right-0 flex items-center gap-1">
                   {/* Toggle Map */}
                   <button
-                    onClick={() => setOpenMapId((prev) => (prev === loc.id ? null : loc.id))}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.secondaryButton} ${theme.secondaryButtonHover} border ${theme.border} transition-colors`}
-                    style={theme.cardBgStyle}
+                    onClick={() =>
+                      setOpenMapId((prev) => (prev === loc.id ? null : loc.id))
+                    }
+                    className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors hover:brightness-90"
+                    style={{ ...styles.secondaryButton, ...styles.border }}
                     title={openMapId === loc.id ? "Hide map" : "Show map"}
                     aria-label={openMapId === loc.id ? "Hide map" : "Show map"}
                   >
@@ -165,8 +215,8 @@ export default function Locations() {
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className={`w-4 h-4 ${theme.text}`}
-                      style={theme.textStyle}
+                      className="w-4 h-4"
+                      style={styles.text}
                     >
                       <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
                       <path d="M9 4v16" />
@@ -177,8 +227,8 @@ export default function Locations() {
                   {/* Edit */}
                   <button
                     onClick={() => openEditModal(loc)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.secondaryButton} ${theme.secondaryButtonHover} border ${theme.border} transition-colors`}
-                    style={theme.cardBgStyle}
+                    className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors hover:brightness-90"
+                    style={{ ...styles.secondaryButton, ...styles.border }}
                     title="Edit"
                     aria-label="Edit"
                   >
@@ -190,8 +240,8 @@ export default function Locations() {
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className={`w-4 h-4 ${theme.text}`}
-                      style={theme.textStyle}
+                      className="w-4 h-4"
+                      style={styles.text}
                     >
                       <path d="M12 20h9" />
                       <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
@@ -207,7 +257,9 @@ export default function Locations() {
                         : "text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"
                     }`}
                     title={deleteMutation.isPending ? "Deleting..." : "Remove"}
-                    aria-label={deleteMutation.isPending ? "Deleting..." : "Remove"}
+                    aria-label={
+                      deleteMutation.isPending ? "Deleting..." : "Remove"
+                    }
                     disabled={deleteMutation.isPending}
                   >
                     {deleteMutation.isPending ? (
@@ -236,7 +288,9 @@ export default function Locations() {
             </div>
           ))}
           {!loading && locations.length === 0 && (
-            <div className={`py-6 text-sm ${theme.secondaryText}`} style={theme.secondaryTextStyle}>No locations yet</div>
+            <div className="py-6 text-sm" style={styles.secondaryText}>
+              No locations yet
+            </div>
           )}
         </div>
       )}

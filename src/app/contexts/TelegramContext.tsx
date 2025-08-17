@@ -7,7 +7,10 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { useTelegramTheme } from "../hooks/useTelegramTheme";
+import {
+  useTelegramTheme,
+  type TelegramThemeResult,
+} from "../hooks/useTelegramTheme";
 import { setAuthToken, supabase } from "@lib/supabase/client";
 import { WebApp, ThemeParams, WebAppInitData } from "telegram-web-app";
 import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
@@ -17,7 +20,7 @@ interface TelegramContextType {
   isLoading: boolean;
   isAuthorizing: boolean;
   themeParams: ThemeParams | null;
-  theme: ReturnType<typeof useTelegramTheme>;
+  styles: TelegramThemeResult["styles"];
   userId: number | null; // Add userId for easier access
   isTelegram: boolean; // Better Telegram mode detection
 }
@@ -32,10 +35,13 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
+  // Default to false to avoid SSR/client hydration mismatches
   const [isTelegram, setIsTelegram] = useState(true);
+  // Prefer-dark detection deferred to client to avoid SSR mismatch
+  const [preferDark, setPreferDark] = useState(false);
 
   // Generate theme styles based on themeParams
-  const theme = useTelegramTheme(themeParams);
+  const { styles } = useTelegramTheme(themeParams, preferDark);
 
   // Function to initialize Supabase with the token
   const initializeSupabase = (accessToken: string, refreshToken?: string) => {
@@ -49,8 +55,11 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   // Function to check if we have a valid session (Supabase handles refresh automatically)
   const hasValidSession = async (): Promise<boolean> => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
       if (error || !session) {
         console.log("TelegramProvider: No valid session found");
         return false;
@@ -65,6 +74,20 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   };
 
   // Token helpers removed (web mode uses supabase-js session management directly)
+
+  useEffect(() => {
+    // Detect OS color scheme on client only
+    const mql =
+      typeof window !== "undefined" && window.matchMedia
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+    if (mql) {
+      setPreferDark(mql.matches);
+      const handler = (e: MediaQueryListEvent) => setPreferDark(e.matches);
+      mql.addEventListener("change", handler);
+      return () => mql.removeEventListener("change", handler);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,10 +137,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
         // Check if we need to reauth by validating current session
         const needsReauth = !(await hasValidSession());
-        
+
         if (needsReauth) {
           console.log("TelegramProvider: No valid session, authenticating...");
-          
+
           // Call our API to validate the data and get a Supabase token
           try {
             setIsAuthorizing(true);
@@ -191,7 +214,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthorizing,
         themeParams,
-        theme,
+        styles,
         userId,
         isTelegram,
       }}

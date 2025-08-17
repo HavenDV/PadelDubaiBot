@@ -49,7 +49,7 @@ export default function AddBookingModal({
   onLocationUpdate,
   editingBooking,
 }: AddBookingModalProps) {
-  const { theme } = useTelegram();
+  const { styles } = useTelegram();
   // React Query mutations
   const createBookingMutation = useCreateBooking();
   const updateBookingMutation = useUpdateBooking();
@@ -300,11 +300,11 @@ export default function AddBookingModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div
-        className={`w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-6 ${theme.cardBg}`}
-        style={theme.cardBgStyle}
+        className={`w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-6`}
+        style={styles.card}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className={`text-xl font-bold ${theme.text}`} style={theme.textStyle}>
+          <h2 className={`text-xl font-bold`} style={styles.text}>
             {isEditMode ? "Edit Booking" : "Add New Booking"}
           </h2>
           <button
@@ -339,8 +339,8 @@ export default function AddBookingModal({
                 value={smartPasteText}
                 onChange={(e) => setSmartPasteText(e.target.value)}
                 placeholder="Paste booking details here... e.g. 'Game at Oxygen Tennis tomorrow at 7 PM for 90 minutes, 110 AED per person'"
-                className={`w-full px-3 py-2 border rounded-md text-sm resize-none ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm resize-none`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
                 rows={3}
               />
               <div className="flex gap-2">
@@ -382,15 +382,15 @@ export default function AddBookingModal({
           {/* Left column: Start date, Start time, Duration */}
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Start date
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               />
               <p className="text-xs text-gray-400 mt-1">
                 The date players should arrive.
@@ -398,15 +398,15 @@ export default function AddBookingModal({
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Start time
               </label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               />
               <p className="text-xs text-gray-400 mt-1">
                 Local time the game starts.
@@ -414,14 +414,14 @@ export default function AddBookingModal({
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Duration (minutes)
               </label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               >
                 <option value={60}>1 hour</option>
                 <option value={90}>1.5 hours</option>
@@ -438,7 +438,7 @@ export default function AddBookingModal({
           {/* Right column: Location, Price, Courts */}
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Location
               </label>
               <select
@@ -446,8 +446,8 @@ export default function AddBookingModal({
                 onChange={(e) =>
                   setForm((f) => ({ ...f, location_id: Number(e.target.value) }))
                 }
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               >
                 <option value="" disabled>
                   Select location
@@ -464,7 +464,7 @@ export default function AddBookingModal({
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Price
               </label>
               <input
@@ -473,14 +473,14 @@ export default function AddBookingModal({
                 placeholder="e.g. 110"
                 value={Number(form.price) || 0}
                 onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               />
               <p className="text-xs text-gray-400 mt-1">Amount in AED per player.</p>
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Courts
               </label>
               <input
@@ -489,15 +489,15 @@ export default function AddBookingModal({
                 placeholder="1"
                 value={form.courts as number}
                 onChange={(e) => setForm((f) => ({ ...f, courts: Number(e.target.value) }))}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-                style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+                style={{ ...styles.card, ...styles.text, ...styles.border }}
               />
               <p className="text-xs text-gray-400 mt-1">Number of courts reserved.</p>
             </div>
           </div>
 
           <div className="md:col-span-2">
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`}>
+            <label className={`block text-sm font-medium mb-1`} style={styles.text}>
               Note
             </label>
             <input
@@ -505,8 +505,8 @@ export default function AddBookingModal({
               placeholder="Optional details for players"
               value={(form.note as string) || ""}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+              className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }}
             />
             <p className="text-xs text-gray-400 mt-1">
               Extra info (parking, coach, etc.).

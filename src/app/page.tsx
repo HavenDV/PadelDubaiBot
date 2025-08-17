@@ -13,7 +13,7 @@ import Login from "./components/login/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { theme, isTelegram } = useTelegram();
+  const { styles, isTelegram } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");
@@ -64,8 +64,8 @@ export default function Home() {
   return (
     <>
       <div 
-        className={`${theme.bg} flex min-h-[100dvh] w-full flex-col`}
-        style={theme.bgStyle}
+        className={`flex min-h-[100dvh] w-full flex-col`}
+        style={styles.bg}
       >
         <Navigation
           activeScreen={activeScreen}

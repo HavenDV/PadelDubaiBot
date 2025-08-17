@@ -35,7 +35,7 @@ export default function AddLocationModal({
   onSuccess,
   editingLocation,
 }: AddLocationModalProps) {
-  const { theme } = useTelegram();
+  const { styles } = useTelegram();
   // React Query mutations
   const createLocationMutation = useCreateLocation();
   const updateLocationMutation = useUpdateLocation();
@@ -227,11 +227,11 @@ export default function AddLocationModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div
-        className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg p-6 ${theme.cardBg}`}
-        style={theme.cardBgStyle}
+        className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg p-6`}
+        style={styles.card}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className={`text-xl font-bold ${theme.text}`} style={theme.textStyle}>
+          <h2 className={`text-xl font-bold`} style={styles.text}>
             {isEditMode ? "Edit Location" : "Add New Location"}
           </h2>
           <button
@@ -246,14 +246,14 @@ export default function AddLocationModal({
 
         {/* Google Places Search */}
         <div className="mb-6 relative">
-          <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Search Google Places</label>
+          <label className={`block text-sm font-medium mb-1`} style={styles.text}>Search Google Places</label>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type club name or address…"
-            className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }}
+            className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }}
           />
           {(searchLoading || isDebouncing) && <div className="text-xs text-gray-400 mt-1">{isDebouncing ? "Typing…" : "Searching…"}</div>}
           {suggestions.length > 0 && (
@@ -281,7 +281,7 @@ export default function AddLocationModal({
 
         <div className="space-y-4">
           <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>
+            <label className={`block text-sm font-medium mb-1`} style={styles.text}>
               Name
             </label>
             <input
@@ -289,9 +289,8 @@ export default function AddLocationModal({
               placeholder="e.g. Oxygen Tennis Academy"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
+              className={`w-full px-3 py-2 border rounded-md text-sm`}
+              style={{ ...styles.card, ...styles.text, ...styles.border }}
             />
             <p className="text-xs text-gray-400 mt-1">
               Name of the padel club or venue.
@@ -299,7 +298,7 @@ export default function AddLocationModal({
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>
+            <label className={`block text-sm font-medium mb-1`} style={styles.text}>
               Maps URL
             </label>
             <input
@@ -307,9 +306,8 @@ export default function AddLocationModal({
               placeholder="https://maps.google.com/..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md text-sm ${
-                theme.cardBg || "border-gray-300 bg-white"
-              } ${theme.text || "text-black"}`}
+              className={`w-full px-3 py-2 border rounded-md text-sm`}
+              style={{ ...styles.card, ...styles.text, ...styles.border }}
             />
             <p className="text-xs text-gray-400 mt-1">
               Google Maps link or website URL for directions.
@@ -317,7 +315,7 @@ export default function AddLocationModal({
           </div>
           {(placeId || (lat && lng) || name || url) && (
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
                 Map preview
               </label>
               <div className="border rounded-md overflow-hidden">
@@ -338,70 +336,70 @@ export default function AddLocationModal({
         <div className="mt-6 pt-4 border-t space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Website</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Website</label>
               <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..."
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Phone</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Phone</label>
               <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 ..."
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div className="md:col-span-2">
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Address</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Address</label>
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full address"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Plus code</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Plus code</label>
               <input type="text" value={plusCode} onChange={(e) => setPlusCode(e.target.value)} placeholder="e.g. J56C+42 Dubai"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Rating</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Rating</label>
               <input type="number" step="0.1" min="0" max="5" value={rating} onChange={(e) => setRating(e.target.value)} placeholder="4.5"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Ratings count</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Ratings count</label>
               <input type="number" min="0" value={userRatingsTotal} onChange={(e) => setUserRatingsTotal(e.target.value)} placeholder="123"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Latitude</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Latitude</label>
               <input type="number" step="0.000001" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="25.2048"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Longitude</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Longitude</label>
               <input type="number" step="0.000001" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="55.2708"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div>
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Place ID</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Place ID</label>
               <input type="text" value={placeId} onChange={(e) => setPlaceId(e.target.value)} placeholder="ChIJ..."
-                className={`w-full px-3 py-2 border rounded-md text-sm ${theme.cardBg} ${theme.text} ${theme.border}`}
-            style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm`}
+            style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div className="md:col-span-2">
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Opening hours (one per line or JSON array)</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Opening hours (one per line or JSON array)</label>
               <textarea value={openingHours} onChange={(e) => setOpeningHours(e.target.value)} rows={3}
-                className={`w-full px-3 py-2 border rounded-md text-sm resize-none ${theme.cardBg} ${theme.text} ${theme.border}`}
-              style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm resize-none`}
+              style={{ ...styles.card, ...styles.text, ...styles.border }} />
             </div>
             <div className="md:col-span-2">
-              <label className={`block text-sm font-medium mb-1 ${theme.text}`} style={theme.textStyle}>Attributes (JSON)</label>
+              <label className={`block text-sm font-medium mb-1`} style={styles.text}>Attributes (JSON)</label>
               <textarea value={attributes} onChange={(e) => setAttributes(e.target.value)} rows={3}
-                className={`w-full px-3 py-2 border rounded-md text-sm resize-none ${theme.cardBg} ${theme.text} ${theme.border}`}
-              style={{ ...theme.cardBgStyle, ...theme.textStyle, ...theme.borderStyle }} />
+                className={`w-full px-3 py-2 border rounded-md text-sm resize-none`}
+              style={{ ...styles.card, ...styles.text, ...styles.border }} />
               <p className="text-xs text-gray-400 mt-1">Optional flags like accessibility, payments, parking.</p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { CalendarIcon, LocationIcon, LoginIcon } from "@components/icons/Icons";
 import { useTelegram } from "@contexts/TelegramContext";
 import { useUser } from "../hooks/useUser";
 import { ScreenName } from "../page";
@@ -18,10 +19,12 @@ export default function Navigation({
   setActiveScreen,
   screenNames,
 }: NavigationProps) {
-  const { theme, isLoading, isTelegram } = useTelegram();
+  const { styles, isLoading, isTelegram } = useTelegram();
   const { isAnonymous, isAdmin, avatarUrl } = useUser();
 
   // Sign-in UI removed from navigation; handled on landing page
+
+  // Icon color comes from Telegram theme styles via currentColor
 
   const signOutMutation = useSignOut();
   
@@ -29,14 +32,7 @@ export default function Navigation({
     signOutMutation.mutate();
   };
 
-  const iconMap: Record<ScreenName, string> = {
-    settings: "/settings.svg",
-    locations: "/location.svg",
-    bookings: "/calendar.svg",
-    login: "/login.svg",
-    // history: "/history.svg",
-    // schedules: "/calendar.svg",
-  };
+  // Icons are imported and colored via currentColor from theme styles
 
   const handleAvatarClick = () => {
     setActiveScreen("settings");
@@ -44,8 +40,11 @@ export default function Navigation({
 
   return (
     <nav
-      className={`flex items-center justify-between p-4 border-b ${theme.border}`}
-      style={theme.borderStyle}
+      className="flex items-center justify-between p-4 border-b transition-all duration-200"
+      style={{
+        ...styles.header,
+        ...styles.border,
+      }}
     >
       <div className="flex items-center gap-3">
         {/* Render based on mode and auth state */}
@@ -53,32 +52,17 @@ export default function Navigation({
           // Telegram mode: show auth status indicator when anonymous or still loading
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Authenticating..."></div>
-            <span className={`text-xs ${theme.secondaryText}`} style={theme.secondaryTextStyle}>Authenticating</span>
+            <span className="text-xs" style={styles.secondaryText}>Authenticating</span>
           </div>
         ) : !isTelegram && isAnonymous ? (
           // Web mode: show login button when not authenticated
           <button
             onClick={() => setActiveScreen("login")}
-            className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
-              activeScreen === "login"
-                ? `${theme.primaryButton} hover:brightness-110`
-                : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
-            }`}
-            style={activeScreen === "login" ? theme.primaryButtonStyle : theme.cardBgStyle}
+            className="p-3 rounded-full transition-all duration-200 transform hover:scale-110 hover:brightness-110"
+            style={activeScreen === "login" ? styles.primaryButton : styles.secondaryButton}
             title="Login"
           >
-            <Image
-              src="/login.svg"
-              alt="login"
-              width={24}
-              height={24}
-              priority
-              className={
-                activeScreen === "login" 
-                  ? "brightness-0 invert" 
-                  : "invert opacity-50"
-              }
-            />
+            <LoginIcon style={activeScreen === "login" ? { color: styles.primaryButton.color } : styles.text} />
           </button>
         ) : !isTelegram && !isAnonymous ? (
           // Web mode: show avatar and sign out when authenticated
@@ -97,14 +81,14 @@ export default function Navigation({
                   priority
                   className={`rounded-full transition-all duration-200 ${
                     activeScreen === "settings"
-                      ? `ring-2 ring-offset-1 ${theme.selectedBorder}`
+                      ? `ring-2 ring-offset-1`
                       : "group-hover:brightness-110"
                   }`}
-                  style={activeScreen === "settings" ? theme.selectedBorderStyle : {}}
+                  style={activeScreen === "settings" ? styles.selectedBg : {}}
                 />
                 <div 
                   className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
-                  style={{ backgroundColor: theme.selectedBgStyle.backgroundColor || '#4CD964' }}
+                  style={{ backgroundColor: styles.selectedBg.backgroundColor || '#4CD964' }}
                 ></div>
               </div>
               {isAdmin && (
@@ -113,8 +97,12 @@ export default function Navigation({
                   style={{ transform: "translate(20%, 20%)" }}
                 >
                   <div
-                    className="bg-[#0d1c2b] text-[#4CD964] text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
-                    style={{ boxShadow: "0 0 0 1px #1a2a3a" }}
+                    className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm"
+                    style={{ 
+                      ...styles.card, 
+                      color: styles.selectedBg.borderColor || '#4CD964',
+                      boxShadow: `0 0 0 1px ${styles.border.borderColor || '#1a2a3a'}` 
+                    }}
                   >
                     Admin
                   </div>
@@ -123,8 +111,8 @@ export default function Navigation({
             </div>
             <button
               onClick={handleSignOut}
-              className={`px-2 py-1 text-xs rounded-md transition-colors ${theme.secondaryButton} ${theme.secondaryButtonHover}`}
-              style={theme.cardBgStyle}
+              className="px-2 py-1 text-xs rounded-md transition-colors hover:brightness-90"
+              style={styles.secondaryButton}
               aria-label="Sign out"
             >
               Sign out
@@ -146,14 +134,14 @@ export default function Navigation({
                 priority
                 className={`rounded-full transition-all duration-200 ${
                   activeScreen === "settings"
-                    ? `ring-2 ring-offset-1 ${theme.selectedBorder}`
+                    ? `ring-2 ring-offset-1`
                     : "group-hover:brightness-110"
                 }`}
-                style={activeScreen === "settings" ? theme.selectedBorderStyle : {}}
+                style={activeScreen === "settings" ? styles.selectedBg : {}}
               />
               <div 
                 className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-full"
-                style={{ backgroundColor: theme.selectedBgStyle.backgroundColor || '#4CD964' }}
+                style={{ backgroundColor: styles.selectedBg.backgroundColor || '#4CD964' }}
               ></div>
             </div>
             {isAdmin && (
@@ -162,11 +150,11 @@ export default function Navigation({
                 style={{ transform: "translate(20%, 20%)" }}
               >
                 <div
-                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm ${theme.cardBg}`}
+                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm`}
                   style={{ 
-                    ...theme.cardBgStyle, 
-                    color: theme.selectedBorderStyle.borderColor || '#4CD964',
-                    boxShadow: `0 0 0 1px ${theme.borderStyle.borderColor || '#1a2a3a'}` 
+                    ...styles.card, 
+                    color: styles.selectedBg.borderColor || '#4CD964',
+                    boxShadow: `0 0 0 1px ${styles.border.borderColor || '#1a2a3a'}` 
                   }}
                 >
                   Admin
@@ -184,26 +172,16 @@ export default function Navigation({
             <button
               key={screen}
               onClick={() => setActiveScreen(screen)}
-              className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110 ${
-                activeScreen === screen
-                  ? `${theme.primaryButton} hover:brightness-110`
-                  : `${theme.secondaryButton} ${theme.secondaryButtonHover}`
-              }`}
-              style={activeScreen === screen ? theme.primaryButtonStyle : theme.cardBgStyle}
+              className={`p-3 rounded-full transition-all duration-200 transform hover:scale-110`}
+              style={activeScreen === screen ? styles.primaryButton : styles.secondaryButton}
               title={screen.charAt(0).toUpperCase() + screen.slice(1)}
             >
-              <Image
-                src={iconMap[screen]}
-                alt={screen}
-                width={24}
-                height={24}
-                priority
-                className={
-                  activeScreen === screen 
-                    ? "brightness-0 invert" 
-                    : "invert opacity-50"
-                }
-              />
+              {screen === "bookings" && (
+                <CalendarIcon style={activeScreen === screen ? { color: styles.primaryButton.color } : styles.text} />
+              )}
+              {screen === "locations" && (
+                <LocationIcon style={activeScreen === screen ? { color: styles.primaryButton.color } : styles.text} />
+              )}
             </button>
           ))}
       </div>
