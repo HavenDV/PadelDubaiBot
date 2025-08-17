@@ -187,34 +187,55 @@ export default function Settings() {
         )}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => handleLinkProvider("google")}
-              disabled={
-                linkProviderMutation.isPending ||
-                linkedProviders.includes("google") ||
-                providersLoading
-              }
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
-                linkedProviders.includes("google")
-                  ? "bg-green-50 border-green-200 text-green-700 cursor-default"
-                  : linkProviderMutation.isPending
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : ""
-              }`}
-              style={
-                !linkedProviders.includes("google") && !linkProviderMutation.isPending
-                  ? { ...styles.secondaryButton, ...styles.border }
-                  : {}
-              }
-            >
-              {providersLoading
+            {(() => {
+              const isLinked = linkedProviders.includes("google");
+              const isPending = linkProviderMutation.isPending;
+              const disabled = isLinked || isPending || providersLoading;
+              const label = providersLoading
                 ? "Loading..."
-                : linkedProviders.includes("google")
+                : isLinked
                 ? "Google linked"
-                : linkProviderMutation.isPending
+                : isPending
                 ? "Linking..."
-                : "Link Google"}
-            </button>
+                : "Link Google";
+              return (
+                <button
+                  onClick={() => !disabled && handleLinkProvider("google")}
+                  disabled={disabled}
+                  aria-disabled={disabled}
+                  title={isLinked ? "Already linked" : "Link your Google account"}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
+                    isPending ? "cursor-not-allowed" : isLinked ? "cursor-default" : ""
+                  } flex items-center gap-2`}
+                  style={{
+                    ...(isLinked
+                      ? { ...styles.selectedBg, ...styles.border }
+                      : { ...styles.secondaryButton, ...styles.border }),
+                    opacity: isPending ? 0.6 : 1,
+                  }}
+                >
+                  {isLinked && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      style={styles.text}
+                    >
+                      <path
+                        d="M20 6L9 17l-5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                  <span style={styles.text}>{label}</span>
+                </button>
+              );
+            })()}
             {/* <button
               onClick={() => handleLinkProvider("apple")}
               disabled={
