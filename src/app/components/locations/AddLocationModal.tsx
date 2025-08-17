@@ -15,8 +15,6 @@ type ExtendedLocation = Location & {
   plus_code?: string | null;
   rating?: number | null;
   user_ratings_total?: number | null;
-  opening_hours?: string[] | null;
-  attributes?: unknown | null;
   place_id?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -165,8 +163,17 @@ export default function AddLocationModal({
       setPlusCode(editingLocation.plus_code || "");
       setRating((editingLocation.rating ?? "").toString());
       setUserRatingsTotal((editingLocation.user_ratings_total ?? "").toString());
+      // Handle opening_hours which can be Json (string[] or string)
       const oh = editingLocation.opening_hours;
-      setOpeningHours(oh ? oh.join("\n") : "");
+      if (Array.isArray(oh)) {
+        setOpeningHours(oh.join("\n"));
+      } else if (typeof oh === "string") {
+        setOpeningHours(oh);
+      } else {
+        setOpeningHours("");
+      }
+      
+      // Handle attributes which can be Json (any valid JSON)
       const attrs = editingLocation.attributes;
       setAttributes(attrs ? JSON.stringify(attrs, null, 2) : "");
       setPlaceId(editingLocation.place_id || "");
