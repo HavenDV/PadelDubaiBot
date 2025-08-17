@@ -191,8 +191,6 @@ export default function Bookings() {
   const removeRegistrationByIdMutation = useRemoveRegistrationById();
 
   const handleAdminRemoveRegistration = (registrationId: number) => {
-    if (!confirm("Remove this player's registration?")) return;
-
     setError("");
     removeRegistrationByIdMutation.mutate(registrationId, {
       onError: (error) => {
@@ -200,6 +198,45 @@ export default function Bookings() {
         console.error(error);
       },
     });
+  };
+
+  // Themed confirm dialog state for admin remove
+  const [confirmRemoveRegId, setConfirmRemoveRegId] = useState<number | null>(
+    null
+  );
+
+  const ConfirmRemoveModal = () => {
+    if (confirmRemoveRegId === null) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="w-full max-w-sm rounded-lg border shadow-sm" style={{ ...styles.card, ...styles.border }}>
+          <div className="p-4 space-y-3">
+            <div className="font-bold" style={styles.text}>Remove player</div>
+            <div className="text-sm" style={styles.secondaryText}>Are you sure you want to remove this player's registration?</div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                style={styles.secondaryButton}
+                onClick={() => setConfirmRemoveRegId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                style={{ backgroundColor: 'transparent', color: styles.destructiveText.color, borderWidth: '1px', borderColor: styles.destructiveText.color }}
+                onClick={() => {
+                  const id = confirmRemoveRegId;
+                  setConfirmRemoveRegId(null);
+                  handleAdminRemoveRegistration(id);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getBookingRegistrations = (bookingId: number) => {
@@ -747,9 +784,7 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() =>
-                                  handleAdminRemoveRegistration(reg.id)
-                                }
+                                onClick={() => setConfirmRemoveRegId(reg.id)}
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"
@@ -841,9 +876,7 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() =>
-                                  handleAdminRemoveRegistration(reg.id)
-                                }
+                                onClick={() => setConfirmRemoveRegId(reg.id)}
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"
@@ -889,6 +922,8 @@ export default function Bookings() {
           )}
         </div>
       )}
+
+      <ConfirmRemoveModal />
 
       {/* Booking Modal (Add/Edit) */}
       <AddBookingModal
