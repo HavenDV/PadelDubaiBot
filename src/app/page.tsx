@@ -18,7 +18,7 @@ export default function Home() {
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");
 
-  // Handle redirects after sign-in/sign-out
+  // Handle redirects after sign-in/sign-out and restrict non-admin access to Locations
   useEffect(() => {
     if (!isLoading) {
       if (!isTelegram) {
@@ -28,6 +28,10 @@ export default function Home() {
         } else if (isAnonymous && activeScreen !== "login") {
           setActiveScreen("login");
         }
+        // Restrict Locations to admins in web mode
+        if (!isAnonymous && !isAdmin && activeScreen === "locations") {
+          setActiveScreen("bookings");
+        }
       } else {
         // Telegram mode: redirect to settings after sign-in, stay on current screen when anonymous
         if (
@@ -36,11 +40,15 @@ export default function Home() {
         ) {
           setActiveScreen("settings");
         }
+        // Restrict Locations to admins in Telegram mode
+        if (!isAnonymous && !isAdmin && activeScreen === "locations") {
+          setActiveScreen("bookings");
+        }
         // No redirect needed when becoming anonymous in Telegram - stay on current screen
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAnonymous, isLoading, isTelegram]);
+  }, [isAnonymous, isLoading, isTelegram, isAdmin]);
 
   const screens: Record<ScreenName, JSX.Element> = {
     settings: <Settings />,
@@ -51,13 +59,13 @@ export default function Home() {
 
   const visibleScreens = (() => {
     if (!isTelegram) {
-      // Web mode: show login when anonymous
+      // Web mode: show login when anonymous; Locations only for admins
       return isAnonymous
-        ? (["login", "locations", "bookings"] as ScreenName[])
-        : (["locations", "bookings"] as ScreenName[]);
+        ? (["login", "bookings"] as ScreenName[])
+        : (["bookings", ...(isAdmin ? (["locations"] as ScreenName[]) : [])] as ScreenName[]);
     } else {
-      // Telegram mode: never show login, always show locations and bookings
-      return ["locations", "bookings"] as ScreenName[];
+      // Telegram mode: never show login; Locations only for admins
+      return (["bookings", ...(isAdmin ? (["locations"] as ScreenName[]) : [])] as ScreenName[]);
     }
   })();
 

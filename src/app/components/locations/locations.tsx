@@ -64,7 +64,7 @@ export default function Locations() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <LocationIcon size={20} style={styles.text} />
@@ -87,42 +87,96 @@ export default function Locations() {
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
       {loading && locations.length === 0 ? (
-        <div className="divide-y divide-gray-200/40">
+        <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 animate-pulse"
+              className="p-4 rounded-xl shadow-sm border animate-pulse"
+              style={{ ...styles.card, ...styles.border }}
             >
-              <div className="flex-1">
-                <div className="h-5 rounded w-48 mb-1" style={styles.card} />
-                <div
-                  className="h-4 rounded w-72"
-                  style={{ ...styles.card, opacity: 0.7 }}
-                />
-              </div>
+              <div
+                className="h-5 rounded w-48 mb-2"
+                style={{ ...styles.header, opacity: 0.6 }}
+              />
+              <div
+                className="h-4 rounded w-72"
+                style={{ ...styles.card, opacity: 0.7 }}
+              />
             </div>
           ))}
         </div>
       ) : (
-        <div className="divide-y divide-gray-200/40">
+        <div className="space-y-3">
           {locations.map((loc) => (
             <div
               key={loc.id}
-              className="relative py-3 flex flex-col sm:flex-row sm:items-start gap-2"
+              className="relative p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-start gap-2"
+              style={{ ...styles.card, ...styles.border }}
             >
-              <div className="flex-1 pr-24">
-                <div className="font-medium" style={styles.text}>
-                  {loc.name}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  {loc.url ? (
+                    <a
+                      href={loc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:brightness-110"
+                      style={styles.secondaryButton}
+                      title="Open in Google Maps"
+                      aria-label="Open in Google Maps"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4"
+                        style={styles.text}
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={styles.secondaryButton}
+                      title="No map link"
+                      aria-label="No map link"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4"
+                        style={styles.text}
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="font-medium" style={styles.text}>
+                    {loc.name && loc.name.length > 22 ? `${loc.name.slice(0, 19)}...` : loc.name}
+                  </div>
                 </div>
-                <a
-                  href={loc.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm hover:underline"
-                  style={{ color: styles.primaryButton.backgroundColor }}
-                >
-                  {loc.url}
-                </a>
+                {openMapId === loc.id && (
+                  <div className="mt-3">
+                    <MapEmbed
+                      name={loc.name}
+                      url={loc.url}
+                      height={220}
+                      className="w-full rounded-md"
+                    />
+                  </div>
+                )}
                 {/* Opening hours */}
                 {Array.isArray(
                   (loc as Location & { opening_hours?: string[] }).opening_hours
@@ -136,9 +190,9 @@ export default function Locations() {
                     </div>
                     <div
                       className="border rounded-lg shadow-sm overflow-hidden max-w-md"
-                      style={{ ...styles.card, ...styles.border }}
+                      style={{ ...styles.header, ...styles.border }}
                     >
-                      <div className="divide-y divide-gray-100">
+                      <div>
                         {(
                           loc as Location & { opening_hours: string[] }
                         ).opening_hours.map((line: string, idx: number) => {
@@ -154,6 +208,15 @@ export default function Locations() {
                             <div
                               key={idx}
                               className="px-4 py-2.5 flex justify-between items-center hover:brightness-110 transition-colors"
+                              style={
+                                idx > 0
+                                  ? {
+                                      borderTopWidth: "1px",
+                                      borderTopStyle: "solid",
+                                      borderTopColor: styles.border.borderColor,
+                                    }
+                                  : undefined
+                              }
                             >
                               <span
                                 className="text-sm font-medium min-w-[80px]"
@@ -161,22 +224,32 @@ export default function Locations() {
                               >
                                 {day}
                               </span>
-                              <span
-                                className={`text-sm font-medium ${
-                                  isOpen24h
-                                    ? "text-green-700 bg-green-100 px-2.5 py-1 rounded-full text-xs"
-                                    : isClosed
-                                    ? "text-red-600"
-                                    : ""
-                                }`}
-                                style={
-                                  !isOpen24h && !isClosed
-                                    ? styles.secondaryText
-                                    : {}
-                                }
-                              >
-                                {isOpen24h ? "24/7" : hours || "Closed"}
-                              </span>
+                              {isOpen24h ? (
+                                <span
+                                  className="text-xs font-medium px-2.5 py-1 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      styles.selectedBg.backgroundColor,
+                                    color: styles.text.color,
+                                  }}
+                                >
+                                  24/7
+                                </span>
+                              ) : isClosed ? (
+                                <span
+                                  className="text-sm font-medium"
+                                  style={styles.destructiveText}
+                                >
+                                  {hours || "Closed"}
+                                </span>
+                              ) : (
+                                <span
+                                  className="text-sm font-medium"
+                                  style={styles.secondaryText}
+                                >
+                                  {hours || "Closed"}
+                                </span>
+                              )}
                             </div>
                           );
                         })}
@@ -184,26 +257,29 @@ export default function Locations() {
                     </div>
                   </div>
                 )}
-                {openMapId === loc.id && (
-                  <div className="mt-3">
-                    <MapEmbed
-                      name={loc.name}
-                      url={loc.url}
-                      height={220}
-                      className="w-full rounded-md"
-                    />
-                  </div>
-                )}
               </div>
               {isAdmin && (
-                <div className="absolute top-1 right-0 flex items-center gap-1">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
                   {/* Toggle Map */}
                   <button
                     onClick={() =>
                       setOpenMapId((prev) => (prev === loc.id ? null : loc.id))
                     }
-                    className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors hover:brightness-90"
-                    style={{ ...styles.secondaryButton, ...styles.border }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                    style={
+                      openMapId === loc.id
+                        ? styles.primaryButton
+                        : {
+                            backgroundColor: "transparent",
+                            color:
+                              (styles.link && styles.link.color) ||
+                              styles.primaryButton.backgroundColor,
+                            borderWidth: "1px",
+                            borderColor:
+                              (styles.link && styles.link.color) ||
+                              styles.primaryButton.backgroundColor,
+                          }
+                    }
                     title={openMapId === loc.id ? "Hide map" : "Show map"}
                     aria-label={openMapId === loc.id ? "Hide map" : "Show map"}
                   >
@@ -216,7 +292,7 @@ export default function Locations() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       className="w-4 h-4"
-                      style={styles.text}
+                      style={{ color: "inherit" }}
                     >
                       <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
                       <path d="M9 4v16" />
@@ -227,8 +303,8 @@ export default function Locations() {
                   {/* Edit */}
                   <button
                     onClick={() => openEditModal(loc)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors hover:brightness-90"
-                    style={{ ...styles.secondaryButton, ...styles.border }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                    style={styles.primaryButton}
                     title="Edit"
                     aria-label="Edit"
                   >
@@ -251,11 +327,21 @@ export default function Locations() {
                   {/* Remove */}
                   <button
                     onClick={() => handleDelete(loc.id)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                    style={
                       deleteMutation.isPending
-                        ? "text-red-400 bg-red-100 border-red-200 cursor-not-allowed"
-                        : "text-red-600 hover:bg-red-50 border-red-200 hover:border-red-300"
-                    }`}
+                        ? {
+                            ...styles.secondaryButton,
+                            ...styles.border,
+                            opacity: 0.6,
+                          }
+                        : {
+                            backgroundColor: "transparent",
+                            color: styles.destructiveText.color,
+                            borderWidth: "1px",
+                            borderColor: styles.destructiveText.color,
+                          }
+                    }
                     title={deleteMutation.isPending ? "Deleting..." : "Remove"}
                     aria-label={
                       deleteMutation.isPending ? "Deleting..." : "Remove"
@@ -263,7 +349,13 @@ export default function Locations() {
                     disabled={deleteMutation.isPending}
                   >
                     {deleteMutation.isPending ? (
-                      <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      <div
+                        className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
+                        style={{
+                          borderColor: styles.destructiveText.color,
+                          borderTopColor: "transparent",
+                        }}
+                      />
                     ) : (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -274,6 +366,7 @@ export default function Locations() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         className="w-4 h-4"
+                        style={{ color: styles.destructiveText.color }}
                       >
                         <path d="M3 6h18" />
                         <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />

@@ -424,7 +424,8 @@ export default function Bookings() {
                     {/* Edit */}
                     <button
                       onClick={() => startEdit(b)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors"
+                      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                      style={styles.primaryButton}
                       title="Edit"
                       aria-label="Edit"
                     >
@@ -446,7 +447,13 @@ export default function Bookings() {
                     {/* Remove */}
                     <button
                       onClick={() => handleDelete(b.id)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 transition-colors"
+                      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                      style={{
+                        backgroundColor: "transparent",
+                        color: styles.destructiveText.color,
+                        borderWidth: "1px",
+                        borderColor: styles.destructiveText.color,
+                      }}
                       title="Remove"
                       aria-label="Remove"
                     >
@@ -471,7 +478,7 @@ export default function Bookings() {
                 )}
 
                 {/* Main Content */}
-                <div className="flex-1 pr-20">
+                <div className="flex-1 pr-0">
                   {/* Location */}
                   <div className="flex items-center gap-3 mb-4">
                     {location?.url ? (
@@ -521,7 +528,12 @@ export default function Bookings() {
                     )}
                     <div className="flex-1">
                       <div className="font-bold text-lg" style={styles.text}>
-                        {location?.name || `Location #${b.location_id}`}
+                        {(() => {
+                          const displayName = location?.name || `Location #${b.location_id}`;
+                          return displayName.length > 22
+                            ? displayName.slice(0, 19) + "..."
+                            : displayName;
+                        })()}
                       </div>
                       <div
                         className="text-sm font-medium"
@@ -738,7 +750,8 @@ export default function Bookings() {
                                 onClick={() =>
                                   handleAdminRemoveRegistration(reg.id)
                                 }
-                                className="w-6 h-6 text-red-500 hover:text-red-700 transition-colors"
+                                className="w-6 h-6 transition-colors hover:brightness-110"
+                                style={styles.destructiveText}
                                 title="Remove player"
                               >
                                 <svg
@@ -831,7 +844,8 @@ export default function Bookings() {
                                 onClick={() =>
                                   handleAdminRemoveRegistration(reg.id)
                                 }
-                                className="w-6 h-6 text-red-500 hover:text-red-700 transition-colors"
+                                className="w-6 h-6 transition-colors hover:brightness-110"
+                                style={styles.destructiveText}
                                 title="Remove player"
                               >
                                 <svg
