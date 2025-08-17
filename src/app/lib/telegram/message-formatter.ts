@@ -1,6 +1,6 @@
-// Message formatting utilities - converts data to display messages
-
-import { GameInfo } from "./types";
+// Message formatting utilities - converts DB data to Telegram messages
+import { Booking, Location, User } from "../../../../database.types";
+import { generateCalendarLinks } from "./constants";
 
 // Helper function to format Date objects back to display strings
 function formatGameDateTime(
@@ -41,42 +41,68 @@ function formatGameDateTime(
 
 export class MessageFormatter {
   /**
-   * Formats a game message from GameInfo data
+   * Formats a booking message directly from DB types
    */
-  static formatGameMessage(gameInfo: GameInfo): string {
-    const locationLink = gameInfo.location.mapsUrl
-      ? `<a href="${gameInfo.location.mapsUrl}">${gameInfo.location.name}</a>`
-      : gameInfo.location.name;
+  static formatBookingMessage(params: {
+    booking: Booking;
+    location: Location;
+    registrations?: {
+      user: Pick<User, "id" | "username" | "first_name" | "skill_level">;
+    }[];
+  }): string {
+    const { booking, location } = params;
 
-    const calendarSection = gameInfo.calendarLink
-      ? `📅 <a href="${gameInfo.calendarLink}">Добавить в Google Calendar</a>`
+    const startTime = new Date(booking.start_time);
+    const endTime = new Date(booking.end_time);
+
+    const mapsUrl = location.url || undefined;
+    const locationLink = mapsUrl
+      ? `<a href="${mapsUrl}">${location.name}</a>`
+      : location.name;
+
+    const calendarLink = generateCalendarLinks({
+      startTime,
+      endTime,
+      club: location.name,
+    }).google;
+    const calendarSection = calendarLink
+      ? `📅 <a href="${calendarLink}">Добавить в Google Calendar</a>`
       : "📅 Добавить в Google Calendar";
 
-    // Format registered players
-    const playerSlots = this.formatPlayerSlots(gameInfo);
-    const waitlistSection = this.formatWaitlist(gameInfo);
+    // Compose players and waitlist from registrations
+    const maxPlayers = booking.courts * 4;
+    const players = (params.registrations || []).map((r) => ({
+      id: r.user.id,
+      userName: r.user.username ? `@${r.user.username}` : r.user.first_name,
+      skillLevel: r.user.skill_level || "E",
+    }));
+    const registeredPlayers = players.slice(0, maxPlayers);
+    const waitlist = players.slice(maxPlayers);
 
     // Generate title from Date objects
-    const { title } = formatGameDateTime(gameInfo.startTime, gameInfo.endTime);
+    const { title } = formatGameDateTime(startTime, endTime);
 
     let message = `🎾 <b>${title}</b>
 
 📍 <b>Место:</b> ${locationLink}
-💵 <b>Цена:</b> ${gameInfo.price}
-🏟️ <b>Забронировано кортов:</b> ${gameInfo.courts}`;
+💵 <b>Цена:</b> ${booking.price} aed/чел
+🏟️ <b>Забронировано кортов:</b> ${booking.courts}`;
 
-    if (gameInfo.note) {
-      message += `\n\n${gameInfo.note}`;
+    if (booking.note) {
+      message += `\n\n${booking.note}`;
     }
 
-    if (gameInfo.cancelled) {
+    if (booking.cancelled) {
       message += "\n\n❗️<b>ОТМЕНА</b>❗️";
     }
+
+    const playerSlots = this.formatPlayerSlots(registeredPlayers, maxPlayers);
+    const waitlistSection = this.formatWaitlist(waitlist);
 
     message += `\n\n${calendarSection}
 
 ${
-  gameInfo.cancelled
+  booking.cancelled
     ? "<b>Игра отменена. Waitlist:</b>"
     : "<b>Записавшиеся игроки:</b>"
 }
@@ -90,37 +116,37 @@ ${waitlistSection}`;
   /**
    * Formats the player slots section
    */
-  private static formatPlayerSlots(gameInfo: GameInfo): string {
+  private static formatPlayerSlots(
+    registeredPlayers: { userName: string; skillLevel: string }[],
+    maxPlayers: number
+  ): string {
     const slots: string[] = [];
-
-    // Fill slots with registered players
-    for (let i = 0; i < gameInfo.maxPlayers; i++) {
-      const player = gameInfo.registeredPlayers[i];
+    for (let i = 0; i < maxPlayers; i++) {
+      const player = registeredPlayers[i];
       if (player) {
         slots.push(`${i + 1}. ${player.userName} (${player.skillLevel})`);
       } else {
         slots.push(`${i + 1}. -`);
       }
     }
-
     return slots.join("\n");
   }
 
   /**
    * Formats the waitlist section
    */
-  private static formatWaitlist(gameInfo: GameInfo): string {
-    if (gameInfo.waitlist.length === 0) {
+  private static formatWaitlist(
+    waitlist: { userName: string; skillLevel: string }[]
+  ): string {
+    if (waitlist.length === 0) {
       return "⏳ <b>Waitlist:</b>\n---";
     }
-
-    const waitlistPlayers = gameInfo.waitlist
+    const waitlistPlayers = waitlist
       .map(
         (player, index) =>
           `${index + 1}. ${player.userName} (${player.skillLevel})`
       )
       .join("\n");
-
     return `⏳ <b>Waitlist:</b>\n${waitlistPlayers}`;
   }
 

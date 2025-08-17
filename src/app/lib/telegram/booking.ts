@@ -1,6 +1,10 @@
-import { AdminUtils, MessageFormatter, TelegramAPI } from "@/app/lib/telegram";
+import {
+  MessageFormatter,
+  REGISTRATION_BUTTONS,
+  TelegramAPI,
+} from "@/app/lib/telegram";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import { GameDataManager } from "./game-data";
+import type { Booking, Location, User } from "../../../../database.types";
 
 // Types for database booking with location
 interface BookingWithLocation {
@@ -239,63 +243,51 @@ export async function generateMessageFromDatabase(
   booking: BookingWithLocation,
   registrations: RegistrationWithUser[]
 ): Promise<string> {
-  const location = booking.locations;
-  const startTime = new Date(booking.start_time);
-  const endTime = new Date(booking.end_time);
-
-  const days = [
-    "Воскресенье",
-    "Понедельник",
-    "Вторник",
-    "Среда",
-    "Четверг",
-    "Пятница",
-    "Суббота",
-  ];
-  const day = days[startTime.getDay()];
-  const date = `${startTime.getDate().toString().padStart(2, "0")}.${(
-    startTime.getMonth() + 1
-  )
-    .toString()
-    .padStart(2, "0")}`;
-  const startTimeStr = `${startTime.getHours()}:${startTime
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
-  const endTimeStr = `${endTime.getHours()}:${endTime
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
-  const time = `${startTimeStr}-${endTimeStr}`;
-
-  const players = registrations.map((reg) => ({
-    id: reg.users.id,
-    userName: reg.users.username
-      ? `@${reg.users.username}`
-      : reg.users.first_name,
-    skillLevel: reg.users.skill_level || "E",
-    registrationTime: new Date(),
+  // Normalize to DB types for formatter
+  const dbBooking: Booking = {
+    id: booking.id,
+    location_id: booking.locations.id,
+    start_time: booking.start_time,
+    end_time: booking.end_time,
+    price: booking.price,
+    courts: booking.courts,
+    note: booking.note,
+    cancelled: booking.cancelled,
+    created_at: null,
+    updated_at: null,
+  };
+  const dbLocation: Location = {
+    id: booking.locations.id,
+    name: booking.locations.name,
+    url: booking.locations.url,
+    address: null,
+    attributes: null,
+    created_at: null,
+    lat: null,
+    lng: null,
+    opening_hours: null,
+    phone: null,
+    place_id: null,
+    plus_code: null,
+    rating: null,
+    updated_at: null,
+    user_ratings_total: null,
+    website: null,
+  };
+  const regs = registrations.map((r) => ({
+    user: {
+      id: r.users.id,
+      username: r.users.username,
+      first_name: r.users.first_name,
+      skill_level: r.users.skill_level,
+    } as Pick<User, "id" | "username" | "first_name" | "skill_level">,
   }));
 
-  const gameInfo = GameDataManager.createGameInfo({
-    day,
-    date,
-    time,
-    club: location.name,
-    price: `${booking.price} aed/чел`,
-    courts: booking.courts,
-    note: booking.note || undefined,
-    chatId: parseInt(process.env.CHAT_ID!),
+  return MessageFormatter.formatBookingMessage({
+    booking: dbBooking,
+    location: dbLocation,
+    registrations: regs,
   });
-
-  gameInfo.location = { name: location.name, mapsUrl: location.url || "" };
-  gameInfo.startTime = startTime;
-  gameInfo.endTime = endTime;
-  gameInfo.registeredPlayers = players.slice(0, 4);
-  gameInfo.waitlist = players.slice(4);
-  if (booking.cancelled) gameInfo.cancelled = true;
-
-  return MessageFormatter.formatGameMessage(gameInfo);
 }
 
 // Helper function to update a Telegram message from database state
@@ -369,7 +361,7 @@ export async function updateTelegramMessageFromDatabase(
       reply_markup: booking.cancelled
         ? undefined
         : {
-            inline_keyboard: AdminUtils.getButtonsForUser(),
+            inline_keyboard: REGISTRATION_BUTTONS,
           },
     });
 

@@ -1,9 +1,9 @@
 import { Bot, Context } from "grammy";
 import type { InlineKeyboardMarkup } from "grammy/types";
 import {
-  AdminUtils,
   CALLBACK_MESSAGES,
   MessageFormatter,
+  REGISTRATION_BUTTONS,
 } from "@/app/lib/telegram";
 import { OpenAIUtils } from "@/app/lib/openai";
 import {
@@ -78,7 +78,7 @@ bot.on("callback_query:data", async (ctx) => {
 
       if (dbResult.updatedMessage) {
         const replyMarkup: InlineKeyboardMarkup = {
-          inline_keyboard: AdminUtils.getButtonsForUser().map((row) =>
+          inline_keyboard: REGISTRATION_BUTTONS.map((row) =>
             row.map((b) => ({ text: b.text, callback_data: b.callback_data }))
           ),
         };

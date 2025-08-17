@@ -1,16 +1,4 @@
-// Admin user configuration - add Telegram user IDs of admins
-export const ADMIN_USER_IDS = [
-  // Add admin Telegram user IDs here (numbers, not usernames)
-  // Example: 123456789, 987654321
-  482553595, 1328022980,
-] as const;
-
-// Admin-only buttons for game management
-export const ADMIN_BUTTONS = [
-  [{ text: "🚫 Отменить игру", callback_data: "admin_cancel_game" }],
-  [{ text: "✅ Восстановить игру", callback_data: "admin_restore_game" }],
-  [{ text: "📊 Статистика игры", callback_data: "admin_game_stats" }],
-] as const;
+import { Location } from "../../../../database.types";
 
 // Simplified registration buttons - users select from their profile skill level
 export const REGISTRATION_BUTTONS = [
@@ -47,14 +35,6 @@ export const WELCOME_MESSAGE_TEMPLATE = (
 💬 Если есть вопросы — не стесняйся писать в чат или в личку. Мы всегда на связи!
 
 До встречи на корте! 🏆`;
-
-// Club locations with Google Maps links
-export const CLUB_LOCATIONS = {
-  "SANDDUNE PADEL CLUB Al Qouz":
-    "https://maps.app.goo.gl/GZgQCpsX1uyvFwLB7?g_st=ipc",
-  "Oxygen Padel Sport Academy":
-    "https://maps.app.goo.gl/cH1EZrrpbuYVWsMY6?g_st=ipc",
-} as const;
 
 // Helper function to generate calendar links
 export const generateCalendarLinks = (gameInfo: {
@@ -95,9 +75,8 @@ export const GAME_MESSAGE_TEMPLATE = (gameInfo: {
   courts: number;
   note?: string;
   cancelled?: boolean;
+  location: Location;
 }) => {
-  const mapLink = CLUB_LOCATIONS[gameInfo.club as keyof typeof CLUB_LOCATIONS];
-
   // Convert string date/time to Date objects for calendar generation
   const [dayNum, monthNum] = gameInfo.date.split(".").map(Number);
   const [startTimeStr, endTimeStr] = gameInfo.time.split("-");
@@ -122,7 +101,9 @@ export const GAME_MESSAGE_TEMPLATE = (gameInfo: {
 
   return `🎾 <b>${gameInfo.day}, ${gameInfo.date}, ${gameInfo.time}</b>
 
-📍 <b>Место:</b> <a href="${mapLink}">${gameInfo.club}</a>
+📍 <b>Место:</b> <a href="${gameInfo.location.url}">${
+    gameInfo.location.name
+  }</a>
 💵 <b>Цена:</b> ${gameInfo.price}
 🏟️ <b>Забронировано кортов:</b> ${gameInfo.courts}${
     gameInfo.note ? `\n\n${gameInfo.note}` : ""
@@ -162,30 +143,4 @@ export const CALLBACK_MESSAGES = {
     `📊 Статистика игры:\n\n👥 Записано игроков: ${registeredCount}\n⏳ В waitlist: ${waitlistCount}\n📈 Всего участников: ${
       registeredCount + waitlistCount
     }`,
-} as const;
-
-// Admin utility functions
-export const AdminUtils = {
-  /**
-   * Checks if a user ID is in the admin list
-   */
-  isAdmin: (userId: number): boolean => {
-    return (ADMIN_USER_IDS as readonly number[]).includes(userId);
-  },
-
-  /**
-   * Gets registration buttons (admin controls are sent privately)
-   */
-  getButtonsForUser: () => {
-    // Always return only registration buttons for public messages
-    // Admin controls are handled via private messages
-    return [...REGISTRATION_BUTTONS];
-  },
-
-  /**
-   * Gets admin control buttons for private messages
-   */
-  getAdminButtons: () => {
-    return [...ADMIN_BUTTONS];
-  },
 } as const;

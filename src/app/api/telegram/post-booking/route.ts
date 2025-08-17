@@ -4,9 +4,8 @@ import {
   REGISTRATION_BUTTONS,
   MessageFormatter,
 } from "@/app/lib/telegram";
-import { CLUB_LOCATIONS } from "@/app/lib/telegram/constants";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import { GameDataManager } from "@/app/lib/telegram/game-data";
+import type { Booking, Location, User } from "../../../../../database.types";
 
 export const runtime = "edge";
 
@@ -66,7 +65,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Convert booking data to GameInfo format
+    // Convert booking data to display
     const startTime = new Date(booking.start_time);
     const endTime = new Date(booking.end_time);
     const chatId = parseInt(process.env.CHAT_ID!);
@@ -99,37 +98,43 @@ export async function POST(request: Request) {
       .padStart(2, "0")}`;
     const time = `${startTimeStr}-${endTimeStr}`;
 
-    // Create GameInfo object using existing data-first approach
-    const gameInfo = GameDataManager.createGameInfo({
-      day,
-      date,
-      time,
-      club: location.name,
-      price: `${booking.price} aed/чел`,
-      courts: booking.courts,
-      note: booking.note || undefined,
-      chatId,
-    });
+    // Prepare DB-typed values
+    const dbBooking = booking as Booking;
+    const dbLocation = location as Location;
 
-    // Override location with full data including maps URL
-    gameInfo.location = {
-      name: location.name,
-      mapsUrl:
-        location.url ||
-        CLUB_LOCATIONS[location.name as keyof typeof CLUB_LOCATIONS],
+    // Fetch registrations with user info to show players/waitlist
+    type RegistrationWithUser = {
+      id: number;
+      users: Pick<User, "id" | "username" | "first_name" | "skill_level">;
     };
+    const { data: registrations } = await supabaseAdmin
+      .from("registrations")
+      .select(
+        `
+        id,
+        users:user_id (
+          id,
+          username,
+          first_name,
+          skill_level
+        )
+      `
+      )
+      .eq("booking_id", booking.id)
+      .order("created_at");
 
-    // Override times with actual booking times
-    gameInfo.startTime = startTime;
-    gameInfo.endTime = endTime;
+    const regs = ((registrations as RegistrationWithUser[] | null) || []).map(
+      (r) => ({
+        user: r.users,
+      })
+    );
 
-    // Check if cancelled
-    if (booking.cancelled) {
-      gameInfo.cancelled = true;
-    }
-
-    // Format the message
-    const gameMessage = MessageFormatter.formatGameMessage(gameInfo);
+    // Format the message directly from DB types
+    const gameMessage = MessageFormatter.formatBookingMessage({
+      booking: dbBooking,
+      location: dbLocation,
+      registrations: regs,
+    });
 
     // Send message to Telegram
     const gameResult = await TelegramAPI.sendMessage({
@@ -188,8 +193,8 @@ export async function POST(request: Request) {
       message_id: messageId,
       booking_id: bookingId,
       game_info: {
-        title: gameInfo.title,
-        location: gameInfo.location.name,
+        title: `${day}, ${date}, ${time}`,
+        location: location.name,
         time: `${day}, ${date}, ${time}`,
         cancelled: booking.cancelled,
       },
