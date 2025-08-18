@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
-import { useTelegramClipboard } from "@/app/hooks/useTelegramClipboard";
-import { useTelegram } from "@/app/hooks/useTelegram";
+import { useTelegram, useTelegramTheme, useTelegramClipboard } from "@/app/hooks/telegram";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
 import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
 

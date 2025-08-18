@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegramTheme } from "@/app/hooks/telegram";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { Booking } from "../../../../database.types";
 import { CalendarIcon } from "@components/icons/Icons";

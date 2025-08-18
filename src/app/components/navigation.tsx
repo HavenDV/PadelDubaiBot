@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import { CalendarIcon, LocationIcon, LoginIcon } from "@components/icons/Icons";
-import { useTelegram } from "@/app/hooks/useTelegram";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegram, useTelegramTheme } from "@/app/hooks/telegram";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { ScreenName } from "../page";
 import {} from "react";

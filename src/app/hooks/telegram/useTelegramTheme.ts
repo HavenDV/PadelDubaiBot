@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { ThemeParams } from "telegram-web-app";
-import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
-import { useTelegramThemeEvent } from "@/app/hooks/useTelegramEvent";
+import { useThemePreference } from "../settings/useThemePreference";
+import { useTelegramThemeEvent } from "./events";
 
 /**
  * Telegram Mini App Theme Parameters

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegramTheme } from "@/app/hooks/telegram";
 import { Location, LocationInsert } from "../../../../database.types";
 import { useDebouncedPlacesSearch, usePlaceDetails } from "@lib/hooks/api";
 import { useCreateLocation, useUpdateLocation } from "@lib/hooks/db";

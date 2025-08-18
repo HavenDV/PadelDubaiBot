@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { LocationIcon } from "@components/icons/Icons";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegramTheme } from "@/app/hooks/telegram";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { Location } from "../../../../database.types";
 import AddLocationModal from "./AddLocationModal";

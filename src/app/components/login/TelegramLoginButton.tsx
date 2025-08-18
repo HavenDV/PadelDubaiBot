@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useTelegram } from "@/app/hooks/useTelegram";
+import { useTelegram } from "@/app/hooks/telegram";
 
 export type TelegramLoginButtonProps = {
   callbackPath?: string; // default: "/callbacks/auth/telegram"

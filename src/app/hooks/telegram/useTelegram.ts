@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { WebApp, WebAppInitData } from "telegram-web-app";
 import { setAuthToken, supabase } from "@lib/supabase/client";
-import { exchangeTelegramAuthViaInitData } from "../lib/telegram/auth";
+import { exchangeTelegramAuthViaInitData } from "../../lib/telegram/auth";
 
 export interface TelegramHookResult {
   webApp: WebApp | null;

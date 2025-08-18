@@ -1,7 +1,7 @@
 "use client";
 
 import { useOAuthSignIn } from "@lib/hooks/auth";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegramTheme } from "@/app/hooks/telegram";
 import TelegramLoginButton from "./TelegramLoginButton";
 
 interface LoginProps {

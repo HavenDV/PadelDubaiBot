@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useTelegram } from "@/app/hooks/useTelegram";
-import { useTelegramClipboardEvent } from "@/app/hooks/useTelegramEvent";
+import { useTelegram } from "./useTelegram";
+import { useTelegramClipboardEvent } from "./events";
 
 export interface TelegramClipboardResult {
   // Clipboard text state

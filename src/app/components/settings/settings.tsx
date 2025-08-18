@@ -1,7 +1,6 @@
 "use client";
 
-import { useTelegram } from "@/app/hooks/useTelegram";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegram, useTelegramTheme } from "@/app/hooks/telegram";
 import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import { useState, useEffect } from "react";

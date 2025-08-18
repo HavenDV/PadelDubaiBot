@@ -1,8 +1,7 @@
 "use client";
 
 import { JSX, useState, useEffect } from "react";
-import { useTelegram } from "@/app/hooks/useTelegram";
-import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegram, useTelegramTheme } from "@/app/hooks/telegram";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import Settings from "@/app/components/settings/settings";
