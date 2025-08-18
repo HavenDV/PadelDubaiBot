@@ -1,7 +1,7 @@
 "use client";
 
 import type { WebApp } from "telegram-web-app";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Hook options for event registration
@@ -36,6 +36,11 @@ export function useTelegramClipboardEvent(
   options: UseTelegramEventOptions = {}
 ): void {
   const { debug = false } = options;
+
+  // Keep latest handler without re-subscribing on every render
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
   useEffect(() => {
     const telegramApp =
       webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
@@ -43,10 +48,10 @@ export function useTelegramClipboardEvent(
 
     const cb = (eventData: { data: string | null }) => {
       if (debug) console.log("useTelegramClipboardEvent: clipboardTextReceived", eventData);
-      handler(eventData?.data ?? null);
+      handlerRef.current(eventData?.data ?? null);
     };
 
     telegramApp.onEvent("clipboardTextReceived", cb);
     return () => telegramApp.offEvent("clipboardTextReceived", cb);
-  }, [handler, webApp, options, debug]);
+  }, [webApp, debug]);
 }
