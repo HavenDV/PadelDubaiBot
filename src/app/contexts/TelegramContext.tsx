@@ -21,6 +21,7 @@ interface TelegramContextType {
   isLoading: boolean;
   isAuthorizing: boolean;
   themeParams: ThemeParams | null;
+  colorScheme: "light" | "dark" | null; // Add color scheme
   styles: TelegramThemeResult["styles"];
   userId: number | null; // Add userId for easier access
   isTelegram: boolean; // Better Telegram mode detection
@@ -35,6 +36,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
+  const [colorScheme, setColorScheme] = useState<"light" | "dark" | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   // Default to false to avoid SSR/client hydration mismatches
   const [isTelegram, setIsTelegram] = useState(false);
@@ -81,6 +83,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   // OS color scheme detection moved to useLocalSettings
 
   useEffect(() => {
+    let cleanup: (() => void) | null = null;
+
     const fetchData = async () => {
       setIsLoading(true);
 
@@ -104,9 +108,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           // Not actually in Telegram, just web mode with script loaded
           setWebApp(null);
           setThemeParams(null);
+          setColorScheme(null);
           setIsAuthorizing(false);
           setIsLoading(false);
-          return () => {};
+          return;
         }
 
         // Only proceed with Telegram-specific initialization if actually in Telegram
@@ -132,8 +137,15 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         };
 
         const handleThemeChange = () => {
+          console.log("TelegramProvider: Theme changed event received");
           const params = webApp.themeParams || null;
+          const scheme = webApp.colorScheme || null;
+          
+          console.log("TelegramProvider: New theme params:", params);
+          console.log("TelegramProvider: New color scheme:", scheme);
+          
           setThemeParams(params);
+          setColorScheme(scheme);
           applyThemeToRoot(params);
         };
 
@@ -166,7 +178,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
         // Set theme parameters safely and apply to root once on init
         const initialParams = webApp.themeParams || null;
+        const initialColorScheme = webApp.colorScheme || null;
         setThemeParams(initialParams);
+        setColorScheme(initialColorScheme);
         applyThemeToRoot(initialParams);
 
         // Parse init data from Telegram WebApp
@@ -177,37 +191,43 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           console.error("Error parsing initData:", error);
         }
 
+        // Register theme change event handler
+        console.log("TelegramProvider: Registering themeChanged event handler");
         webApp.onEvent("themeChanged", handleThemeChange);
+
+        // Store cleanup function
+        cleanup = () => {
+          console.log("TelegramProvider: Cleaning up themeChanged event handler");
+          webApp.offEvent("themeChanged", handleThemeChange);
+        };
 
         if (initData?.user) {
           const { id } = initData.user;
-
           setUserId(id);
         }
 
         setIsLoading(false);
-
-        // Return cleanup function
-        return () => {
-          webApp.offEvent("themeChanged", handleThemeChange);
-        };
       } else {
         // For server-side rendering or when Telegram WebApp isn't available
         console.log("Telegram WebApp not available - using default theme");
         setWebApp(null);
         setThemeParams(null);
+        setColorScheme(null);
         setIsTelegram(false);
-
         setIsAuthorizing(false);
         setIsLoading(false);
-
-        // Return empty cleanup function
-        return () => {};
       }
     };
 
     fetchData();
-  }, [userId]);
+
+    // Return cleanup function for useEffect
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, []); // Remove userId dependency to prevent re-registration
 
   // isAnonymous is now provided by a dedicated hook; keep this provider focused on Telegram-only concerns
 
@@ -218,6 +238,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthorizing,
         themeParams,
+        colorScheme,
         styles,
         userId,
         isTelegram,

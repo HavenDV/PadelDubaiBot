@@ -14,7 +14,7 @@ import Login from "./components/login/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { styles, isTelegram } = useTelegram();
+  const { styles, isTelegram, themeParams, colorScheme } = useTelegram();
   const { isAdmin, isAnonymous, isLoading } = useUser();
   const { showLogs } = useShowLogs();
 
@@ -80,6 +80,29 @@ export default function Home() {
   return (
     <>
       <div className={`flex min-h-[100dvh] w-full flex-col`} style={styles.bg}>
+        {/* Theme Debug Panel - Only visible to admins when logs are enabled */}
+        {isAdmin && showLogs && isTelegram && (
+          <div 
+            className="fixed top-2 right-2 z-50 p-2 text-xs rounded border max-w-xs"
+            style={{
+              ...styles.card,
+              fontSize: '10px',
+              opacity: 0.8
+            }}
+          >
+            <div style={styles.text}>Theme Debug</div>
+            <div style={styles.secondaryText}>
+              Color: {colorScheme || 'null'}
+            </div>
+            <div style={styles.secondaryText}>
+              BG: {themeParams?.bg_color || 'null'}
+            </div>
+            <div style={styles.secondaryText}>
+              Text: {themeParams?.text_color || 'null'}
+            </div>
+          </div>
+        )}
+        
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}

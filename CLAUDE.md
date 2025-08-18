@@ -58,6 +58,7 @@ The bot uses a **data-first architecture** with clear separation:
 - **Location mapping** (Google Maps integration)
 - **AI responses** when bot is mentioned
 - **Welcome messages** for new group members
+- **Dynamic theme support** (responds to Telegram theme changes in real-time)
 
 ## Database Schema (Supabase)
 
