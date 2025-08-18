@@ -39,7 +39,7 @@ export function useThemePreference() {
       if (!telegramUserId) return null;
       const { error } = await supabase
         .from("users")
-        .update({ theme_preference: pref } as any)
+        .update({ theme_preference: pref })
         .eq("id", telegramUserId);
       if (error) throw error;
       return true;

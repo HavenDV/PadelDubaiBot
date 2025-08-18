@@ -31,7 +31,7 @@ export function useShowLogs() {
       if (!telegramUserId) return null;
       const { error } = await supabase
         .from("users")
-        .update({ show_logs: value } as any)
+        .update({ show_logs: value })
         .eq("id", telegramUserId);
       if (error) throw error;
       return true;

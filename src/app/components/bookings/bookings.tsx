@@ -212,7 +212,7 @@ export default function Bookings() {
         <div className="w-full max-w-sm rounded-lg border shadow-sm" style={{ ...styles.card, ...styles.border }}>
           <div className="p-4 space-y-3">
             <div className="font-bold" style={styles.text}>Remove player</div>
-            <div className="text-sm" style={styles.secondaryText}>Are you sure you want to remove this player's registration?</div>
+            <div className="text-sm" style={styles.secondaryText}>Are you sure you want to remove this player&apos;s registration?</div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
