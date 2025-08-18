@@ -57,5 +57,5 @@ export function useTelegramThemeEvent(
     return () => {
       telegramApp.offEvent("themeChanged", cb);
     };
-  }, [handler, webApp, options, debug]);
+  }, [handler, webApp, debug]);
 }

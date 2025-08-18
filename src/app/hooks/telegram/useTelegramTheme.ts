@@ -130,7 +130,8 @@ export function useTelegramTheme(): TelegramThemeResult {
 
       if (hasInitData) {
         setIsInTelegram(true);
-        setThemeParams(webApp.themeParams || null);
+        // Clone to avoid stale reference if Telegram mutates in place
+        setThemeParams(webApp.themeParams ? { ...webApp.themeParams } : null);
         setColorScheme(webApp.colorScheme || null);
 
         // Apply initial theme to document root
@@ -157,14 +158,24 @@ export function useTelegramTheme(): TelegramThemeResult {
     }
   };
 
-  // Listen for theme changes in Telegram
-  useTelegramThemeEvent(
-    ({ themeParams: newThemeParams, colorScheme: newColorScheme }) => {
+  // Stable handler for theme changes in Telegram
+  const onThemeChanged = useCallback(
+    ({ themeParams: newThemeParams, colorScheme: newColorScheme }: {
+      themeParams: ThemeParams | null;
+      colorScheme: "light" | "dark" | null;
+    }) => {
       console.log("useTelegramTheme: Theme changed via event");
-      setThemeParams(newThemeParams);
+      // Clone to ensure React sees a new reference and re-renders
+      setThemeParams(newThemeParams ? { ...newThemeParams } : null);
       setColorScheme(newColorScheme);
       applyThemeToRoot(newThemeParams, newColorScheme);
     },
+    []
+  );
+
+  // Listen for theme changes in Telegram
+  useTelegramThemeEvent(
+    onThemeChanged,
     undefined, // Let the hook detect webApp automatically
     {
       debug: true,
