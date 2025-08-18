@@ -126,8 +126,8 @@ export function useTelegramTheme(
     []
   );
 
-  // Generate component styles
-  const generateStyles = useCallback(() => {
+  // Generate component styles - memoize properly with dependencies
+  const styles = React.useMemo(() => {
     return {
       bg: {
         backgroundColor: params.bg_color || fallbackTheme.bg_color,
@@ -205,10 +205,9 @@ export function useTelegramTheme(
     };
   }, [params, adjustOpacity, fallbackTheme]);
 
-  const computed = generateStyles();
   return {
     params,
     isInTelegram,
-    styles: computed,
+    styles,
   };
 }
