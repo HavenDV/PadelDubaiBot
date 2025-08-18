@@ -15,19 +15,11 @@ export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
   const { isTelegram } = useTelegram();
-  const { styles, themeParams, colorScheme } = useTelegramTheme();
+  const { styles } = useTelegramTheme();
   const { isAdmin, isAnonymous, isLoading } = useAuth();
   const { showLogs } = useShowLogs();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");
-  const [lastThemeChange, setLastThemeChange] = useState<string>("");
-
-  // Track theme changes
-  useEffect(() => {
-    if (themeParams) {
-      setLastThemeChange(new Date().toLocaleTimeString());
-    }
-  }, [themeParams]);
 
   // Handle redirects after sign-in/sign-out and restrict non-admin access to Locations
   useEffect(() => {
@@ -89,64 +81,6 @@ export default function Home() {
   return (
     <>
       <div className={`flex min-h-[100dvh] w-full flex-col`} style={styles.bg}>
-        {/* Theme Debug Panel - Only visible to admins when logs are enabled */}
-        {isAdmin && showLogs && isTelegram && (
-          <div 
-            className="fixed top-2 right-2 z-50 p-2 text-xs rounded border max-w-xs"
-            style={{
-              ...styles.card,
-              fontSize: '10px',
-              opacity: 0.8
-            }}
-          >
-            <div style={styles.text}>Theme Debug</div>
-            <div style={styles.secondaryText}>
-              Color: {colorScheme || 'null'}
-            </div>
-            <div style={styles.secondaryText}>
-              BG: {themeParams?.bg_color || 'null'}
-            </div>
-            <div style={styles.secondaryText}>
-              Text: {themeParams?.text_color || 'null'}
-            </div>
-            <div style={styles.secondaryText}>
-              Button: {themeParams?.button_color || 'null'}
-            </div>
-            <div style={styles.secondaryText}>
-              Accent: {themeParams?.accent_text_color || 'null'}
-            </div>
-            {lastThemeChange && (
-              <div style={styles.secondaryText}>
-                Updated: {lastThemeChange}
-              </div>
-            )}
-            {/* Visual test elements */}
-            <div className="mt-2 space-y-1">
-              <div 
-                className="px-2 py-1 rounded text-xs"
-                style={{
-                  ...styles.primaryButton,
-                  fontSize: '10px'
-                }}
-              >
-                Button Test
-              </div>
-              <div style={{
-                ...styles.accentText,
-                fontSize: '10px'
-              }}>
-                Accent Text
-              </div>
-              <div style={{
-                ...styles.link,
-                fontSize: '10px'
-              }}>
-                Link Text
-              </div>
-            </div>
-          </div>
-        )}
-        
         <Navigation
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}
