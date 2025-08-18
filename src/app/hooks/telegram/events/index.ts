@@ -6,17 +6,7 @@
  */
 
 // Export all event hooks and types
-export * from "./useTelegramEvent";
-
-// Re-export specific hooks for convenience
-export { useTelegramEvents } from "./useTelegramEvents";
-export { useTelegramEvent } from "./useTelegramEvent";
+// Re-export specific, focused event hooks
 export { useTelegramThemeEvent } from "./useTelegramThemeEvent";
 export { useTelegramClipboardEvent } from "./useTelegramClipboardEvent";
 export { useTelegramViewportEvent } from "./useTelegramViewportEvent";
-
-// Export types
-export type {
-  TelegramEventType,
-  TelegramEventHandler,
-} from "./useTelegramEvent";

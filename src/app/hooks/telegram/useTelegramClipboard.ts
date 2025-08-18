@@ -69,7 +69,7 @@ export function useTelegramClipboard(options: {
   
   // Listen for clipboard text received events
   useTelegramClipboardEvent(
-    (text: string) => {
+    (text: string | null) => {
       if (debug) {
         console.log('useTelegramClipboard: Received clipboard text:', text);
       }
@@ -95,8 +95,7 @@ export function useTelegramClipboard(options: {
     }
     
     // Check if readTextFromClipboard is available
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof (webApp as any).readTextFromClipboard !== 'function') {
+    if (typeof webApp.readTextFromClipboard !== 'function') {
       const errorMsg = 'readTextFromClipboard is not available in this Telegram version';
       setError(errorMsg);
       if (debug) {
@@ -114,8 +113,7 @@ export function useTelegramClipboard(options: {
       }
       
       // Request clipboard read from Telegram
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (webApp as any).readTextFromClipboard();
+      webApp.readTextFromClipboard();
       
       // Note: The actual text will arrive via the clipboardTextReceived event
       // which is handled by the event listener above

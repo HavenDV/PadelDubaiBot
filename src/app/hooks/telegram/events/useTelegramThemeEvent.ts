@@ -1,7 +1,7 @@
 "use client";
 
-import { WebApp, ThemeParams } from "telegram-web-app";
-import { useTelegramEvent } from "./useTelegramEvent";
+import type { WebApp, ThemeParams } from "telegram-web-app";
+import { useEffect } from "react";
 
 /**
  * Hook options for event registration
@@ -38,20 +38,24 @@ export function useTelegramThemeEvent(
   webApp?: WebApp | null,
   options: UseTelegramEventOptions = {}
 ): void {
-  useTelegramEvent(
-    "themeChanged",
-    () => {
-      const telegramApp =
-        webApp ||
-        (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
-      if (telegramApp) {
-        handler({
-          themeParams: telegramApp.themeParams || null,
-          colorScheme: telegramApp.colorScheme || null,
-        });
-      }
-    },
-    webApp,
-    options
-  );
+  const { debug = false } = options;
+  useEffect(() => {
+    const telegramApp =
+      webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
+    if (!telegramApp) return;
+
+    const cb = () => {
+      if (debug) console.log("useTelegramThemeEvent: themeChanged");
+      handler({
+        themeParams: telegramApp.themeParams || null,
+        colorScheme: telegramApp.colorScheme || null,
+      });
+    };
+
+    telegramApp.onEvent("themeChanged", cb);
+
+    return () => {
+      telegramApp.offEvent("themeChanged", cb);
+    };
+  }, [handler, webApp, options, debug]);
 }

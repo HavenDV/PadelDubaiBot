@@ -1,7 +1,7 @@
 "use client";
 
-import { WebApp } from "telegram-web-app";
-import { useTelegramEvent } from "./useTelegramEvent";
+import type { WebApp } from "telegram-web-app";
+import { useEffect } from "react";
 
 /**
  * Hook options for event registration
@@ -31,21 +31,22 @@ export function useTelegramViewportEvent(
   webApp?: WebApp | null,
   options: UseTelegramEventOptions = {}
 ): void {
-  useTelegramEvent(
-    "viewportChanged",
-    () => {
-      const telegramApp =
-        webApp ||
-        (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
-      if (telegramApp) {
-        handler({
-          height: telegramApp.viewportHeight,
-          is_state_stable: telegramApp.isVerticalSwipesEnabled,
-          is_expanded: telegramApp.isExpanded,
-        });
-      }
-    },
-    webApp,
-    options
-  );
+  const { debug = false } = options;
+  useEffect(() => {
+    const telegramApp =
+      webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
+    if (!telegramApp) return;
+
+    const cb = (eventData: { isStateStable: boolean }) => {
+      if (debug) console.log("useTelegramViewportEvent: viewportChanged", eventData);
+      handler({
+        height: telegramApp.viewportHeight,
+        is_state_stable: !!eventData?.isStateStable,
+        is_expanded: telegramApp.isExpanded,
+      });
+    };
+
+    telegramApp.onEvent("viewportChanged", cb);
+    return () => telegramApp.offEvent("viewportChanged", cb);
+  }, [handler, webApp, options, debug]);
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { WebApp } from "telegram-web-app";
-import { useTelegramEvent } from "./useTelegramEvent";
+import type { WebApp } from "telegram-web-app";
+import { useEffect } from "react";
 
 /**
  * Hook options for event registration
@@ -31,19 +31,22 @@ interface UseTelegramEventOptions {
  * ```
  */
 export function useTelegramClipboardEvent(
-  handler: (text: string) => void,
+  handler: (text: string | null) => void,
   webApp?: WebApp | null,
   options: UseTelegramEventOptions = {}
 ): void {
-  useTelegramEvent("clipboardTextReceived", () => {
-    const telegramApp = webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (telegramApp && (telegramApp as any).clipboardText) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const clipboardText = (telegramApp as any).clipboardText;
-      if (typeof clipboardText === 'string') {
-        handler(clipboardText);
-      }
-    }
-  }, webApp, options);
+  const { debug = false } = options;
+  useEffect(() => {
+    const telegramApp =
+      webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
+    if (!telegramApp) return;
+
+    const cb = (eventData: { data: string | null }) => {
+      if (debug) console.log("useTelegramClipboardEvent: clipboardTextReceived", eventData);
+      handler(eventData?.data ?? null);
+    };
+
+    telegramApp.onEvent("clipboardTextReceived", cb);
+    return () => telegramApp.offEvent("clipboardTextReceived", cb);
+  }, [handler, webApp, options, debug]);
 }
