@@ -8,5 +8,4 @@
 // Export all event hooks and types
 // Re-export specific, focused event hooks
 export { useTelegramThemeEvent } from "./useTelegramThemeEvent";
-export { useTelegramClipboardEvent } from "./useTelegramClipboardEvent";
 export { useTelegramViewportEvent } from "./useTelegramViewportEvent";

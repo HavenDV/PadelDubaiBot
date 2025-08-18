@@ -8,7 +8,6 @@
 // Core Telegram hooks
 export { useTelegram } from './useTelegram';
 export { useTelegramTheme } from './useTelegramTheme';
-export { useTelegramClipboard } from './useTelegramClipboard';
 
 // Event hooks (re-exported from events)
 export * from './events';
@@ -16,4 +15,3 @@ export * from './events';
 // Export types
 export type { TelegramHookResult } from './useTelegram';
 export type { TelegramThemeResult } from './useTelegramTheme';
-export type { TelegramClipboardResult } from './useTelegramClipboard';
