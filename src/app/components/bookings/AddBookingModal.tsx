@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
+import { useTelegramClipboard } from "@/app/hooks/useTelegramClipboard";
+import { useTelegram } from "@/app/hooks/useTelegram";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
 import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
 
@@ -50,6 +52,20 @@ export default function AddBookingModal({
   editingBooking,
 }: AddBookingModalProps) {
   const { styles } = useTelegramTheme();
+  const { isTelegram } = useTelegram();
+  
+  // Telegram clipboard integration
+  const {
+    clipboardText,
+    isReading: telegramClipboardReading,
+    error: telegramClipboardError,
+    requestClipboardRead,
+    clearClipboard: clearTelegramClipboard,
+    clearError: clearTelegramError,
+  } = useTelegramClipboard({
+    debug: true,
+  });
+  
   // React Query mutations
   const createBookingMutation = useCreateBooking();
   const updateBookingMutation = useUpdateBooking();
@@ -105,6 +121,7 @@ export default function AddBookingModal({
       // Reset for add mode
       resetForm();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingBooking, isOpen, isEditMode]);
 
   // Use React Query to get recent price for the selected location
@@ -117,7 +134,26 @@ export default function AddBookingModal({
     }
   }, [recentPrice, form.price]);
 
-  const resetForm = () => {
+  // Handle Telegram clipboard text received
+  useEffect(() => {
+    if (clipboardText && clipboardText.trim()) {
+      console.log("Telegram clipboard text received:", clipboardText);
+      setSmartPasteText(clipboardText.trim());
+      setShowSmartPaste(true);
+      // Clear any previous errors
+      setError("");
+      clearTelegramError();
+    }
+  }, [clipboardText, clearTelegramError]);
+
+  // Handle Telegram clipboard errors
+  useEffect(() => {
+    if (telegramClipboardError) {
+      setError(`Clipboard error: ${telegramClipboardError}`);
+    }
+  }, [telegramClipboardError]);
+
+  const resetForm = useCallback(() => {
     setForm({
       start_time: "",
       end_time: "",
@@ -134,7 +170,10 @@ export default function AddBookingModal({
     setSmartPasteText("");
     setShowSmartPaste(false);
     setClipboardLoading(false);
-  };
+    // Clear Telegram clipboard state
+    clearTelegramClipboard();
+    clearTelegramError();
+  }, [clearTelegramClipboard, clearTelegramError]);
 
   const handleSave = async () => {
     const startISO = combineLocalDateTimeToISO(startDate, startTime);
@@ -267,6 +306,16 @@ export default function AddBookingModal({
   };
 
   const handlePasteFromClipboard = async () => {
+    // Prefer Telegram clipboard in Telegram environment
+    if (isTelegram) {
+      console.log("Using Telegram clipboard API");
+      setError("");
+      clearTelegramError();
+      requestClipboardRead();
+      return;
+    }
+
+    // Fallback to web clipboard API for web environment
     if (!navigator.clipboard) {
       setError("Clipboard access not supported in this browser");
       return;
@@ -279,11 +328,12 @@ export default function AddBookingModal({
       const clipboardText = await navigator.clipboard.readText();
       if (clipboardText && clipboardText.trim()) {
         setSmartPasteText(clipboardText.trim());
+        setShowSmartPaste(true);
       } else {
         setError("Clipboard is empty");
       }
     } catch (err) {
-      console.error("Clipboard read error:", err);
+      console.error("Web clipboard read error:", err);
       setError("Failed to read clipboard. Please grant permission or paste manually.");
     } finally {
       setClipboardLoading(false);
@@ -353,15 +403,17 @@ export default function AddBookingModal({
               <div className="flex gap-2">
                 <button
                   onClick={handlePasteFromClipboard}
-                  disabled={clipboardLoading}
+                  disabled={clipboardLoading || telegramClipboardReading}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-colors`}
                   style={{
-                    ...(clipboardLoading ? { ...styles.secondaryButton, opacity: 0.6 } : styles.secondaryButton),
+                    ...((clipboardLoading || telegramClipboardReading) ? { ...styles.secondaryButton, opacity: 0.6 } : styles.secondaryButton),
                     ...(styles.border || {}),
                   }}
-                  title="Paste from clipboard"
+                  title={isTelegram ? "Paste from Telegram clipboard" : "Paste from clipboard"}
                 >
-                  <span style={styles.text}>{clipboardLoading ? "Reading..." : "📋 Paste"}</span>
+                  <span style={styles.text}>
+                    {(clipboardLoading || telegramClipboardReading) ? "Reading..." : isTelegram ? "📱 Paste" : "📋 Paste"}
+                  </span>
                 </button>
                 <button
                   onClick={handleSmartPaste}

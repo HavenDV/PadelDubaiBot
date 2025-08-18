@@ -167,7 +167,6 @@ export function useTelegramTheme(): TelegramThemeResult {
     },
     undefined, // Let the hook detect webApp automatically
     {
-      enabled: isInTelegram,
       debug: true,
     }
   );

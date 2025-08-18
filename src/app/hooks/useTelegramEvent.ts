@@ -33,12 +33,6 @@ export type TelegramEventHandler = () => void;
  */
 interface UseTelegramEventOptions {
   /**
-   * Whether the event handler should be active
-   * @default true
-   */
-  enabled?: boolean;
-  
-  /**
    * Debug logging for event registration/cleanup
    * @default false
    */
@@ -62,9 +56,8 @@ interface UseTelegramEventOptions {
  *   console.log("Theme changed!");
  * });
  * 
- * // Conditional event listening
+ * // With debug logging
  * useTelegramEvent("mainButtonClicked", handleMainButton, webApp, {
- *   enabled: isButtonVisible,
  *   debug: true
  * });
  * ```
@@ -75,21 +68,13 @@ export function useTelegramEvent(
   webApp?: WebApp | null,
   options: UseTelegramEventOptions = {}
 ): void {
-  const { enabled = true, debug = false } = options;
+  const { debug = false } = options;
   
   // Use ref to store the current handler to avoid re-registering on every render
   const handlerRef = useRef<TelegramEventHandler>(handler);
   handlerRef.current = handler;
 
   useEffect(() => {
-    // Skip if not enabled
-    if (!enabled) {
-      if (debug) {
-        console.log(`useTelegramEvent: Skipping ${eventType} - not enabled`);
-      }
-      return;
-    }
-
     // Get WebApp instance
     const telegramApp = webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
     
@@ -123,7 +108,7 @@ export function useTelegramEvent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (telegramApp as any).offEvent(eventType, eventHandler);
     };
-  }, [eventType, webApp, enabled, debug]);
+  }, [eventType, webApp, debug]);
 }
 
 /**
@@ -146,18 +131,14 @@ export function useTelegramEvents(
   events: Array<{
     eventType: TelegramEventType;
     handler: TelegramEventHandler;
-    enabled?: boolean;
   }>,
   webApp?: WebApp | null,
   options: UseTelegramEventOptions = {}
 ): void {
   // Register each event individually
-  for (const { eventType, handler, enabled: eventEnabled = true } of events) {
+  for (const { eventType, handler } of events) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    useTelegramEvent(eventType, handler, webApp, {
-      ...options,
-      enabled: options.enabled !== false && eventEnabled
-    });
+    useTelegramEvent(eventType, handler, webApp, options);
   }
 }
 
@@ -221,6 +202,40 @@ export function useTelegramViewportEvent(
         is_state_stable: telegramApp.isVerticalSwipesEnabled,
         is_expanded: telegramApp.isExpanded
       });
+    }
+  }, webApp, options);
+}
+
+/**
+ * Hook for clipboard text received events
+ * Provides clipboard text in the callback when received from Telegram
+ * 
+ * @param handler - Function called when clipboard text is received
+ * @param webApp - The Telegram WebApp instance (optional)
+ * @param options - Configuration options
+ * 
+ * @example
+ * ```typescript
+ * useTelegramClipboardEvent((text) => {
+ *   console.log('Clipboard text received:', text);
+ *   setInputValue(text);
+ * });
+ * ```
+ */
+export function useTelegramClipboardEvent(
+  handler: (text: string) => void,
+  webApp?: WebApp | null,
+  options: UseTelegramEventOptions = {}
+): void {
+  useTelegramEvent("clipboardTextReceived", () => {
+    const telegramApp = webApp || (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (telegramApp && (telegramApp as any).clipboardText) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const clipboardText = (telegramApp as any).clipboardText;
+      if (typeof clipboardText === 'string') {
+        handler(clipboardText);
+      }
     }
   }, webApp, options);
 }
