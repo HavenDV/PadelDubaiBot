@@ -1,22 +1,56 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/app/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
-export function useUser() {
+interface AuthContextType {
+  // User data
+  user: User | null;
+  email: string | null;
+  firstName: string | null;
+  avatarUrl: string | null;
+  telegramUserId: number | null;
+
+  // Auth states
+  isAdmin: boolean;
+  isAnonymous: boolean;
+  isLoading: boolean;
+
+  // Auth actions (for future use)
+  refetchUser: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
 
-  // Use React Query for the initial auth state
-  const { data: user = null, isLoading } = useQuery({
-    queryKey: ['auth-user'],
+  // Single React Query instance for auth state
+  const {
+    data: user = null,
+    isLoading,
+    refetch: refetchUser,
+  } = useQuery({
+    queryKey: ["auth-user"],
     queryFn: async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       return sessionData.session?.user ?? null;
     },
-    staleTime: 30 * 1000,      // Consider fresh for 30 seconds
-    gcTime: 5 * 60 * 1000,     // Keep in cache for 5 minutes
-    retry: 1,                   // Retry once on failure
+    staleTime: 30 * 1000, // Consider fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    retry: 1, // Retry once on failure
     refetchOnWindowFocus: true, // Refresh when window gains focus
   });
 
@@ -25,9 +59,9 @@ export function useUser() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null;
       // Update the query cache immediately when auth state changes
-      queryClient.setQueryData(['auth-user'], newUser);
+      queryClient.setQueryData(["auth-user"], newUser);
     });
-    
+
     return () => {
       sub.subscription.unsubscribe();
     };
@@ -64,21 +98,62 @@ export function useUser() {
 
   const isAdmin = Boolean(user?.app_metadata?.admin);
   const isAnonymous = !user;
-  
+
   const telegramUserId = useMemo(() => {
     // Try to get Telegram user ID from app_metadata
     const appMeta = user?.app_metadata as { tg_id?: number } | undefined;
     return appMeta?.tg_id || null;
   }, [user]);
 
-  return {
+  const contextValue: AuthContextType = {
+    // User data
     user,
     email,
     firstName,
     avatarUrl,
+    telegramUserId,
+
+    // Auth states
     isAdmin,
     isAnonymous,
     isLoading,
-    telegramUserId,
-  } as const;
+
+    // Auth actions
+    refetchUser,
+  };
+
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
+}
+
+/**
+ * Hook to access authentication state and user data
+ *
+ * Provides centralized access to:
+ * - User profile information
+ * - Authentication status
+ * - Permission checks (admin/anonymous)
+ * - Computed user properties
+ *
+ * @returns AuthContextType with user data and auth state
+ *
+ * @example
+ * ```typescript
+ * function Component() {
+ *   const { user, isAdmin, isLoading } = useAuth();
+ *
+ *   if (isLoading) return <Spinner />;
+ *   if (!user) return <LoginPrompt />;
+ *
+ *   return <div>Welcome {user.email}!</div>;
+ * }
+ * ```
+ */
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }

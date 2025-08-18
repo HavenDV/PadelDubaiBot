@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
-import { useUser } from "../../hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { Booking } from "../../../../database.types";
 import { CalendarIcon } from "@components/icons/Icons";
 import AddBookingModal from "./AddBookingModal";
@@ -17,7 +17,7 @@ import {
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
-  const { isAdmin, user } = useUser();
+  const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);

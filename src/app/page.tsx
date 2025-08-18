@@ -3,7 +3,7 @@
 import { JSX, useState, useEffect } from "react";
 import { useTelegram } from "@/app/hooks/useTelegram";
 import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
-import { useUser } from "@hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import Settings from "@/app/components/settings/settings";
 import Navigation from "@components/navigation";
@@ -17,7 +17,7 @@ export type ScreenName = "settings" | "locations" | "bookings" | "login";
 export default function Home() {
   const { isTelegram } = useTelegram();
   const { styles, themeParams, colorScheme } = useTelegramTheme();
-  const { isAdmin, isAnonymous, isLoading } = useUser();
+  const { isAdmin, isAnonymous, isLoading } = useAuth();
   const { showLogs } = useShowLogs();
 
   const [activeScreen, setActiveScreen] = useState<ScreenName>("bookings");

@@ -5,7 +5,7 @@ import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import { useState, useEffect } from "react";
-import { useUser } from "../../hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { useLinkedProviders } from "@lib/hooks/auth/useAuthProviders";
 import { useLinkProvider } from "@lib/hooks/auth/useLinkProvider";
 import { useUserById } from "@/app/lib/hooks/db";
@@ -17,7 +17,7 @@ import {
 export default function Settings() {
   const { isTelegram } = useTelegram();
   const { styles } = useTelegramTheme();
-  const { isAnonymous, isAdmin, telegramUserId } = useUser();
+  const { isAnonymous, isAdmin, telegramUserId } = useAuth();
   const { themePreference, setThemePreference } = useThemePreference();
   const { showLogs, setShowLogs } = useShowLogs();
   const [authMessage, setAuthMessage] = useState<string>("");

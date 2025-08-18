@@ -4,7 +4,7 @@ import Image from "next/image";
 import { CalendarIcon, LocationIcon, LoginIcon } from "@components/icons/Icons";
 import { useTelegram } from "@/app/hooks/useTelegram";
 import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
-import { useUser } from "../hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { ScreenName } from "../page";
 import {} from "react";
 import { useSignOut } from "@lib/hooks/auth";
@@ -22,7 +22,7 @@ export default function Navigation({
 }: NavigationProps) {
   const { isLoading, isTelegram } = useTelegram();
   const { styles } = useTelegramTheme();
-  const { isAnonymous, isAdmin, avatarUrl } = useUser();
+  const { isAnonymous, isAdmin, avatarUrl } = useAuth();
 
   // Sign-in UI removed from navigation; handled on landing page
 

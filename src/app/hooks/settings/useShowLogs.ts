@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@lib/supabase/client";
-import { useUser } from "@/app/hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 export function useShowLogs() {
   const [fallbackShow, setFallbackShow] = useState(false);
-  const { telegramUserId, isAnonymous, isAdmin } = useUser();
+  const { telegramUserId, isAnonymous, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   const { data } = useQuery({

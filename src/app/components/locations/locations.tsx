@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { LocationIcon } from "@components/icons/Icons";
 import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
-import { useUser } from "../../hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { Location } from "../../../../database.types";
 import AddLocationModal from "./AddLocationModal";
 import dynamic from "next/dynamic";
@@ -13,7 +13,7 @@ const MapEmbed = dynamic(() => import("./MapEmbed"), { ssr: false });
 
 export default function Locations() {
   const { styles } = useTelegramTheme();
-  const { isAdmin } = useUser();
+  const { isAdmin } = useAuth();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);

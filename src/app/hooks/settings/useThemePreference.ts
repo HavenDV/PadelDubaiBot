@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@lib/supabase/client";
-import { useUser } from "@/app/hooks/useUser";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 export type ThemePreference = "system" | "light" | "dark";
 
 export function useThemePreference() {
-  const { telegramUserId, isAnonymous } = useUser();
+  const { telegramUserId, isAnonymous } = useAuth();
   const queryClient = useQueryClient();
 
   // Fallback cache before server responds
