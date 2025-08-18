@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
 import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
 
@@ -49,7 +49,7 @@ export default function AddBookingModal({
   onLocationUpdate,
   editingBooking,
 }: AddBookingModalProps) {
-  const { styles } = useTelegram();
+  const { styles } = useTelegramTheme();
   // React Query mutations
   const createBookingMutation = useCreateBooking();
   const updateBookingMutation = useUpdateBooking();

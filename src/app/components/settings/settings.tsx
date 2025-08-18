@@ -1,6 +1,7 @@
 "use client";
 
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegram } from "@/app/hooks/useTelegram";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import { useState, useEffect } from "react";
@@ -14,7 +15,8 @@ import {
 } from "@/app/lib/hooks/db/useUserMutations";
 
 export default function Settings() {
-  const { styles, isTelegram } = useTelegram();
+  const { isTelegram } = useTelegram();
+  const { styles } = useTelegramTheme();
   const { isAnonymous, isAdmin, telegramUserId } = useUser();
   const { themePreference, setThemePreference } = useThemePreference();
   const { showLogs, setShowLogs } = useShowLogs();

@@ -38,6 +38,8 @@ This is a **Telegram Bot for Padel Game Organization** built with:
 - `src/app/lib/telegram/` - Core Telegram bot logic and utilities
 - `src/app/lib/supabase/` - Database client and queries
 - `src/app/components/` - React components for admin interface
+- `src/app/hooks/` - Custom React hooks including Telegram event handling
+- `src/app/contexts/` - React context providers for global state
 - `supabase/` - Database schema, migrations, and RLS policies
 
 ### Telegram Bot Architecture
@@ -59,6 +61,7 @@ The bot uses a **data-first architecture** with clear separation:
 - **AI responses** when bot is mentioned
 - **Welcome messages** for new group members
 - **Dynamic theme support** (responds to Telegram theme changes in real-time)
+- **Telegram Mini App integration** (custom hooks for event handling)
 
 ## Database Schema (Supabase)
 
@@ -98,11 +101,62 @@ export const ADMIN_USER_IDS = [
 ] as const;
 ```
 
+## Telegram Mini App Hooks
+
+Custom React hooks for clean Telegram WebApp event handling:
+
+### Core Event Hook
+```typescript
+import { useTelegramEvent } from "@/app/hooks/useTelegramEvent";
+
+// Basic usage
+useTelegramEvent("themeChanged", () => {
+  console.log("Theme changed!");
+});
+
+// With options
+useTelegramEvent("mainButtonClicked", handleClick, webApp, {
+  enabled: isReady,
+  debug: true
+});
+```
+
+### Specialized Hooks
+```typescript
+// Theme changes with data
+useTelegramThemeEvent(({ themeParams, colorScheme }) => {
+  setAppTheme(themeParams);
+  setColorScheme(colorScheme);
+});
+
+// Viewport changes
+useTelegramViewportEvent(({ height, is_expanded }) => {
+  adjustLayout(height, is_expanded);
+});
+
+// Multiple events
+useTelegramEvents([
+  { eventType: "backButtonClicked", handler: goBack },
+  { eventType: "settingsButtonClicked", handler: openSettings }
+]);
+```
+
+### Available Events
+- `themeChanged` - Theme/color scheme changes
+- `viewportChanged` - Viewport size changes  
+- `mainButtonClicked` - Main button clicks
+- `backButtonClicked` - Back button clicks
+- `settingsButtonClicked` - Settings button clicks
+- `invoiceClosed` - Payment invoice closed
+- `popupClosed` - Popup closed
+- And more...
+
 ## Code Conventions
 
 - Use Server Components by default (mark Client Components with `'use client'`)
 - Follow Next.js App Router patterns
 - Place Telegram logic in `src/app/lib/telegram/`
+- Use Telegram event hooks for WebApp event handling
 - Use TypeScript interfaces from `types.ts`
 - Handle errors gracefully with proper logging
 - Implement rate limiting for Telegram API calls

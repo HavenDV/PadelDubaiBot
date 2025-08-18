@@ -1,7 +1,8 @@
 "use client";
 
 import { JSX, useState, useEffect } from "react";
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegram } from "@/app/hooks/useTelegram";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { useUser } from "@hooks/useUser";
 import { useShowLogs } from "@/app/hooks/settings/useShowLogs";
 import Settings from "@/app/components/settings/settings";
@@ -14,7 +15,8 @@ import Login from "./components/login/login";
 export type ScreenName = "settings" | "locations" | "bookings" | "login";
 
 export default function Home() {
-  const { styles, isTelegram, themeParams, colorScheme } = useTelegram();
+  const { isTelegram } = useTelegram();
+  const { styles, themeParams, colorScheme } = useTelegramTheme();
   const { isAdmin, isAnonymous, isLoading } = useUser();
   const { showLogs } = useShowLogs();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { Location, LocationInsert } from "../../../../database.types";
 import { useDebouncedPlacesSearch, usePlaceDetails } from "@lib/hooks/api";
 import { useCreateLocation, useUpdateLocation } from "@lib/hooks/db";
@@ -35,7 +35,7 @@ export default function AddLocationModal({
   onSuccess,
   editingLocation,
 }: AddLocationModalProps) {
-  const { styles } = useTelegram();
+  const { styles } = useTelegramTheme();
   // React Query mutations
   const createLocationMutation = useCreateLocation();
   const updateLocationMutation = useUpdateLocation();

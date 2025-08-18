@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import { useUser } from "../../hooks/useUser";
 import { Booking } from "../../../../database.types";
 import { CalendarIcon } from "@components/icons/Icons";
@@ -16,7 +16,7 @@ import {
 } from "@lib/hooks/db";
 
 export default function Bookings() {
-  const { styles } = useTelegram();
+  const { styles } = useTelegramTheme();
   const { isAdmin, user } = useUser();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");

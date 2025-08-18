@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { TelegramProvider } from "@/app/contexts/TelegramContext";
 import { QueryProvider } from "@/app/contexts/QueryProvider";
 import Script from "next/script";
 
@@ -49,7 +48,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-[100dvh] w-full`}
       >
         <QueryProvider>
-          <TelegramProvider>{children}</TelegramProvider>
+          {children}
         </QueryProvider>
       </body>
     </html>

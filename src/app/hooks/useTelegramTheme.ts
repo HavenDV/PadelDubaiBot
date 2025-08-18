@@ -1,5 +1,7 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { ThemeParams } from "telegram-web-app";
+import { useThemePreference } from "@/app/hooks/settings/useThemePreference";
+import { useTelegramThemeEvent } from "@/app/hooks/useTelegramEvent";
 
 /**
  * Telegram Mini App Theme Parameters
@@ -74,6 +76,8 @@ export const webLightTheme: ThemeParams = {
 export interface TelegramThemeResult {
   // Original Telegram theme parameters
   params: ThemeParams;
+  themeParams: ThemeParams | null; // Raw theme params for compatibility
+  colorScheme: "light" | "dark" | null; // Color scheme from Telegram
 
   // Utility methods
   isInTelegram: boolean;
@@ -97,18 +101,82 @@ export interface TelegramThemeResult {
 }
 
 /**
- * Hook for unified theming that works in both Telegram and web environments
+ * Independent hook for unified theming that works in both Telegram and web environments
  *
- * @param themeParams - Telegram theme parameters (null in web mode)
- * @param preferDark - Whether to use dark theme in web mode (default: true)
+ * Automatically detects Telegram environment and handles theme changes via events.
+ * In web mode, uses theme preference settings.
+ *
  * @returns TelegramThemeResult with theme parameters and helper methods
  */
-export function useTelegramTheme(
-  themeParams: ThemeParams | null,
-  preferDark: boolean = true
-): TelegramThemeResult {
-  // Determine theme source
-  const isInTelegram = themeParams !== null;
+export function useTelegramTheme(): TelegramThemeResult {
+  // State for theme parameters from Telegram
+  const [themeParams, setThemeParams] = useState<ThemeParams | null>(null);
+  const [colorScheme, setColorScheme] = useState<"light" | "dark" | null>(null);
+
+  // Web theme preference fallback
+  const { themePreference, systemPrefersDark } = useThemePreference();
+
+  // Detect if we're in Telegram
+  const [isInTelegram, setIsInTelegram] = useState(false);
+
+  // Initialize theme on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
+      const webApp = window.Telegram.WebApp;
+      const hasInitData = Boolean(
+        (webApp.initData && webApp.initData.length > 0) ||
+          webApp.initDataUnsafe?.user
+      );
+
+      if (hasInitData) {
+        setIsInTelegram(true);
+        setThemeParams(webApp.themeParams || null);
+        setColorScheme(webApp.colorScheme || null);
+
+        // Apply initial theme to document root
+        applyThemeToRoot(webApp.themeParams, webApp.colorScheme);
+      }
+    }
+  }, []);
+
+  // Helper function to apply theme to document root
+  const applyThemeToRoot = (
+    params: ThemeParams | null,
+    scheme: string | null
+  ) => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (params?.bg_color) {
+      root.style.setProperty("--background", params.bg_color);
+    }
+    if (params?.text_color) {
+      root.style.setProperty("--foreground", params.text_color);
+    }
+    if (scheme) {
+      root.style.setProperty("color-scheme", scheme);
+    }
+  };
+
+  // Listen for theme changes in Telegram
+  useTelegramThemeEvent(
+    ({ themeParams: newThemeParams, colorScheme: newColorScheme }) => {
+      console.log("useTelegramTheme: Theme changed via event");
+      setThemeParams(newThemeParams);
+      setColorScheme(newColorScheme);
+      applyThemeToRoot(newThemeParams, newColorScheme);
+    },
+    undefined, // Let the hook detect webApp automatically
+    {
+      enabled: isInTelegram,
+      debug: true,
+    }
+  );
+
+  // Determine effective theme preference for web mode
+  const preferDark =
+    themePreference === "system"
+      ? systemPrefersDark
+      : themePreference === "dark";
 
   // Use Telegram theme or fallback to predefined web themes
   const params = themeParams || (preferDark ? webDarkTheme : webLightTheme);
@@ -207,6 +275,8 @@ export function useTelegramTheme(
 
   return {
     params,
+    themeParams,
+    colorScheme,
     isInTelegram,
     styles,
   };

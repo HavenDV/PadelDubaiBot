@@ -1,7 +1,7 @@
 "use client";
 
 import { useOAuthSignIn } from "@lib/hooks/auth";
-import { useTelegram } from "@contexts/TelegramContext";
+import { useTelegramTheme } from "@/app/hooks/useTelegramTheme";
 import TelegramLoginButton from "./TelegramLoginButton";
 
 interface LoginProps {
@@ -10,7 +10,7 @@ interface LoginProps {
 
 export default function Login({ className = "" }: LoginProps) {
   const oAuthSignInMutation = useOAuthSignIn();
-  const { styles } = useTelegram();
+  const { styles } = useTelegramTheme();
   
   const handleOAuthLogin = (provider: "google") => {
     oAuthSignInMutation.mutate(provider);
