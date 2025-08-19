@@ -152,11 +152,31 @@ export default function Settings() {
                       opacity: isDisabled ? 0.6 : 1,
                     }}
                   >
-                    {isPending ? (
-                      <span className="inline-block animate-spin">⏳</span>
-                    ) : (
-                      level
-                    )}
+                    <span 
+                      className={isPending ? "relative overflow-hidden" : ""}
+                      style={{
+                        transition: "all 0.2s ease-in-out",
+                      }}
+                    >
+                      {level}
+                      {isPending && (
+                        <>
+                          <div
+                            className="absolute inset-0 -skew-x-12 animate-shimmer"
+                            style={{
+                              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                              animation: "shimmer 1.5s infinite",
+                            }}
+                          />
+                          <style jsx>{`
+                            @keyframes shimmer {
+                              0% { transform: translateX(-100%) skewX(-12deg); }
+                              100% { transform: translateX(200%) skewX(-12deg); }
+                            }
+                          `}</style>
+                        </>
+                      )}
+                    </span>
                   </button>
                 );
               }

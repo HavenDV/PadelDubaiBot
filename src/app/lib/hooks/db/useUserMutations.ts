@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@lib/supabase/client";
+import type { User } from "../../../../database.types";
 
 // Type for skill levels
 export type SkillLevel = "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
@@ -27,12 +28,35 @@ export const useUpdateUserSkillLevel = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch user profile data
-      queryClient.invalidateQueries({ queryKey: ['user-profile', variables.userId] });
+    onMutate: async ({ userId, skillLevel }) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['user-profile', userId] });
+
+      // Snapshot the previous value
+      const previousUserProfile = queryClient.getQueryData(['user-profile', userId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['user-profile', userId], (old: User | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          skill_level: skillLevel
+        };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousUserProfile };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousUserProfile) {
+        queryClient.setQueryData(['user-profile', variables.userId], context.previousUserProfile);
+      }
       console.error("Update skill level error:", error);
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success to ensure server state
+      queryClient.invalidateQueries({ queryKey: ['user-profile', variables.userId] });
     },
   });
 };
