@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Primary Commands
+
 - `npm run dev` - Start development server with Turbopack
 - `npm run build` - Build production bundle
 - `npm run lint` - Run ESLint for code quality
 
 ### Supabase Database Commands
+
 - `npm run supabase:start` - Start local Supabase instance
 - `npm run supabase:stop` - Stop local Supabase instance
 - `npm run supabase:reset` - Reset local database
@@ -19,13 +21,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run migration:up` - Apply pending migrations
 
 ### Development Tools
+
 - `npm run tunnel` - Expose local dev server via devtunnel (for webhook testing)
 - `npm run tunnel2` - Expose local dev server via ngrok (alternative)
 
 ## Architecture Overview
 
 ### Core Structure
+
 This is a **Telegram Bot for Padel Game Organization** built with:
+
 - **Next.js 15** with App Router (Server Components by default)
 - **TypeScript** for type safety
 - **Supabase** for authentication and database
@@ -34,6 +39,7 @@ This is a **Telegram Bot for Padel Game Organization** built with:
 - **Edge Runtime** for zero cold-start webhook responses
 
 ### Key Directories
+
 - `src/app/api/telegram/` - Telegram webhook and API endpoints
 - `src/app/lib/telegram/` - Core Telegram bot logic and utilities
 - `src/app/lib/supabase/` - Database client and queries
@@ -43,6 +49,7 @@ This is a **Telegram Bot for Padel Game Organization** built with:
 - `supabase/` - Database schema, migrations, and RLS policies
 
 ### Telegram Bot Architecture
+
 The bot uses a **data-first architecture** with clear separation:
 
 1. **TelegramAPI** (`api.ts`) - Low-level Telegram API wrapper with retry logic
@@ -52,6 +59,7 @@ The bot uses a **data-first architecture** with clear separation:
 5. **Types** (`types.ts`) - TypeScript interfaces for all data structures
 
 ### Key Features
+
 - **Skill-based registration** (E, D, D+, C-, C, C+)
 - **Automatic waitlist management** (4 players max per game)
 - **Admin controls** via private messages (cancel/restore games, statistics)
@@ -66,14 +74,15 @@ The bot uses a **data-first architecture** with clear separation:
 ## Database Schema (Supabase)
 
 ### Core Tables
+
 - `users` - User profiles with Telegram data
 - `locations` - Padel club locations
 - `bookings` - Game bookings and registration
 - `registrations` - Player registrations per game
 
 ### Row Level Security (RLS)
-All tables use RLS policies for secure data access. Admin users have elevated permissions.
 
+All tables use RLS policies for secure data access. Admin users have elevated permissions.
 
 ## Environment Variables Required
 
@@ -95,6 +104,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<supabase_anon_key>
 ## Admin Configuration
 
 Admin user IDs are configured in `src/app/lib/telegram/constants.ts`:
+
 ```typescript
 export const ADMIN_USER_IDS = [
   // Add Telegram user IDs here
@@ -106,6 +116,7 @@ export const ADMIN_USER_IDS = [
 Custom React hooks for clean Telegram WebApp event handling:
 
 ### Core Event Hook
+
 ```typescript
 import { useTelegramEvent } from "@/app/hooks/useTelegramEvent";
 
@@ -117,11 +128,12 @@ useTelegramEvent("themeChanged", () => {
 // With options
 useTelegramEvent("mainButtonClicked", handleClick, webApp, {
   enabled: isReady,
-  debug: true
+  debug: true,
 });
 ```
 
 ### Specialized Hooks
+
 ```typescript
 // Theme changes with data
 useTelegramThemeEvent(({ themeParams, colorScheme }) => {
@@ -137,13 +149,14 @@ useTelegramViewportEvent(({ height, is_expanded }) => {
 // Multiple events
 useTelegramEvents([
   { eventType: "backButtonClicked", handler: goBack },
-  { eventType: "settingsButtonClicked", handler: openSettings }
+  { eventType: "settingsButtonClicked", handler: openSettings },
 ]);
 ```
 
 ### Available Events
+
 - `themeChanged` - Theme/color scheme changes
-- `viewportChanged` - Viewport size changes  
+- `viewportChanged` - Viewport size changes
 - `mainButtonClicked` - Main button clicks
 - `backButtonClicked` - Back button clicks
 - `settingsButtonClicked` - Settings button clicks
@@ -161,6 +174,7 @@ useTelegramEvents([
 - Handle errors gracefully with proper logging
 - Implement rate limiting for Telegram API calls
 - Use Supabase RLS for data security
+- NEVER use unknown/any - only strong typed code.
 
 ## Key Files to Understand
 

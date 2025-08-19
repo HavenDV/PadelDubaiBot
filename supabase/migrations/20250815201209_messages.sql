@@ -28,6 +28,8 @@ alter table "public"."messages" validate constraint "messages_booking_id_fkey";
 
 alter table "public"."messages" add constraint "messages_unique_message" UNIQUE using index "messages_unique_message";
 
+alter table "public"."messages" drop column "is_active";
+
 grant select on table "public"."messages" to "anon";
 
 grant delete on table "public"."messages" to "authenticated";

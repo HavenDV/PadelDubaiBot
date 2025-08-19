@@ -88,38 +88,161 @@ export type Database = {
       }
       chats: {
         Row: {
+          accent_color_id: number | null
+          accepted_gift_types: Json | null
+          active_usernames: string[] | null
+          available_reactions: Json | null
+          background_custom_emoji_id: string | null
+          bio: string | null
+          birthdate: Json | null
+          business_intro: Json | null
+          business_location: Json | null
+          business_opening_hours: Json | null
+          can_send_paid_media: boolean | null
+          can_set_sticker_set: boolean | null
           created_at: string
+          custom_emoji_sticker_set_name: string | null
           description: string | null
+          emoji_status_custom_emoji_id: string | null
+          emoji_status_expiration_date: number | null
+          first_name: string | null
+          has_aggressive_anti_spam_enabled: boolean | null
+          has_hidden_members: boolean | null
+          has_private_forwards: boolean | null
+          has_protected_content: boolean | null
+          has_restricted_voice_and_video_messages: boolean | null
+          has_visible_history: boolean | null
           id: number
+          invite_link: string | null
+          is_direct_messages: boolean | null
+          is_forum: boolean | null
+          join_by_request: boolean | null
+          join_to_send_messages: boolean | null
+          last_name: string | null
+          linked_chat_id: number | null
+          location: Json | null
+          max_reaction_count: number | null
           member_count: number | null
+          message_auto_delete_time: number | null
           name: string | null
+          parent_chat: Json | null
           permissions: Json | null
+          personal_chat: Json | null
+          photo: Json | null
+          pinned_message_id: number | null
+          profile_accent_color_id: number | null
+          profile_background_custom_emoji_id: string | null
+          slow_mode_delay: number | null
+          sticker_set_name: string | null
           title: string | null
           type: string
+          unrestrict_boost_count: number | null
           updated_at: string
           username: string | null
         }
         Insert: {
+          accent_color_id?: number | null
+          accepted_gift_types?: Json | null
+          active_usernames?: string[] | null
+          available_reactions?: Json | null
+          background_custom_emoji_id?: string | null
+          bio?: string | null
+          birthdate?: Json | null
+          business_intro?: Json | null
+          business_location?: Json | null
+          business_opening_hours?: Json | null
+          can_send_paid_media?: boolean | null
+          can_set_sticker_set?: boolean | null
           created_at?: string
+          custom_emoji_sticker_set_name?: string | null
           description?: string | null
+          emoji_status_custom_emoji_id?: string | null
+          emoji_status_expiration_date?: number | null
+          first_name?: string | null
+          has_aggressive_anti_spam_enabled?: boolean | null
+          has_hidden_members?: boolean | null
+          has_private_forwards?: boolean | null
+          has_protected_content?: boolean | null
+          has_restricted_voice_and_video_messages?: boolean | null
+          has_visible_history?: boolean | null
           id: number
+          invite_link?: string | null
+          is_direct_messages?: boolean | null
+          is_forum?: boolean | null
+          join_by_request?: boolean | null
+          join_to_send_messages?: boolean | null
+          last_name?: string | null
+          linked_chat_id?: number | null
+          location?: Json | null
+          max_reaction_count?: number | null
           member_count?: number | null
+          message_auto_delete_time?: number | null
           name?: string | null
+          parent_chat?: Json | null
           permissions?: Json | null
+          personal_chat?: Json | null
+          photo?: Json | null
+          pinned_message_id?: number | null
+          profile_accent_color_id?: number | null
+          profile_background_custom_emoji_id?: string | null
+          slow_mode_delay?: number | null
+          sticker_set_name?: string | null
           title?: string | null
           type?: string
+          unrestrict_boost_count?: number | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          accent_color_id?: number | null
+          accepted_gift_types?: Json | null
+          active_usernames?: string[] | null
+          available_reactions?: Json | null
+          background_custom_emoji_id?: string | null
+          bio?: string | null
+          birthdate?: Json | null
+          business_intro?: Json | null
+          business_location?: Json | null
+          business_opening_hours?: Json | null
+          can_send_paid_media?: boolean | null
+          can_set_sticker_set?: boolean | null
           created_at?: string
+          custom_emoji_sticker_set_name?: string | null
           description?: string | null
+          emoji_status_custom_emoji_id?: string | null
+          emoji_status_expiration_date?: number | null
+          first_name?: string | null
+          has_aggressive_anti_spam_enabled?: boolean | null
+          has_hidden_members?: boolean | null
+          has_private_forwards?: boolean | null
+          has_protected_content?: boolean | null
+          has_restricted_voice_and_video_messages?: boolean | null
+          has_visible_history?: boolean | null
           id?: number
+          invite_link?: string | null
+          is_direct_messages?: boolean | null
+          is_forum?: boolean | null
+          join_by_request?: boolean | null
+          join_to_send_messages?: boolean | null
+          last_name?: string | null
+          linked_chat_id?: number | null
+          location?: Json | null
+          max_reaction_count?: number | null
           member_count?: number | null
+          message_auto_delete_time?: number | null
           name?: string | null
+          parent_chat?: Json | null
           permissions?: Json | null
+          personal_chat?: Json | null
+          photo?: Json | null
+          pinned_message_id?: number | null
+          profile_accent_color_id?: number | null
+          profile_background_custom_emoji_id?: string | null
+          slow_mode_delay?: number | null
+          sticker_set_name?: string | null
           title?: string | null
           type?: string
+          unrestrict_boost_count?: number | null
           updated_at?: string
           username?: string | null
         }

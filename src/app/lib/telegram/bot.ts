@@ -1,5 +1,5 @@
 import { Bot, Context } from "grammy";
-import type { InlineKeyboardMarkup, Chat } from "grammy/types";
+import type { InlineKeyboardMarkup, Chat, ChatFullInfo } from "grammy/types";
 import {
   CALLBACK_MESSAGES,
   MessageFormatter,
@@ -11,7 +11,7 @@ import {
   isLateCancellationByMessage,
 } from "@/app/lib/telegram/booking";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import type { Json } from "../../../../database.types";
+import type { ChatInsert } from "../../../../database.types";
 
 const token = process.env.TELEGRAM_BOT_TOKEN!;
 
@@ -190,37 +190,8 @@ bot.on("my_chat_member", async (ctx) => {
     const isLeave = ["left", "kicked"].includes(String(status));
 
     if (isJoin) {
-      const baseRecord: {
-        id: number;
-        type?: string;
-        title?: string | null;
-        username?: string | null;
-        name?: string | null;
-        permissions?: Json | null;
-      } = {
-        id: chat.id,
-        type: chat.type,
-        title: chat.title ?? null,
-        username: chat.username ?? null,
-        name: null,
-        permissions: null, // Chat permissions handled separately in Grammy
-      };
-
-      if (chat.type === "private") {
-        const first = chat.first_name || "";
-        const last = chat.last_name || "";
-        const composed = `${first} ${last}`.trim();
-        baseRecord.name = composed || null;
-      }
-
-      const { error } = await supabaseAdmin
-        .from("chats")
-        .upsert(baseRecord, { onConflict: "id" });
-      if (error) {
-        console.error("Failed to upsert chat on my_chat_member join:", error);
-      } else {
-        console.log("Upserted chat on my_chat_member join:", baseRecord);
-      }
+      // Fetch comprehensive chat data when joining
+      await fetchAndStoreFullChatInfo(chat.id);
     } else if (isLeave) {
       const { error } = await supabaseAdmin
         .from("chats")
@@ -256,37 +227,8 @@ bot.on("chat_member", async (ctx) => {
     const isLeave = ["left", "kicked"].includes(String(status));
 
     if (isJoin) {
-      const baseRecord: {
-        id: number;
-        type?: string;
-        title?: string | null;
-        username?: string | null;
-        name?: string | null;
-        permissions?: Json | null;
-      } = {
-        id: chat.id,
-        type: chat.type,
-        title: chat.title ?? null,
-        username: chat.username ?? null,
-        name: null,
-        permissions: null, // Chat permissions handled separately in Grammy
-      };
-
-      if (chat.type === "private") {
-        const first = chat.first_name || "";
-        const last = chat.last_name || "";
-        const composed = `${first} ${last}`.trim();
-        baseRecord.name = composed || null;
-      }
-
-      const { error } = await supabaseAdmin
-        .from("chats")
-        .upsert(baseRecord, { onConflict: "id" });
-      if (error) {
-        console.error("Failed to upsert chat on chat_member join:", error);
-      } else {
-        console.log("Upserted chat on chat_member join:", baseRecord);
-      }
+      // Fetch comprehensive chat data when joining
+      await fetchAndStoreFullChatInfo(chat.id);
     } else if (isLeave) {
       const { error } = await supabaseAdmin
         .from("chats")
@@ -302,3 +244,113 @@ bot.on("chat_member", async (ctx) => {
     console.error("Error processing chat_member:", e);
   }
 });
+
+// Helper function to fetch and store comprehensive chat information using getChat API
+export async function fetchAndStoreFullChatInfo(chatId: number): Promise<void> {
+  try {
+    const chatInfo: ChatFullInfo = await bot.api.getChat(chatId);
+
+    // Create comprehensive record with ChatFullInfo data
+    const fullChatRecord: ChatInsert = {
+      // Core required fields
+      id: chatInfo.id,
+      type: chatInfo.type,
+
+      // Basic chat information from ChatFullInfo
+      title: chatInfo.title ?? undefined,
+      username: chatInfo.username ?? undefined,
+      description: chatInfo.description ?? undefined,
+      bio: chatInfo.bio ?? undefined,
+
+      // Get member count if available
+      member_count: undefined,
+
+      // Chat photo
+      photo: JSON.stringify(chatInfo.photo) ?? undefined,
+
+      // Permissions (available in groups/supergroups)
+      permissions: JSON.stringify(chatInfo.permissions) ?? undefined,
+
+      // Invite link
+      invite_link: chatInfo.invite_link ?? undefined,
+
+      // Pinned message
+      pinned_message_id: chatInfo.pinned_message?.message_id ?? undefined,
+    };
+
+    // Handle private chat specific fields
+    if (chatInfo.type === "private") {
+      const privateChat = chatInfo as ChatFullInfo.PrivateChat;
+      fullChatRecord.first_name = privateChat.first_name ?? undefined;
+      fullChatRecord.last_name = privateChat.last_name ?? undefined;
+      if (fullChatRecord.first_name) {
+        const composed = `${fullChatRecord.first_name} ${
+          fullChatRecord.last_name ?? ""
+        }`.trim();
+        fullChatRecord.name = composed;
+      }
+    }
+
+    // Handle group chat specific fields
+    if (chatInfo.type === "group") {
+      const groupChat = chatInfo as ChatFullInfo.GroupChat;
+      fullChatRecord.name = groupChat.title ?? undefined;
+    }
+
+    // Handle channel chat specific fields
+    if (chatInfo.type === "channel") {
+      const channelChat = chatInfo as ChatFullInfo.ChannelChat;
+      fullChatRecord.name = channelChat.title ?? undefined;
+    }
+
+    // Handle supergroup specific fields
+    if (chatInfo.type === "supergroup") {
+      const supergroupChat = chatInfo as ChatFullInfo.SupergroupChat;
+      fullChatRecord.is_forum = supergroupChat.is_forum ?? undefined;
+      fullChatRecord.slow_mode_delay =
+        supergroupChat.slow_mode_delay ?? undefined;
+      fullChatRecord.has_protected_content =
+        supergroupChat.has_protected_content ?? undefined;
+      fullChatRecord.has_visible_history =
+        supergroupChat.has_visible_history ?? undefined;
+      fullChatRecord.has_aggressive_anti_spam_enabled =
+        supergroupChat.has_aggressive_anti_spam_enabled ?? undefined;
+      fullChatRecord.has_hidden_members =
+        supergroupChat.has_hidden_members ?? undefined;
+      fullChatRecord.sticker_set_name =
+        supergroupChat.sticker_set_name ?? undefined;
+      fullChatRecord.can_set_sticker_set =
+        supergroupChat.can_set_sticker_set ?? undefined;
+      fullChatRecord.linked_chat_id =
+        supergroupChat.linked_chat_id ?? undefined;
+      fullChatRecord.location =
+        JSON.stringify(supergroupChat.location) ?? undefined;
+    }
+
+    const { error } = await supabaseAdmin
+      .from("chats")
+      .upsert(fullChatRecord, { onConflict: "id" });
+
+    if (error) {
+      console.error("Failed to store full chat info:", error);
+    } else {
+      console.log("Stored comprehensive chat info:", {
+        id: fullChatRecord.id,
+        type: fullChatRecord.type,
+        title: fullChatRecord.title,
+        hasDescription: !!fullChatRecord.description,
+        hasMemberCount: !!fullChatRecord.member_count,
+        hasPhoto: !!fullChatRecord.photo,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to fetch chat info:", error);
+    // Fallback: create basic record if getChat fails
+    const basicRecord: ChatInsert = {
+      id: chatId,
+      type: "group", // Default fallback
+    };
+
+    await supabaseAdmin.from("chats").upsert(basicRecord, { onConflict: "id" });
+  }
+}
