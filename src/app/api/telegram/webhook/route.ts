@@ -1,7 +1,7 @@
 export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
-import { bot } from "@/app/lib/telegram/bot";
+import { bot, ensureBotInit } from "@/app/lib/telegram/bot";
 
 export async function POST(req: NextRequest) {
   const secretToken = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
 
   console.log(`=== END WEBHOOK UPDATE ${updateId} ===\n`);
 
+  // Initialize bot once per cold start before handling updates
+  await ensureBotInit();
   await bot.handleUpdate(update);
 
   return NextResponse.json({ ok: true });

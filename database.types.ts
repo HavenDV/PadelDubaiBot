@@ -45,3 +45,13 @@ export type RegistrationInsert =
   Database["public"]["Tables"]["registrations"]["Insert"];
 export type RegistrationUpdate =
   Database["public"]["Tables"]["registrations"]["Update"];
+
+// Messages
+export type Message = Database["public"]["Tables"]["messages"]["Row"];
+export type MessageInsert = Database["public"]["Tables"]["messages"]["Insert"];
+export type MessageUpdate = Database["public"]["Tables"]["messages"]["Update"];
+
+// Chats
+export type Chat = Database["public"]["Tables"]["chats"]["Row"];
+export type ChatInsert = Database["public"]["Tables"]["chats"]["Insert"];
+export type ChatUpdate = Database["public"]["Tables"]["chats"]["Update"];

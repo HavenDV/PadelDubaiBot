@@ -8,9 +8,6 @@ CREATE TABLE IF NOT EXISTS public.messages (
     booking_id bigint NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
     message_id bigint NOT NULL,
     chat_id bigint NOT NULL,
-    
-    -- Message status
-    is_active boolean DEFAULT true,
 
     -- Timestamps
     created_at timestamp without time zone DEFAULT now(),
@@ -20,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
     CONSTRAINT messages_unique_message UNIQUE (chat_id, message_id)
 );
 
-COMMENT ON TABLE public.messages IS 'Telegram messages posted for bookings, allowing multiple messages per booking.';
+COMMENT ON TABLE public.messages IS 'Telegram messages posted for bookings. Message presence indicates active status - deleted messages are removed from table.';
 
 -- Enable Row Level Security
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
@@ -33,16 +30,13 @@ GRANT ALL ON TABLE public.messages TO service_role;
 
 -- Allow public/client read access to safe columns
 GRANT SELECT (
-  id, booking_id, message_id, chat_id, is_active, created_at, updated_at
+  id, booking_id, message_id, chat_id, created_at, updated_at
 ) ON public.messages TO anon, authenticated;
 GRANT SELECT ON TABLE public.messages TO anon, authenticated;
 
 -- Admin-only write access (controlled by RLS)
 GRANT INSERT (
-  booking_id, message_id, chat_id, is_active
-) ON public.messages TO authenticated;
-GRANT UPDATE (
-  is_active
+  booking_id, message_id, chat_id
 ) ON public.messages TO authenticated;
 GRANT DELETE ON public.messages TO authenticated;
 

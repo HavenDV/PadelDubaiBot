@@ -43,6 +43,11 @@ export interface EditMessageParams {
   };
 }
 
+export interface DeleteMessageParams {
+  chat_id: string | number;
+  message_id: number;
+}
+
 export interface InlineKeyboardUrlButton {
   text: string;
   url: string;
@@ -205,5 +210,24 @@ export class TelegramAPI {
 
   static async sendVenue(params: SendVenueParams): Promise<TelegramResponse> {
     return this.makeRequest(`${this.baseUrl}/sendVenue`, params);
+  }
+
+  static async deleteMessage(
+    params: DeleteMessageParams
+  ): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/deleteMessage`, params);
+  }
+
+  // Fetch chat info for enrichment
+  static async getChat(chat_id: number | string): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/getChat`, { chat_id });
+  }
+
+  // Fetch chat member count when needed
+  static async getChatMemberCount(
+    chat_id: number | string
+  ): Promise<TelegramResponse> {
+    // Bot API supports POST with { chat_id }
+    return this.makeRequest(`${this.baseUrl}/getChatMemberCount`, { chat_id });
   }
 }

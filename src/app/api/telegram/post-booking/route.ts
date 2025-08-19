@@ -35,13 +35,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Check if booking already has an active Telegram message
+    // Check if booking already has a Telegram message
     const { data: existingMessage, error: messageCheckError } =
       await supabaseAdmin
         .from("messages")
         .select("id")
         .eq("booking_id", bookingId)
-        .eq("is_active", true)
         .single();
 
     if (!messageCheckError && existingMessage) {
@@ -172,7 +171,6 @@ export async function POST(request: Request) {
         booking_id: bookingId,
         message_id: messageId,
         chat_id: chatId,
-        is_active: true,
       });
 
     if (insertMessageError) {

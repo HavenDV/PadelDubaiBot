@@ -13,7 +13,10 @@ import {
   useAddRegistration,
   useRemoveRegistration,
   useRemoveRegistrationById,
+  useDeleteMessage,
+  useSendBookingMessage,
 } from "@lib/hooks/db";
+import ChatSelector from "@/app/components/chats/ChatSelector";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -22,6 +25,9 @@ export default function Bookings() {
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [selectedChatIds, setSelectedChatIds] = useState<
+    Record<number, number>
+  >({});
 
   // Fetch all data using React Query
   const { data, isLoading: loading, error: queryError } = useBookingsData();
@@ -55,8 +61,10 @@ export default function Bookings() {
     queryClient.invalidateQueries({ queryKey: ["bookings-data"] });
   };
 
-  // Use centralized delete mutation
+  // Use centralized mutations
   const deleteBookingMutation = useDeleteBooking();
+  const deleteMessageMutation = useDeleteMessage();
+  const sendBookingMessageMutation = useSendBookingMessage();
 
   const handleDelete = (id: number) => {
     if (!confirm("Delete this booking?")) return;
@@ -105,41 +113,67 @@ export default function Bookings() {
     refreshMessagesMutation.mutate();
   };
 
-  const handlePostToTelegram = async (booking: Booking) => {
-    if (telegramMessages[booking.id]) {
-      alert("This booking has already been posted to Telegram");
+  const handleDeleteMessage = (
+    messageId: number,
+    telegramMessageId: number,
+    chatId: number
+  ) => {
+    if (
+      !confirm(
+        `Delete message ${telegramMessageId} from both Telegram and database?`
+      )
+    )
       return;
-    }
 
+    setError("");
+    deleteMessageMutation.mutate(
+      { telegramMessageId, chatId },
+      {
+        onError: (error) => {
+          setError("Failed to delete message");
+          console.error("Delete message error:", error);
+        },
+      }
+    );
+  };
+
+  const handlePostToTelegram = (booking: Booking) => {
     if (!confirm("Post this booking to Telegram chat for registrations?"))
       return;
 
     setError("");
-    try {
-      const response = await fetch("/api/telegram/post-booking", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ bookingId: booking.id }),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to post to Telegram");
-      }
-
-      const result = await response.json();
-      console.log("Posted to Telegram:", result);
-      queryClient.invalidateQueries({ queryKey: ["bookings-data"] }); // Refresh to show updated message_id
-    } catch (e) {
-      setError(
-        `Failed to post to Telegram: ${
-          e instanceof Error ? e.message : "Unknown error"
-        }`
-      );
-      console.error(e);
+    // Get location and registrations for this booking
+    const location = locations.find((l) => l.id === booking.location_id);
+    if (!location) {
+      setError("Location not found for this booking");
+      return;
     }
+
+    const bookingRegs = getBookingRegistrations(booking.id);
+    const formattedRegs = bookingRegs.map((reg) => ({
+      user: {
+        id: reg.user?.id || reg.user_id,
+        username: reg.user?.username || null,
+        first_name: reg.user?.first_name || `User ${reg.user_id}`,
+        skill_level: reg.user?.skill_level || null,
+      },
+    }));
+
+    sendBookingMessageMutation.mutate(
+      {
+        booking,
+        location,
+        registrations: formattedRegs,
+        chatId: selectedChatIds[booking.id],
+      },
+      {
+        onError: (error) => {
+          setError(`Failed to post to Telegram: ${error.message}`);
+          console.error("Post to Telegram error:", error);
+        },
+      }
+    );
   };
 
   // Use centralized registration mutations
@@ -208,11 +242,21 @@ export default function Bookings() {
   const ConfirmRemoveModal = () => {
     if (confirmRemoveRegId === null) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <div className="w-full max-w-sm rounded-lg border shadow-sm" style={{ ...styles.card, ...styles.border }}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      >
+        <div
+          className="w-full max-w-sm rounded-lg border shadow-sm"
+          style={{ ...styles.card, ...styles.border }}
+        >
           <div className="p-4 space-y-3">
-            <div className="font-bold" style={styles.text}>Remove player</div>
-            <div className="text-sm" style={styles.secondaryText}>Are you sure you want to remove this player&apos;s registration?</div>
+            <div className="font-bold" style={styles.text}>
+              Remove player
+            </div>
+            <div className="text-sm" style={styles.secondaryText}>
+              Are you sure you want to remove this player&apos;s registration?
+            </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
@@ -223,7 +267,12 @@ export default function Bookings() {
               </button>
               <button
                 className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110"
-                style={{ backgroundColor: 'transparent', color: styles.destructiveText.color, borderWidth: '1px', borderColor: styles.destructiveText.color }}
+                style={{
+                  backgroundColor: "transparent",
+                  color: styles.destructiveText.color,
+                  borderWidth: "1px",
+                  borderColor: styles.destructiveText.color,
+                }}
                 onClick={() => {
                   const id = confirmRemoveRegId;
                   setConfirmRemoveRegId(null);
@@ -375,208 +424,35 @@ export default function Bookings() {
                 className="relative mb-4 border rounded-xl p-4 shadow-sm"
                 style={{ ...styles.card, ...styles.border }}
               >
-                {/* Admin Actions */}
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                    {/* Post to Telegram */}
-                    <button
-                      onClick={() => handlePostToTelegram(b)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
-                        telegramMessages[b.id]
-                          ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                          : "text-white hover:brightness-110"
-                      }`}
-                      style={
-                        !telegramMessages[b.id] ? styles.primaryButton : {}
-                      }
-                      title={
-                        telegramMessages[b.id]
-                          ? "Already posted to Telegram"
-                          : "Post to Telegram"
-                      }
-                      aria-label={
-                        telegramMessages[b.id]
-                          ? "Already posted to Telegram"
-                          : "Post to Telegram"
-                      }
-                      disabled={!!telegramMessages[b.id]}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                      >
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                      </svg>
-                    </button>
-
-                    {/* Check message status (only show if message was posted) */}
-                    {telegramMessages[b.id] && (
-                      <button
-                        onClick={handleRefreshMessages}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
-                          refreshMessagesMutation.isPending
-                            ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                            : "hover:brightness-110"
-                        }`}
-                        style={
-                          !refreshMessagesMutation.isPending
-                            ? { ...styles.secondaryButton, ...styles.border }
-                            : {}
-                        }
-                        title={
-                          refreshMessagesMutation.isPending
-                            ? "Checking..."
-                            : "Check if message still exists"
-                        }
-                        disabled={refreshMessagesMutation.isPending}
-                      >
-                        {refreshMessagesMutation.isPending ? (
-                          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-4 h-4"
-                          >
-                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                            <path d="M21 3v5h-5" />
-                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                            <path d="M3 21v-5h5" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-
-                    {/* Edit */}
-                    <button
-                      onClick={() => startEdit(b)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
-                      style={styles.primaryButton}
-                      title="Edit"
-                      aria-label="Edit"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                      >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
-                      </svg>
-                    </button>
-
-                    {/* Remove */}
-                    <button
-                      onClick={() => handleDelete(b.id)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
-                      style={{
-                        backgroundColor: "transparent",
-                        color: styles.destructiveText.color,
-                        borderWidth: "1px",
-                        borderColor: styles.destructiveText.color,
-                      }}
-                      title="Remove"
-                      aria-label="Remove"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                      >
-                        <path d="M3 6h18" />
-                        <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-
                 {/* Main Content */}
-                <div className="flex-1 pr-0">
+                <div className="flex-1">
                   {/* Location */}
                   <div className="flex items-center gap-3 mb-4">
-                    {location?.url ? (
-                      <a
-                        href={location.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group hover:brightness-90"
-                        style={styles.secondaryButton}
-                        title="Open in Google Maps"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-5 h-5 group-hover:brightness-110"
-                          style={styles.text}
-                        >
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                      </a>
-                    ) : (
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={styles.secondaryButton}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-5 h-5"
-                          style={styles.text}
-                        >
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="font-bold text-lg" style={styles.text}>
-                        {(() => {
-                          const displayName = location?.name || `Location #${b.location_id}`;
-                          return displayName.length > 22
-                            ? displayName.slice(0, 19) + "..."
-                            : displayName;
-                        })()}
-                      </div>
-                      <div
-                        className="text-sm font-medium"
+                    <div className="flex items-center gap-2 flex-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-5 h-5 flex-shrink-0"
                         style={styles.secondaryText}
                       >
-                        Courts {b.courts}
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <div className="flex-1">
+                        <div className="font-bold text-lg" style={styles.text}>
+                          {location?.name || `Location #${b.location_id}`}
+                        </div>
+                        <div
+                          className="text-sm font-medium"
+                          style={styles.secondaryText}
+                        >
+                          Courts {b.courts}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -911,6 +787,273 @@ export default function Bookings() {
                       </div>
                     )}
                   </div>
+
+                  {/* Admin Messages Section */}
+                  {isAdmin && (
+                    <div
+                      className="border rounded-lg p-3 space-y-3 mt-2"
+                      style={{ ...styles.header, ...styles.border }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-5 h-5"
+                            style={styles.secondaryText}
+                          >
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                          </svg>
+                          <span
+                            className="font-bold text-sm"
+                            style={styles.text}
+                          >
+                            Telegram Messages
+                          </span>
+                        </div>
+
+                        {/* Message Actions */}
+                        <div className="flex items-center gap-2">
+                          {telegramMessages[b.id] &&
+                          telegramMessages[b.id].length > 0 ? (
+                            <>
+                              <button
+                                onClick={handleRefreshMessages}
+                                disabled={refreshMessagesMutation.isPending}
+                                className="px-3 py-1.5 border rounded-md text-sm font-medium transition-colors hover:brightness-90"
+                                style={{
+                                  ...styles.secondaryButton,
+                                  ...styles.border,
+                                  opacity: refreshMessagesMutation.isPending
+                                    ? 0.6
+                                    : 1,
+                                }}
+                                title="Check message status"
+                              >
+                                {refreshMessagesMutation.isPending
+                                  ? "Checking..."
+                                  : "Refresh"}
+                              </button>
+                              <button
+                                onClick={() => handlePostToTelegram(b)}
+                                className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                                style={styles.primaryButton}
+                                title="Send new message"
+                              >
+                                Post New
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex items-center">
+                              <ChatSelector
+                                selectedChatId={selectedChatIds[b.id]}
+                                onChatSelect={(chatId) =>
+                                  setSelectedChatIds((prev) => ({
+                                    ...prev,
+                                    [b.id]: chatId,
+                                  }))
+                                }
+                                styles={styles}
+                                disabled={sendBookingMessageMutation.isPending}
+                                compact
+                              />
+                              <button
+                                onClick={() => handlePostToTelegram(b)}
+                                className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                                style={styles.primaryButton}
+                                title="Post to Telegram"
+                              >
+                                Post to Telegram
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Message Status */}
+                      <div className="space-y-1">
+                        {telegramMessages[b.id] &&
+                        telegramMessages[b.id].length > 0 ? (
+                          <>
+                            <div
+                              className="text-xs font-bold uppercase tracking-wide"
+                              style={styles.secondaryText}
+                            >
+                              Active Messages ({telegramMessages[b.id].length})
+                            </div>
+                            {telegramMessages[b.id].map((msg, index) => (
+                              <div
+                                key={msg.id}
+                                className="flex items-center justify-between p-2 rounded-md border"
+                                style={styles.selectedBg}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-semibold"
+                                    style={styles.primaryButton}
+                                  >
+                                    {index + 1}
+                                  </span>
+                                  <div className="flex flex-col">
+                                    <span
+                                      className="text-sm font-medium"
+                                      style={styles.text}
+                                    >
+                                      Message {msg.message_id}
+                                    </span>
+                                    <span
+                                      className="text-xs"
+                                      style={styles.secondaryText}
+                                    >
+                                      Chat: {msg.chat_id} •{" "}
+                                      {new Date(
+                                        msg.created_at || ""
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteMessage(
+                                      msg.id,
+                                      msg.message_id,
+                                      msg.chat_id
+                                    )
+                                  }
+                                  className="w-6 h-6 transition-colors hover:brightness-110"
+                                  style={styles.destructiveText}
+                                  title="Delete message"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="w-4 h-4"
+                                  >
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </>
+                        ) : (
+                          <div
+                            className="text-sm text-center py-4"
+                            style={styles.secondaryText}
+                          >
+                            No messages posted yet
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin Actions */}
+                  {(isAdmin || location?.url) && (
+                    <div
+                      className="flex justify-end gap-1 mt-3 pt-3 border-t"
+                      style={styles.border}
+                    >
+                      {/* Maps Link */}
+                      {location?.url && (
+                        <a
+                          href={location.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                          style={{
+                            ...styles.secondaryButton,
+                            ...styles.border,
+                          }}
+                          title="Open in Google Maps"
+                          aria-label="Open in Google Maps"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4"
+                          >
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        </a>
+                      )}
+
+                      {/* Admin Controls */}
+                      {isAdmin && (
+                        <>
+                          {/* Edit */}
+                          <button
+                            onClick={() => startEdit(b)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                            style={styles.primaryButton}
+                            title="Edit"
+                            aria-label="Edit"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+
+                          {/* Remove */}
+                          <button
+                            onClick={() => handleDelete(b.id)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                            style={{
+                              backgroundColor: "transparent",
+                              color: styles.destructiveText.color,
+                              borderWidth: "1px",
+                              borderColor: styles.destructiveText.color,
+                            }}
+                            title="Remove"
+                            aria-label="Remove"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

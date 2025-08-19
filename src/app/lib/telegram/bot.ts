@@ -1,5 +1,5 @@
 import { Bot, Context } from "grammy";
-import type { InlineKeyboardMarkup } from "grammy/types";
+import type { InlineKeyboardMarkup, Chat } from "grammy/types";
 import {
   CALLBACK_MESSAGES,
   MessageFormatter,
@@ -10,10 +10,32 @@ import {
   handleDatabaseRegistration,
   isLateCancellationByMessage,
 } from "@/app/lib/telegram/booking";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import type { Json } from "../../../../database.types";
 
 const token = process.env.TELEGRAM_BOT_TOKEN!;
 
 export const bot = new Bot<Context>(token);
+
+// Ensure bot.init() is called exactly once per runtime
+let botInitialized = false;
+let botInitPromise: Promise<void> | null = null;
+export async function ensureBotInit() {
+  if (botInitialized) return;
+  if (!botInitPromise) {
+    botInitPromise = bot
+      .init()
+      .then(() => {
+        botInitialized = true;
+      })
+      .catch((err) => {
+        // Reset promise on failure so future attempts can retry
+        botInitPromise = null;
+        throw err;
+      });
+  }
+  await botInitPromise;
+}
 
 // Callback buttons: join/leave and legacy skill_* buttons
 bot.on("callback_query:data", async (ctx) => {
@@ -150,5 +172,133 @@ bot.on("message:new_chat_members", async (ctx) => {
     }
   } catch (error) {
     console.error("Error sending welcome message:", error);
+  }
+});
+
+// Track when the bot is added to or removed from chats (preferred event)
+bot.on("my_chat_member", async (ctx) => {
+  try {
+    const mcm = ctx.update.my_chat_member;
+    if (!mcm) return;
+
+    const chat: Chat = mcm.chat;
+    const status: string | undefined = mcm.new_chat_member?.status;
+
+    const isJoin = ["member", "administrator", "restricted"].includes(
+      String(status)
+    );
+    const isLeave = ["left", "kicked"].includes(String(status));
+
+    if (isJoin) {
+      const baseRecord: {
+        id: number;
+        type?: string;
+        title?: string | null;
+        username?: string | null;
+        name?: string | null;
+        permissions?: Json | null;
+      } = {
+        id: chat.id,
+        type: chat.type,
+        title: chat.title ?? null,
+        username: chat.username ?? null,
+        name: null,
+        permissions: null, // Chat permissions handled separately in Grammy
+      };
+
+      if (chat.type === "private") {
+        const first = chat.first_name || "";
+        const last = chat.last_name || "";
+        const composed = `${first} ${last}`.trim();
+        baseRecord.name = composed || null;
+      }
+
+      const { error } = await supabaseAdmin
+        .from("chats")
+        .upsert(baseRecord, { onConflict: "id" });
+      if (error) {
+        console.error("Failed to upsert chat on my_chat_member join:", error);
+      } else {
+        console.log("Upserted chat on my_chat_member join:", baseRecord);
+      }
+    } else if (isLeave) {
+      const { error } = await supabaseAdmin
+        .from("chats")
+        .delete()
+        .eq("id", chat.id);
+      if (error) {
+        console.error("Failed to delete chat on my_chat_member leave:", error);
+      } else {
+        console.log("Deleted chat on my_chat_member leave:", chat.id);
+      }
+    }
+  } catch (e) {
+    console.error("Error processing my_chat_member:", e);
+  }
+});
+
+// Some setups deliver bot membership changes via chat_member
+bot.on("chat_member", async (ctx) => {
+  try {
+    const cm = ctx.update.chat_member;
+    if (!cm) return;
+
+    const botIdStr = (process.env.TELEGRAM_BOT_TOKEN || "").split(":")[0];
+    const botId = botIdStr ? parseInt(botIdStr, 10) : NaN;
+    const memberUserId: number | undefined = cm.new_chat_member?.user?.id;
+    if (!botId || memberUserId !== botId) return;
+
+    const chat: Chat = cm.chat;
+    const status: string | undefined = cm.new_chat_member?.status;
+    const isJoin = ["member", "administrator", "restricted"].includes(
+      String(status)
+    );
+    const isLeave = ["left", "kicked"].includes(String(status));
+
+    if (isJoin) {
+      const baseRecord: {
+        id: number;
+        type?: string;
+        title?: string | null;
+        username?: string | null;
+        name?: string | null;
+        permissions?: Json | null;
+      } = {
+        id: chat.id,
+        type: chat.type,
+        title: chat.title ?? null,
+        username: chat.username ?? null,
+        name: null,
+        permissions: null, // Chat permissions handled separately in Grammy
+      };
+
+      if (chat.type === "private") {
+        const first = chat.first_name || "";
+        const last = chat.last_name || "";
+        const composed = `${first} ${last}`.trim();
+        baseRecord.name = composed || null;
+      }
+
+      const { error } = await supabaseAdmin
+        .from("chats")
+        .upsert(baseRecord, { onConflict: "id" });
+      if (error) {
+        console.error("Failed to upsert chat on chat_member join:", error);
+      } else {
+        console.log("Upserted chat on chat_member join:", baseRecord);
+      }
+    } else if (isLeave) {
+      const { error } = await supabaseAdmin
+        .from("chats")
+        .delete()
+        .eq("id", chat.id);
+      if (error) {
+        console.error("Failed to delete chat on chat_member leave:", error);
+      } else {
+        console.log("Deleted chat on chat_member leave:", chat.id);
+      }
+    }
+  } catch (e) {
+    console.error("Error processing chat_member:", e);
   }
 });

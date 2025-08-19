@@ -10,11 +10,10 @@ export const runtime = "edge";
  */
 export async function POST() {
   try {
-    // Get all active messages from database
+    // Get all messages from database
     const { data: messages, error: messagesError } = await supabaseAdmin
       .from("messages")
-      .select("id, message_id, chat_id")
-      .eq("is_active", true);
+      .select("id, message_id, chat_id");
 
     if (messagesError) {
       console.error("Failed to fetch messages:", messagesError);
@@ -27,7 +26,7 @@ export async function POST() {
     if (!messages || messages.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "No active messages to check",
+        message: "No messages to check",
         checked: 0,
         cleaned: 0,
       });
@@ -64,18 +63,18 @@ export async function POST() {
         if (!result.ok && (result.error_code === 400 || result.description?.includes("message to edit not found"))) {
           const { error: updateError } = await supabaseAdmin
             .from("messages")
-            .update({ is_active: false })
+            .delete()
             .eq("id", message.id);
 
           if (updateError) {
             console.error(
-              `Failed to mark message ${message.message_id} as inactive:`,
+              `Failed to delete message ${message.message_id}:`,
               updateError
             );
           } else {
             cleanedCount++;
             console.log(
-              `Message ${message.message_id} marked as inactive (deleted from Telegram)`
+              `Message ${message.message_id} deleted (no longer exists in Telegram)`
             );
           }
         }

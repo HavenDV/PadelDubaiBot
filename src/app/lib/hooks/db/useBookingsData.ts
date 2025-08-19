@@ -11,7 +11,7 @@ export const useBookingsData = () => {
       const [bRes, lRes, tRes, rRes] = await Promise.all([
         supabase.from("bookings").select("*").order("id", { ascending: false }),
         supabase.from("locations").select("*").order("id"),
-        supabase.from("messages").select("booking_id").eq("is_active", true),
+        supabase.from("messages").select("*").order("created_at", { ascending: false }),
         supabase.from("registrations").select(`
           *,
           user:users(id, first_name, last_name, username, photo_url, explicit_name)
@@ -26,11 +26,15 @@ export const useBookingsData = () => {
       const bookings = bRes.data ?? [];
       const locations = lRes.data ?? [];
       const registrations = rRes.data ?? [];
+      const messages = tRes.data ?? [];
 
-      // Create a lookup for bookings that have been posted to Telegram
-      const telegramMessageLookup: { [key: number]: boolean } = {};
-      (tRes.data ?? []).forEach((msg) => {
-        telegramMessageLookup[msg.booking_id] = true;
+      // Create a lookup for messages by booking_id
+      const telegramMessageLookup: { [key: number]: typeof messages } = {};
+      messages.forEach((msg) => {
+        if (!telegramMessageLookup[msg.booking_id]) {
+          telegramMessageLookup[msg.booking_id] = [];
+        }
+        telegramMessageLookup[msg.booking_id].push(msg);
       });
 
       return {
@@ -38,6 +42,7 @@ export const useBookingsData = () => {
         locations,
         registrations,
         telegramMessageLookup,
+        messages,
       };
     },
     staleTime: 30 * 1000,      // 30 seconds - bookings change frequently

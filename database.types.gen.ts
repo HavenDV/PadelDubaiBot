@@ -86,6 +86,45 @@ export type Database = {
           },
         ]
       }
+      chats: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          member_count: number | null
+          name: string | null
+          permissions: Json | null
+          title: string | null
+          type: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: number
+          member_count?: number | null
+          name?: string | null
+          permissions?: Json | null
+          title?: string | null
+          type?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          member_count?: number | null
+          name?: string | null
+          permissions?: Json | null
+          title?: string | null
+          type?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string | null
@@ -149,7 +188,6 @@ export type Database = {
           chat_id: number
           created_at: string | null
           id: number
-          is_active: boolean | null
           message_id: number
           updated_at: string | null
         }
@@ -158,7 +196,6 @@ export type Database = {
           chat_id: number
           created_at?: string | null
           id?: number
-          is_active?: boolean | null
           message_id: number
           updated_at?: string | null
         }
@@ -167,7 +204,6 @@ export type Database = {
           chat_id?: number
           created_at?: string | null
           id?: number
-          is_active?: boolean | null
           message_id?: number
           updated_at?: string | null
         }
