@@ -3,9 +3,16 @@ export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import { bot, ensureBotInit } from "@/app/lib/telegram/bot";
 
+// receive from url parameters as fallback
 export async function POST(req: NextRequest) {
   const secretToken = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
-  if (secretToken !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+  const url = new URL(req.url);
+  const secretTokenFromUrl = url.searchParams.get("secret_token");
+
+  if (
+    secretToken !== process.env.TELEGRAM_WEBHOOK_SECRET &&
+    secretTokenFromUrl !== process.env.TELEGRAM_WEBHOOK_SECRET
+  ) {
     return NextResponse.json(
       { ok: false, error: "Not allowed" },
       { status: 405 }

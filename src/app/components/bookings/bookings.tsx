@@ -17,6 +17,7 @@ import {
   useSendBookingMessage,
 } from "@lib/hooks/db";
 import ChatSelector from "@/app/components/chats/ChatSelector";
+import { useDefaultChat } from "@/app/lib/hooks/db";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -36,6 +37,7 @@ export default function Bookings() {
   const locations = data?.locations ?? [];
   const registrations = data?.registrations ?? [];
   const telegramMessages = data?.telegramMessageLookup ?? {};
+  const { data: defaultChat } = useDefaultChat();
 
   // Set up query error handling
   useEffect(() => {
@@ -138,7 +140,7 @@ export default function Bookings() {
   };
 
   const handlePostToTelegram = (booking: Booking) => {
-    if (!confirm("Post this booking to Telegram chat for registrations?"))
+    if (!confirm("Post this booking to chat for registrations?"))
       return;
 
     setError("");
@@ -160,17 +162,23 @@ export default function Bookings() {
       },
     }));
 
+    const targetChatId = selectedChatIds[booking.id] ?? defaultChat?.id;
+    if (!targetChatId) {
+      setError("No chat selected and no default chat available");
+      return;
+    }
+
     sendBookingMessageMutation.mutate(
       {
         booking,
         location,
         registrations: formattedRegs,
-        chatId: selectedChatIds[booking.id],
+        chatId: targetChatId,
       },
       {
         onError: (error) => {
-          setError(`Failed to post to Telegram: ${error.message}`);
-          console.error("Post to Telegram error:", error);
+          setError(`Failed to post: ${error.message}`);
+          console.error("Post error:", error);
         },
       }
     );
@@ -809,11 +817,8 @@ export default function Bookings() {
                           >
                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                           </svg>
-                          <span
-                            className="font-bold text-sm"
-                            style={styles.text}
-                          >
-                            Telegram Messages
+                          <span className="font-bold text-sm" style={styles.text}>
+                            Messages
                           </span>
                         </div>
 
@@ -866,9 +871,9 @@ export default function Bookings() {
                                 onClick={() => handlePostToTelegram(b)}
                                 className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
                                 style={styles.primaryButton}
-                                title="Post to Telegram"
+                                title="Post to chat"
                               >
-                                Post to Telegram
+                                Post to
                               </button>
                             </div>
                           )}

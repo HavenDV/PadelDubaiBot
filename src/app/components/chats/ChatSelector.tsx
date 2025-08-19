@@ -36,12 +36,9 @@ export default function ChatSelector({
     );
   }
 
-  // If there's only one chat, don't show selector in compact mode
-  if (chats.length === 1 && compact) {
-    return null;
-  }
+  // Always show selector in compact mode so the choice is explicit
 
-  const effectiveSelectedId = selectedChatId || defaultChat?.chat_id;
+  const effectiveSelectedId = selectedChatId || defaultChat?.id;
   
   if (compact) {
     return (
@@ -63,8 +60,8 @@ export default function ChatSelector({
       >
         <option value="">Default</option>
         {chats.map((chat) => (
-          <option key={chat.chat_id} value={chat.chat_id}>
-            {chat.name || chat.title || chat.username || `${chat.chat_id}`}
+          <option key={chat.id} value={chat.id}>
+            {chat.name || chat.title || chat.username || `${chat.id}`}
           </option>
         ))}
       </select>
@@ -100,14 +97,14 @@ export default function ChatSelector({
       >
         <option value="">Use default chat</option>
         {chats.map((chat) => (
-          <option key={chat.chat_id} value={chat.chat_id}>
-            {chat.name || chat.title || `Chat ${chat.chat_id}`} {chat.is_default ? "(default)" : ""}
+          <option key={chat.id} value={chat.id}>
+            {chat.name || chat.title || `Chat ${chat.id}`}
           </option>
         ))}
       </select>
       {effectiveSelectedId && (
         <div style={{ fontSize: "12px", color: styles.hint_color, marginTop: "4px" }}>
-          {chats.find(c => c.chat_id === effectiveSelectedId)?.description}
+          {chats.find(c => c.id === effectiveSelectedId)?.description}
         </div>
       )}
     </div>

@@ -41,16 +41,19 @@ export const useDefaultChat = () => {
   return useQuery<Chat | null>({
     queryKey: ["default-chat"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("chats").select("*").single();
+      // Pick a sensible default chat: highest member_count first, then newest
+      const { data, error } = await supabase
+        .from("chats")
+        .select("*")
+        .order("member_count", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
-        if (error.code === "PGRST116") {
-          // No default chat found
-          return null;
-        }
         throw error;
       }
-      return data;
+      return data ?? null;
     },
   });
 };

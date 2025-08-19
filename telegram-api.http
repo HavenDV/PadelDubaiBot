@@ -4,10 +4,10 @@
 @TELEGRAM_WEBHOOK_SECRET={{$dotenv TELEGRAM_WEBHOOK_SECRET}}
 
 ### Set Production Webhook
-GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/setWebhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}&url={{PRODUCTION_APP_URL}}api/telegram/webhook
+GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/setWebhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}&url={{PRODUCTION_APP_URL}}api/telegram/webhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}
 
 ### Set Webhook
-GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/setWebhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}&url={{NEXT_PUBLIC_APP_URL}}api/telegram/webhook
+GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/setWebhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}&url={{NEXT_PUBLIC_APP_URL}}api/telegram/webhook?secret_token={{TELEGRAM_WEBHOOK_SECRET}}
 
 ### Get Webhook Info
 GET https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/getWebhookInfo
