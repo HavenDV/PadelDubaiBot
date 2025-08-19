@@ -44,17 +44,42 @@ export function useThemePreference() {
       if (error) throw error;
       return true;
     },
-    onSuccess: () => {
+    onMutate: async (pref: ThemePreference) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["user-settings", "theme_preference", telegramUserId] });
+      
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(["user-settings", "theme_preference", telegramUserId]);
+      
+      // Optimistically update
+      queryClient.setQueryData(["user-settings", "theme_preference", telegramUserId], { theme_preference: pref });
+      
+      return { previousData };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(["user-settings", "theme_preference", telegramUserId], context.previousData);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["user-settings", "theme_preference", telegramUserId] });
     },
   });
 
   const themePreference: ThemePreference = data?.theme_preference ?? fallbackPref;
 
+  const [pendingPreference, setPendingPreference] = useState<ThemePreference | null>(null);
+
   const setThemePreference = (pref: ThemePreference) => {
     setFallbackPref(pref); // optimistic local update before server response
     if (!isAnonymous && telegramUserId) {
-      mutation.mutate(pref);
+      setPendingPreference(pref);
+      mutation.mutate(pref, {
+        onSettled: () => {
+          setPendingPreference(null);
+        }
+      });
     }
   };
 
@@ -69,5 +94,11 @@ export function useThemePreference() {
     return () => mql.removeEventListener("change", handler);
   }, []);
 
-  return { themePreference, setThemePreference, systemPrefersDark } as const;
+  return { 
+    themePreference, 
+    setThemePreference, 
+    systemPrefersDark,
+    isPending: mutation.isPending,
+    pendingPreference
+  } as const;
 }

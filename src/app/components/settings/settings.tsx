@@ -17,7 +17,7 @@ export default function Settings() {
   const { isTelegram } = useTelegram();
   const { styles } = useTelegramTheme();
   const { isAnonymous, isAdmin, telegramUserId } = useAuth();
-  const { themePreference, setThemePreference } = useThemePreference();
+  const { themePreference, setThemePreference, isPending: themeIsPending, pendingPreference } = useThemePreference();
   const { showLogs, setShowLogs } = useShowLogs();
   const [authMessage, setAuthMessage] = useState<string>("");
   const [skillMessage, setSkillMessage] = useState<string>("");
@@ -107,15 +107,47 @@ export default function Settings() {
           <div className="flex gap-2">
             {(["system", "light", "dark"] as const).map((pref) => {
               const isActive = themePreference === pref;
+              const isPending = pendingPreference === pref && themeIsPending;
+              const isDisabled = themeIsPending;
               return (
                 <button
                   key={pref}
                   onClick={() => setThemePreference(pref)}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors border"
-                  style={isActive ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }}
+                  disabled={isDisabled}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                    isDisabled ? "cursor-not-allowed" : ""
+                  }`}
+                  style={{
+                    ...(isActive ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }),
+                    opacity: isDisabled ? 0.6 : 1,
+                  }}
                   aria-pressed={isActive}
                 >
-                  {pref.charAt(0).toUpperCase() + pref.slice(1)}
+                  <span 
+                    className={isPending ? "relative overflow-hidden" : ""}
+                    style={{
+                      transition: "all 0.2s ease-in-out",
+                    }}
+                  >
+                    {pref.charAt(0).toUpperCase() + pref.slice(1)}
+                    {isPending && (
+                      <>
+                        <div
+                          className="absolute inset-0 -skew-x-12"
+                          style={{
+                            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                            animation: "shimmer 1.5s infinite",
+                          }}
+                        />
+                        <style jsx>{`
+                          @keyframes shimmer {
+                            0% { transform: translateX(-100%) skewX(-12deg); }
+                            100% { transform: translateX(200%) skewX(-12deg); }
+                          }
+                        `}</style>
+                      </>
+                    )}
+                  </span>
                 </button>
               );
             })}
