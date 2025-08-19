@@ -18,7 +18,7 @@ export default function Settings() {
   const { styles } = useTelegramTheme();
   const { isAnonymous, isAdmin, telegramUserId } = useAuth();
   const { themePreference, setThemePreference, isPending: themeIsPending, pendingPreference } = useThemePreference();
-  const { showLogs, setShowLogs } = useShowLogs();
+  const { showLogs, setShowLogs, isPending: logsIsPending } = useShowLogs();
   const [authMessage, setAuthMessage] = useState<string>("");
   const [skillMessage, setSkillMessage] = useState<string>("");
   const [pendingSkillLevel, setPendingSkillLevel] = useState<SkillLevel | null>(
@@ -337,12 +337,41 @@ export default function Settings() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowLogs(!showLogs)}
-              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors border"
-              style={showLogs ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }}
+              disabled={logsIsPending}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                logsIsPending ? "cursor-not-allowed" : ""
+              }`}
+              style={{
+                ...(showLogs ? styles.primaryButton : { ...styles.secondaryButton, ...styles.border }),
+                opacity: logsIsPending ? 0.6 : 1,
+              }}
               aria-pressed={showLogs}
             >
-              <span style={showLogs ? { color: styles.primaryButton.color } : styles.text}>
+              <span 
+                className={logsIsPending ? "relative overflow-hidden" : ""}
+                style={{
+                  ...(showLogs ? { color: styles.primaryButton.color } : styles.text),
+                  transition: "all 0.2s ease-in-out",
+                }}
+              >
                 {showLogs ? 'Hide Logs' : 'Show Logs'}
+                {logsIsPending && (
+                  <>
+                    <div
+                      className="absolute inset-0 -skew-x-12"
+                      style={{
+                        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                        animation: "shimmer 1.5s infinite",
+                      }}
+                    />
+                    <style jsx>{`
+                      @keyframes shimmer {
+                        0% { transform: translateX(-100%) skewX(-12deg); }
+                        100% { transform: translateX(200%) skewX(-12deg); }
+                      }
+                    `}</style>
+                  </>
+                )}
               </span>
             </button>
             <span className="text-xs" style={styles.secondaryText}>Toggle showing console logs overlay for debugging.</span>

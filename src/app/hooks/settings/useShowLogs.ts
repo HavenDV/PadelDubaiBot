@@ -36,19 +36,49 @@ export function useShowLogs() {
       if (error) throw error;
       return true;
     },
-    onSuccess: () => {
+    onMutate: async (value: boolean) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["user-settings", "show_logs", telegramUserId] });
+      
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(["user-settings", "show_logs", telegramUserId]);
+      
+      // Optimistically update
+      queryClient.setQueryData(["user-settings", "show_logs", telegramUserId], { show_logs: value });
+      
+      return { previousData };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(["user-settings", "show_logs", telegramUserId], context.previousData);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["user-settings", "show_logs", telegramUserId] });
     },
   });
 
   const showLogs = data?.show_logs ?? fallbackShow;
+  const [pendingValue, setPendingValue] = useState<boolean | null>(null);
+
   const setShowLogs = (value: boolean) => {
     setFallbackShow(value); // optimistic update for UI
     if (!isAnonymous && isAdmin && telegramUserId) {
-      mutation.mutate(value);
+      setPendingValue(value);
+      mutation.mutate(value, {
+        onSettled: () => {
+          setPendingValue(null);
+        }
+      });
     }
   };
 
-  return { showLogs, setShowLogs } as const;
+  return { 
+    showLogs, 
+    setShowLogs,
+    isPending: mutation.isPending,
+    pendingValue
+  } as const;
 }
 
