@@ -1,6 +1,6 @@
 "use client";
 
-import { useActiveChats, useDefaultChat } from "@lib/hooks/db";
+import { useActiveChats } from "@lib/hooks/db";
 
 interface ChatSelectorProps {
   selectedChatId?: number;
@@ -18,7 +18,6 @@ export default function ChatSelector({
   compact = false,
 }: ChatSelectorProps) {
   const { data: chats = [], isLoading } = useActiveChats();
-  const { data: defaultChat } = useDefaultChat();
 
   if (isLoading) {
     return compact ? null : (
@@ -36,15 +35,13 @@ export default function ChatSelector({
     );
   }
 
-  // Always show selector in compact mode so the choice is explicit
-
-  const effectiveSelectedId = selectedChatId || defaultChat?.id;
-  
   if (compact) {
     return (
       <select
-        value={effectiveSelectedId || ""}
-        onChange={(e) => onChatSelect(e.target.value ? parseInt(e.target.value) : undefined)}
+        value={selectedChatId || ""}
+        onChange={(e) =>
+          onChatSelect(e.target.value ? parseInt(e.target.value) : undefined)
+        }
         disabled={disabled}
         style={{
           fontSize: "12px",
@@ -58,7 +55,7 @@ export default function ChatSelector({
         }}
         title="Select chat to post to"
       >
-        <option value="">Default</option>
+        <option value="">Select chat</option>
         {chats.map((chat) => (
           <option key={chat.id} value={chat.id}>
             {chat.name || chat.title || chat.username || `${chat.id}`}
@@ -82,8 +79,10 @@ export default function ChatSelector({
         Select Chat:
       </label>
       <select
-        value={effectiveSelectedId || ""}
-        onChange={(e) => onChatSelect(e.target.value ? parseInt(e.target.value) : undefined)}
+        value={selectedChatId || ""}
+        onChange={(e) =>
+          onChatSelect(e.target.value ? parseInt(e.target.value) : undefined)
+        }
         disabled={disabled}
         style={{
           width: "100%",
@@ -95,16 +94,22 @@ export default function ChatSelector({
           fontSize: "14px",
         }}
       >
-        <option value="">Use default chat</option>
+        <option value="">Select chat</option>
         {chats.map((chat) => (
           <option key={chat.id} value={chat.id}>
             {chat.name || chat.title || `Chat ${chat.id}`}
           </option>
         ))}
       </select>
-      {effectiveSelectedId && (
-        <div style={{ fontSize: "12px", color: styles.hint_color, marginTop: "4px" }}>
-          {chats.find(c => c.id === effectiveSelectedId)?.description}
+      {selectedChatId && (
+        <div
+          style={{
+            fontSize: "12px",
+            color: styles.hint_color,
+            marginTop: "4px",
+          }}
+        >
+          {chats.find((c) => c.id === selectedChatId)?.description}
         </div>
       )}
     </div>

@@ -35,25 +35,3 @@ export const useActiveChats = () => {
     },
   });
 };
-
-// Hook for fetching the default chat
-export const useDefaultChat = () => {
-  return useQuery<Chat | null>({
-    queryKey: ["default-chat"],
-    queryFn: async () => {
-      // Pick a sensible default chat: highest member_count first, then newest
-      const { data, error } = await supabase
-        .from("chats")
-        .select("*")
-        .order("member_count", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-      return data ?? null;
-    },
-  });
-};

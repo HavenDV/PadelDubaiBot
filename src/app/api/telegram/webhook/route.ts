@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
     console.log("secretTokenFromUrl", secretTokenFromUrl);
 
     if (secretTokenFromUrl !== process.env.TELEGRAM_WEBHOOK_SECRET) {
-    return NextResponse.json(
-      { ok: false, error: "Not allowed" },
-      { status: 405 }
-    );
+      return NextResponse.json(
+        { ok: false, error: "Not allowed" },
+        { status: 405 }
+      );
+    }
   }
-
 
   const update = await req.json();
   const timestamp = new Date().toISOString();

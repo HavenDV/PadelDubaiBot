@@ -16,8 +16,7 @@ import {
   useDeleteMessage,
   useSendBookingMessage,
 } from "@lib/hooks/db";
-import ChatSelector from "@/app/components/chats/ChatSelector";
-import { useDefaultChat } from "@/app/lib/hooks/db";
+import { useActiveChats } from "@/app/lib/hooks/db";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -26,9 +25,12 @@ export default function Bookings() {
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [selectedChatIds, setSelectedChatIds] = useState<
-    Record<number, number>
-  >({});
+  const [postDialogBooking, setPostDialogBooking] = useState<Booking | null>(
+    null
+  );
+  const [postDialogChatId, setPostDialogChatId] = useState<number | undefined>(
+    undefined
+  );
 
   // Fetch all data using React Query
   const { data, isLoading: loading, error: queryError } = useBookingsData();
@@ -37,7 +39,6 @@ export default function Bookings() {
   const locations = data?.locations ?? [];
   const registrations = data?.registrations ?? [];
   const telegramMessages = data?.telegramMessageLookup ?? {};
-  const { data: defaultChat } = useDefaultChat();
 
   // Set up query error handling
   useEffect(() => {
@@ -139,10 +140,7 @@ export default function Bookings() {
     );
   };
 
-  const handlePostToTelegram = (booking: Booking) => {
-    if (!confirm("Post this booking to chat for registrations?"))
-      return;
-
+  const handlePostToTelegram = (booking: Booking, chatId: number) => {
     setError("");
 
     // Get location and registrations for this booking
@@ -162,18 +160,12 @@ export default function Bookings() {
       },
     }));
 
-    const targetChatId = selectedChatIds[booking.id] ?? defaultChat?.id;
-    if (!targetChatId) {
-      setError("No chat selected and no default chat available");
-      return;
-    }
-
     sendBookingMessageMutation.mutate(
       {
         booking,
         location,
         registrations: formattedRegs,
-        chatId: targetChatId,
+        chatId,
       },
       {
         onError: (error) => {
@@ -817,7 +809,10 @@ export default function Bookings() {
                           >
                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                           </svg>
-                          <span className="font-bold text-sm" style={styles.text}>
+                          <span
+                            className="font-bold text-sm"
+                            style={styles.text}
+                          >
                             Messages
                           </span>
                         </div>
@@ -845,7 +840,10 @@ export default function Bookings() {
                                   : "Refresh"}
                               </button>
                               <button
-                                onClick={() => handlePostToTelegram(b)}
+                                onClick={() => {
+                                  setPostDialogBooking(b);
+                                  setPostDialogChatId(undefined);
+                                }}
                                 className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
                                 style={styles.primaryButton}
                                 title="Send new message"
@@ -855,20 +853,11 @@ export default function Bookings() {
                             </>
                           ) : (
                             <div className="flex items-center">
-                              <ChatSelector
-                                selectedChatId={selectedChatIds[b.id]}
-                                onChatSelect={(chatId) =>
-                                  setSelectedChatIds((prev) => ({
-                                    ...prev,
-                                    [b.id]: chatId,
-                                  }))
-                                }
-                                styles={styles}
-                                disabled={sendBookingMessageMutation.isPending}
-                                compact
-                              />
                               <button
-                                onClick={() => handlePostToTelegram(b)}
+                                onClick={() => {
+                                  setPostDialogBooking(b);
+                                  setPostDialogChatId(undefined);
+                                }}
                                 className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
                                 style={styles.primaryButton}
                                 title="Post to chat"
@@ -1073,6 +1062,24 @@ export default function Bookings() {
 
       <ConfirmRemoveModal />
 
+      {/* Post To Dialog */}
+      {postDialogBooking && (
+        <PostToDialog
+          booking={postDialogBooking}
+          initialChatId={postDialogChatId}
+          onClose={() => {
+            setPostDialogBooking(null);
+            setPostDialogChatId(undefined);
+          }}
+          onPost={(chatId) => {
+            const b = postDialogBooking;
+            setPostDialogBooking(null);
+            setPostDialogChatId(undefined);
+            handlePostToTelegram(b, chatId);
+          }}
+        />
+      )}
+
       {/* Booking Modal (Add/Edit) */}
       <AddBookingModal
         isOpen={isModalOpen}
@@ -1082,6 +1089,141 @@ export default function Bookings() {
         onLocationUpdate={handleModalSuccess}
         editingBooking={editingBooking}
       />
+    </div>
+  );
+}
+
+// Themed Post dialog component
+function PostToDialog({
+  booking,
+  initialChatId,
+  onClose,
+  onPost,
+}: {
+  booking: Booking;
+  initialChatId?: number;
+  onClose: () => void;
+  onPost: (chatId: number) => void;
+}) {
+  const { styles } = useTelegramTheme();
+  const { data: chats = [], isLoading } = useActiveChats();
+  const [selectedId, setSelectedId] = useState<number | undefined>(
+    initialChatId
+  );
+
+  useEffect(() => {
+    if (!selectedId) setSelectedId(initialChatId);
+  }, [initialChatId, selectedId]);
+
+  // Auto-select first chat whose name/title/username doesn't contain "test"
+  useEffect(() => {
+    if (selectedId || isLoading || chats.length === 0) return;
+    const firstNonTest = chats.find((c) => {
+      const label = (c.name || c.title || c.username || "").toLowerCase();
+      return !label.includes("test");
+    });
+    if (firstNonTest) setSelectedId(firstNonTest.id);
+  }, [chats, isLoading, selectedId]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    >
+      <div
+        className="w-full max-w-md rounded-lg border shadow-sm"
+        style={{ ...styles.card, ...styles.border }}
+      >
+        <div className="p-4 space-y-3">
+          <div className="font-bold text-lg" style={styles.text}>
+            Post to
+          </div>
+          <div className="text-sm" style={styles.secondaryText}>
+            Choose a chat to post this booking to.
+          </div>
+
+          <div className="max-h-64 overflow-auto mt-2 space-y-2">
+            {isLoading ? (
+              <div
+                className="text-sm"
+                style={{ color: styles.secondaryText.color }}
+              >
+                Loading chats...
+              </div>
+            ) : chats.length === 0 ? (
+              <div className="text-sm" style={styles.secondaryText}>
+                No chats available.
+              </div>
+            ) : (
+              chats.map((chat) => {
+                const isSelected = selectedId === chat.id;
+                return (
+                  <button
+                    key={chat.id}
+                    type="button"
+                    onClick={() => setSelectedId(chat.id)}
+                    className="w-full text-left p-3 rounded-md border transition"
+                    style={{
+                      borderColor: isSelected
+                        ? styles.primaryButton.backgroundColor
+                        : (styles.border?.borderColor as string) || "#ccc",
+                      backgroundColor: isSelected
+                        ? (styles.selectedBg?.backgroundColor as string) ||
+                          "rgba(59,130,246,0.1)"
+                        : (styles.card?.backgroundColor as string),
+                      color: styles.text.color,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {chat.name || chat.title || chat.username || chat.id}
+                        </span>
+                      </div>
+                      <span
+                        className={`w-4 h-4 rounded-full border inline-block ${
+                          isSelected ? "bg-current" : ""
+                        }`}
+                        style={{
+                          borderColor: styles.secondaryText.color,
+                          color: styles.text.color,
+                        }}
+                      />
+                    </div>
+                    {chat.description && (
+                      <div
+                        className="text-xs mt-1"
+                        style={styles.secondaryText}
+                      >
+                        {chat.description}
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+              style={styles.secondaryButton}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110"
+              style={styles.primaryButton}
+              onClick={() => selectedId && onPost(selectedId)}
+              disabled={!selectedId}
+              title={!selectedId ? "Select a chat" : "Post"}
+            >
+              Post
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
