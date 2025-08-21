@@ -90,8 +90,9 @@ export class MessageFormatter {
 💵 <b>Цена:</b> ${booking.price} aed/чел
 🏟️ <b>Забронировано кортов:</b> ${booking.courts}`;
 
-    if (booking.note) {
-      message += `\n\n${booking.note}`;
+    const trimmedNote = (booking.note || "").trim();
+    if (trimmedNote) {
+      message += `\n\n${trimmedNote}`;
     }
 
     if (booking.cancelled) {
@@ -102,7 +103,7 @@ export class MessageFormatter {
     const waitlistSection = this.formatWaitlist(waitlist);
 
     // Avoid extra blank line when there is no note
-    const beforeCalendar = booking.note ? "\n\n" : "\n";
+    const beforeCalendar = trimmedNote ? "\n\n" : "\n";
     message += `${beforeCalendar}${calendarSection}\n⚙️ ${settingsLink}
 
 ${
