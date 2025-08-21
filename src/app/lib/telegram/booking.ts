@@ -370,9 +370,16 @@ export async function updateTelegramMessageFromDatabase(
     if (!tgRes?.ok) {
       const desc = String(tgRes?.description || "").toLowerCase();
       const code = tgRes?.error_code;
-      const notFound = code === 400 || /message to edit not found/.test(desc);
+      const notModified = /message is not modified/.test(desc);
+      const notFound = /message to edit not found/.test(desc);
       const rateLimited = code === 429 || /too many requests/.test(desc);
 
+      // Treat "not modified" as a successful no-op
+      if (notModified) {
+        return { success: true };
+      }
+
+      // Only delete DB record when Telegram says the message does not exist
       if (notFound && !rateLimited) {
         try {
           await supabaseAdmin

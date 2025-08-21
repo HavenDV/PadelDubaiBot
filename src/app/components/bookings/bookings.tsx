@@ -86,19 +86,30 @@ export default function Bookings() {
   // Refresh messages mutation
   const refreshMessagesMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/telegram/update-messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // No body to trigger full-scan cleanup mode
-      });
+      try {
+        const response = await fetch("/api/telegram/update-messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // No body to trigger full-scan cleanup mode
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to refresh message status");
+        if (!response.ok) {
+          // Try to surface server error details
+          const body = await response
+            .json()
+            .catch(async () => ({ error: await response.text().catch(() => "") }));
+          const msg = body?.error || `Failed to refresh message status (${response.status})`;
+          throw new Error(msg);
+        }
+
+        return response.json();
+      } catch (e) {
+        // Network/unknown error fallback
+        const err = e as Error;
+        throw new Error(err.message || "Failed to refresh message status");
       }
-
-      return response.json();
     },
     onSuccess: (result) => {
       console.log("Message cleanup result:", result);
