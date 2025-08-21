@@ -484,10 +484,13 @@ export default function Bookings() {
                                 aria-label="Decrease courts"
                                 disabled={updateBookingMutation.isPending || b.courts <= 1}
                                 onClick={() =>
-                                  updateBookingMutation.mutate({
-                                    id: b.id,
-                                    updates: { courts: Math.max(1, (b.courts || 1) - 1) },
-                                  })
+                                  updateBookingMutation.mutate(
+                                    {
+                                      id: b.id,
+                                      updates: { courts: Math.max(1, (b.courts || 1) - 1) },
+                                    },
+                                    { onSuccess: () => { refreshMessagesMutation.mutate(); } }
+                                  )
                                 }
                               >
                                 <span style={styles.text}>-</span>
@@ -499,10 +502,13 @@ export default function Bookings() {
                                 aria-label="Increase courts"
                                 disabled={updateBookingMutation.isPending}
                                 onClick={() =>
-                                  updateBookingMutation.mutate({
-                                    id: b.id,
-                                    updates: { courts: (b.courts || 1) + 1 },
-                                  })
+                                  updateBookingMutation.mutate(
+                                    {
+                                      id: b.id,
+                                      updates: { courts: (b.courts || 1) + 1 },
+                                    },
+                                    { onSuccess: () => { refreshMessagesMutation.mutate(); } }
+                                  )
                                 }
                               >
                                 <span style={styles.text}>+</span>
