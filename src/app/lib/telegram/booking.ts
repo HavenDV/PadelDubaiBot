@@ -53,7 +53,6 @@ export async function handleDatabaseRegistration(
       .select("booking_id")
       .eq("message_id", messageId)
       .eq("chat_id", chatId)
-      .eq("is_active", true)
       .single();
 
     if (messageError || !telegramMessage) {
@@ -210,7 +209,6 @@ export async function isLateCancellationByMessage(
       .select("booking_id")
       .eq("message_id", messageId)
       .eq("chat_id", chatId)
-      .eq("is_active", true)
       .single();
 
     if (messageError || !telegramMessage) {
@@ -301,7 +299,6 @@ export async function updateTelegramMessageFromDatabase(
       .select("booking_id")
       .eq("message_id", messageId)
       .eq("chat_id", chatId)
-      .eq("is_active", true)
       .single();
 
     if (messageError || !telegramMessage) {
