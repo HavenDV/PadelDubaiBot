@@ -34,7 +34,7 @@ export {
 export { useDeleteMessage } from "./useMessageMutations";
 
 // Chat-related hooks
-export { useChats, useActiveChats, useDefaultChat } from "./useChats";
+export { useChats, useActiveChats } from "./useChats";
 
 // Telegram-related hooks
 export { useSendBookingMessage } from "../telegram/useSendBookingMessage";

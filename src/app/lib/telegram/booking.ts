@@ -292,7 +292,12 @@ export async function generateMessageFromDatabase(
 export async function updateTelegramMessageFromDatabase(
   chatId: number,
   messageId: number
-): Promise<{ success: boolean; removed?: boolean; error?: string; error_code?: number }> {
+): Promise<{
+  success: boolean;
+  removed?: boolean;
+  error?: string;
+  error_code?: number;
+}> {
   try {
     const { data: telegramMessage, error: messageError } = await supabaseAdmin
       .from("messages")
@@ -375,6 +380,7 @@ export async function updateTelegramMessageFromDatabase(
             .delete()
             .match({ chat_id: chatId, message_id: messageId });
         } catch (e) {
+          console.error("Error deleting message from database:", e);
           // ignore delete errors; we'll still report removed intent
         }
         return { success: true, removed: true };

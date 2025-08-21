@@ -29,7 +29,7 @@ export default function ConfirmRemoveModal({
             Remove player
           </div>
           <div className="text-sm" style={styles.secondaryText}>
-            Are you sure you want to remove this player's registration?
+            Are you sure you want to remove this player&apos;s registration?
           </div>
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
@@ -57,4 +57,3 @@ export default function ConfirmRemoveModal({
     </div>
   );
 }
-
