@@ -587,31 +587,29 @@ export default function Bookings() {
                         </span>
                       </div>
 
-                      {/* User Registration Control */}
-                      {!isAdmin && (
-                        <div className="sm:mt-0 mt-1">
-                          {userRegistered ? (
-                            <button
-                              onClick={() => handleUnregister(b.id)}
-                              className="px-3 py-1.5 border rounded-md text-sm font-medium transition-colors hover:brightness-90"
-                              style={{
-                                ...styles.secondaryButton,
-                                borderColor: "#ef4444",
-                              }}
-                            >
-                              {userOnWaitlist ? "Leave Waitlist" : "Cancel"}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleRegister(b.id)}
-                              className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
-                              style={styles.primaryButton}
-                            >
-                              {isFull ? "Join Waitlist" : "Register"}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {/* User Registration Control (available to all, including admins) */}
+                      <div className="sm:mt-0 mt-1">
+                        {userRegistered ? (
+                          <button
+                            onClick={() => handleUnregister(b.id)}
+                            className="px-3 py-1.5 border rounded-md text-sm font-medium transition-colors hover:brightness-90"
+                            style={{
+                              ...styles.secondaryButton,
+                              borderColor: "#ef4444",
+                            }}
+                          >
+                            {userOnWaitlist ? "Leave Waitlist" : "Cancel"}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleRegister(b.id)}
+                            className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                            style={styles.primaryButton}
+                          >
+                            {isFull ? "Join Waitlist" : "Register"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Main Players */}
