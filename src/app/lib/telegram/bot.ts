@@ -65,6 +65,7 @@ bot.on("callback_query:data", async (ctx) => {
     } catch {}
 
     // Late cancellation warning (only for leave) - DB-based
+    // Show an alert but proceed to process the leave to free the slot
     if (action === "leave") {
       const lc = await isLateCancellationByMessage(chatId, messageId);
       if (lc.isLate && lc.hoursRemaining !== null) {
@@ -76,7 +77,7 @@ bot.on("callback_query:data", async (ctx) => {
             show_alert: true,
           });
         } catch {}
-        return; // Stop processing to avoid removing registration
+        // Do not return here; continue to remove registration
       }
     }
     try {
