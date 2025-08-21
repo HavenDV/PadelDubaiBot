@@ -224,9 +224,9 @@ export default function Bookings() {
 
   const removeRegistrationByIdMutation = useRemoveRegistrationById();
 
-  const handleAdminRemoveRegistration = (registrationId: number) => {
+  const handleAdminRemoveRegistration = (registrationId: number, bookingId: number) => {
     setError("");
-    removeRegistrationByIdMutation.mutate(registrationId, {
+    removeRegistrationByIdMutation.mutate({ registrationId, bookingId }, {
       onError: (error) => {
         setError("Failed to remove registration");
         console.error(error);
@@ -235,12 +235,12 @@ export default function Bookings() {
   };
 
   // Themed confirm dialog state for admin remove
-  const [confirmRemoveRegId, setConfirmRemoveRegId] = useState<number | null>(
-    null
-  );
+  const [confirmRemove, setConfirmRemove] = useState<
+    { id: number; bookingId: number } | null
+  >(null);
 
   const ConfirmRemoveModal = () => {
-    if (confirmRemoveRegId === null) return null;
+    if (confirmRemove === null) return null;
     return (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -261,7 +261,7 @@ export default function Bookings() {
               <button
                 className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 style={styles.secondaryButton}
-                onClick={() => setConfirmRemoveRegId(null)}
+                onClick={() => setConfirmRemove(null)}
               >
                 Cancel
               </button>
@@ -274,9 +274,9 @@ export default function Bookings() {
                   borderColor: styles.destructiveText.color,
                 }}
                 onClick={() => {
-                  const id = confirmRemoveRegId;
-                  setConfirmRemoveRegId(null);
-                  handleAdminRemoveRegistration(id);
+                  const payload = confirmRemove;
+                  setConfirmRemove(null);
+                  handleAdminRemoveRegistration(payload.id, payload.bookingId);
                 }}
               >
                 Remove
@@ -660,7 +660,7 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() => setConfirmRemoveRegId(reg.id)}
+                                onClick={() => setConfirmRemove({ id: reg.id, bookingId: b.id })}
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"
@@ -752,7 +752,7 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() => setConfirmRemoveRegId(reg.id)}
+                                onClick={() => setConfirmRemove({ id: reg.id, bookingId: b.id })}
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"

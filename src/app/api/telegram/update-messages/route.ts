@@ -1,108 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
 import { updateTelegramMessageFromDatabase } from "@/app/lib/telegram/booking";
 
 export const runtime = "edge";
 
 interface UpdateMessagesRequest {
-  userId?: number;
+  bookingId?: number;
+  userId?: number; // reserved for future expansion
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await req.text();
-    const { userId }: UpdateMessagesRequest = body ? JSON.parse(body) : {};
+    const { bookingId }: UpdateMessagesRequest = await request.json();
 
-    let query;
-    
-    if (userId) {
-      // Find messages for bookings where specific user is registered
-      query = supabaseAdmin
-        .from("messages")
-        .select(`
-          message_id,
-          chat_id,
-          booking_id,
-          bookings!inner (
-            id,
-            cancelled,
-            registrations!inner (
-              user_id
-            )
-          )
-        `)
-        .eq("bookings.cancelled", false)
-        .eq("bookings.registrations.user_id", userId);
-    } else {
-      // Find all messages for active bookings
-      query = supabaseAdmin
-        .from("messages")
-        .select(`
-          message_id,
-          chat_id,
-          booking_id,
-          bookings!inner (
-            id,
-            cancelled
-          )
-        `)
-        .eq("bookings.cancelled", false);
+    if (!bookingId) {
+      return NextResponse.json(
+        { error: "bookingId is required" },
+        { status: 400 }
+      );
     }
 
-    const { data: messages, error: messagesError } = await query;
+    const { data: messages, error } = await supabaseAdmin
+      .from("messages")
+      .select("chat_id, message_id")
+      .eq("booking_id", bookingId);
 
-    if (messagesError) {
-      console.error("Error fetching messages:", messagesError);
+    if (error) {
+      console.error("Failed to fetch messages for booking:", error);
       return NextResponse.json(
         { error: "Failed to fetch messages" },
         { status: 500 }
       );
     }
 
-    if (!messages || messages.length === 0) {
-      return NextResponse.json(
-        { message: userId ? "No active messages found for user" : "No active messages found", updatedCount: 0 },
-        { status: 200 }
+    const updates = (messages || []).map((m) =>
+      updateTelegramMessageFromDatabase(m.chat_id, m.message_id)
+    );
+    const results = await Promise.allSettled(updates);
+
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      console.warn(
+        `Some Telegram message updates failed (${failed.length}/${results.length})`
       );
     }
 
-    // Update all Telegram messages
-    const updatePromises = messages.map(message =>
-      updateTelegramMessageFromDatabase(message.chat_id, message.message_id)
-    );
-
-    const results = await Promise.allSettled(updatePromises);
-    
-    let successCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
-
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled" && result.value.success) {
-        successCount++;
-      } else {
-        errorCount++;
-        const errorMsg = result.status === "rejected" 
-          ? result.reason?.message || "Unknown error"
-          : result.value.error || "Update failed";
-        errors.push(`Message ${messages[index]?.message_id}: ${errorMsg}`);
-      }
+    return NextResponse.json({
+      success: true,
+      processed: results.length,
+      failed: failed.length,
     });
-
-    const response = {
-      message: `Updated ${successCount} messages, ${errorCount} errors`,
-      updatedCount: successCount,
-      errorCount,
-      errors: errorCount > 0 ? errors : undefined,
-      filteredByUser: !!userId,
-    };
-
-    return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error("Error updating messages:", error);
+    console.error("Error updating telegram messages:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
+
+export async function GET() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function PUT() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function PATCH() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
