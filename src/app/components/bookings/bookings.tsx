@@ -10,6 +10,7 @@ import AddPlayerModal from "./AddPlayerModal";
 import ConfirmRemoveModal from "./ConfirmRemoveModal";
 import ConfirmSelfCancelModal from "./ConfirmSelfCancelModal";
 import ConfirmPinModal from "./ConfirmPinModal";
+import ConfirmDeleteBookingModal from "./ConfirmDeleteBookingModal";
 import PostToDialog from "./PostToDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -93,15 +94,12 @@ export default function Bookings() {
   const unpinMessageMutation = useUnpinMessage();
   const updateBookingMutation = useUpdateBooking();
 
+  const [confirmDeleteBookingId, setConfirmDeleteBookingId] =
+    useState<number | null>(null);
+
   const handleDelete = (id: number) => {
-    if (!confirm("Delete this booking?")) return;
     setError("");
-    deleteBookingMutation.mutate(id, {
-      onError: (error) => {
-        setError("Failed to delete booking");
-        console.error(error);
-      },
-    });
+    setConfirmDeleteBookingId(id);
   };
 
   // Refresh messages mutation
@@ -1360,6 +1358,21 @@ export default function Bookings() {
         isPending={removeRegistrationMutation.isPending}
         onCancel={() => setConfirmSelfBookingId(null)}
         onConfirm={(bid) => handleUnregister(bid)}
+      />
+
+      <ConfirmDeleteBookingModal
+        bookingId={confirmDeleteBookingId}
+        isPending={deleteBookingMutation.isPending}
+        onCancel={() => setConfirmDeleteBookingId(null)}
+        onConfirm={(bid) =>
+          deleteBookingMutation.mutate(bid, {
+            onSuccess: () => setConfirmDeleteBookingId(null),
+            onError: (error) => {
+              setError("Failed to delete booking");
+              console.error(error);
+            },
+          })
+        }
       />
 
       {/* Pin/Unpin Confirmation Modals */}
