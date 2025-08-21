@@ -8,7 +8,7 @@ export const useBookingsData = () => {
   return useQuery({
     queryKey: ["bookings-data"],
     queryFn: async () => {
-      const [bRes, lRes, tRes, rRes] = await Promise.all([
+      const [bRes, lRes, tRes, rRes, cRes] = await Promise.all([
         supabase.from("bookings").select("*").order("id", { ascending: false }),
         supabase.from("locations").select("*").order("id"),
         supabase
@@ -24,17 +24,23 @@ export const useBookingsData = () => {
         `
           )
           .order("created_at", { ascending: true }),
+        supabase
+          .from("chats")
+          .select("id, title, name, username, type")
+          .order("updated_at", { ascending: false }),
       ]);
 
       if (bRes.error) throw bRes.error;
       if (lRes.error) throw lRes.error;
       if (tRes.error) throw tRes.error;
       if (rRes.error) throw rRes.error;
+      if (cRes.error) throw cRes.error;
 
       const bookings = bRes.data ?? [];
       const locations = lRes.data ?? [];
       const registrations = rRes.data ?? [];
       const messages = tRes.data ?? [];
+      const chats = cRes.data ?? [];
 
       // Create a lookup for messages by booking_id
       const telegramMessageLookup: { [key: number]: typeof messages } = {};
@@ -45,12 +51,20 @@ export const useBookingsData = () => {
         telegramMessageLookup[msg.booking_id].push(msg);
       });
 
+      // Build chat lookup
+      const chatLookup: Record<number, { id: number; title: string | null; name: string | null; username: string | null; type: string } > = {};
+      for (const ch of chats) {
+        chatLookup[ch.id] = ch as typeof chatLookup[number];
+      }
+
       return {
         bookings,
         locations,
         registrations,
         telegramMessageLookup,
         messages,
+        chats,
+        chatLookup,
       };
     },
     staleTime: 30 * 1000, // 30 seconds - bookings change frequently

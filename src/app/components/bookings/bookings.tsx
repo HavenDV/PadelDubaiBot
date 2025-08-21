@@ -39,6 +39,7 @@ export default function Bookings() {
   const locations = data?.locations ?? [];
   const registrations = data?.registrations ?? [];
   const telegramMessages = data?.telegramMessageLookup ?? {};
+  const chatLookup = data?.chatLookup ?? {};
 
   // Set up query error handling
   useEffect(() => {
@@ -634,13 +635,37 @@ export default function Bookings() {
                               >
                                 {index + 1}
                               </span>
-                              <span
-                                className="text-sm font-medium"
-                                style={styles.text}
-                              >
-                                {reg.user?.username ||
-                                  reg.user?.first_name ||
-                                  `User ${reg.user_id}`}
+                              <span className="text-sm font-medium" style={styles.text}>
+                                {/* Username (link) or fallback */}
+                                {reg.user?.username ? (
+                                  <a
+                                    href={`https://t.me/${reg.user.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={styles.text}
+                                  >
+                                    @{reg.user.username}
+                                  </a>
+                                ) : (
+                                  <>{reg.user?.first_name || `User ${reg.user_id}`}</>
+                                )}
+                                {/* Display name (explicit or first+last) */}
+                                {(() => {
+                                  const name =
+                                    reg.user?.explicit_name ||
+                                    [reg.user?.first_name, reg.user?.last_name]
+                                      .filter(Boolean)
+                                      .join(" ");
+                                  return name ? (
+                                    <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                      {name}
+                                    </span>
+                                  ) : null;
+                                })()}
+                                {/* Skill */}
+                                <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                  ({reg.user?.skill_level || "E"})
+                                </span>
                               </span>
                               {userRegistered &&
                                 telegramUserId &&
@@ -727,13 +752,37 @@ export default function Bookings() {
                               >
                                 W{index + 1}
                               </span>
-                              <span
-                                className="text-sm font-medium"
-                                style={styles.text}
-                              >
-                                {reg.user?.username ||
-                                  reg.user?.first_name ||
-                                  `User ${reg.user_id}`}
+                              <span className="text-sm font-medium" style={styles.text}>
+                                {/* Username (link) or fallback */}
+                                {reg.user?.username ? (
+                                  <a
+                                    href={`https://t.me/${reg.user.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={styles.text}
+                                  >
+                                    @{reg.user.username}
+                                  </a>
+                                ) : (
+                                  <>{reg.user?.first_name || `User ${reg.user_id}`}</>
+                                )}
+                                {/* Display name (explicit or first+last) */}
+                                {(() => {
+                                  const name =
+                                    reg.user?.explicit_name ||
+                                    [reg.user?.first_name, reg.user?.last_name]
+                                      .filter(Boolean)
+                                      .join(" ");
+                                  return name ? (
+                                    <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                      {name}
+                                    </span>
+                                  ) : null;
+                                })()}
+                                {/* Skill */}
+                                <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                  ({reg.user?.skill_level || "E"})
+                                </span>
                               </span>
                               {userOnWaitlist &&
                                 telegramUserId &&
@@ -898,14 +947,25 @@ export default function Bookings() {
                                     >
                                       Message {msg.message_id}
                                     </span>
-                                    <span
-                                      className="text-xs"
-                                      style={styles.secondaryText}
-                                    >
-                                      Chat: {msg.chat_id} •{" "}
-                                      {new Date(
-                                        msg.created_at || ""
-                                      ).toLocaleDateString()}
+                                    <span className="text-xs" style={styles.secondaryText}>
+                                      {(() => {
+                                        const ch = chatLookup[msg.chat_id];
+                                        const title = ch?.title || ch?.name || (ch?.username ? `@${ch.username}` : `Chat ${msg.chat_id}`);
+                                        const d = msg.created_at ? new Date(msg.created_at) : null;
+                                        const date = d
+                                          ? d
+                                              .toLocaleDateString('en-GB', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric',
+                                              })
+                                              .replace(/\//g, '.')
+                                          : '';
+                                        const time = d
+                                          ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                          : '';
+                                        return `${title} • ${date} • ${time}`;
+                                      })()}
                                     </span>
                                   </div>
                                 </div>
