@@ -6,6 +6,7 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { Booking } from "../../../../database.types";
 import { CalendarIcon } from "@components/icons/Icons";
 import AddBookingModal from "./AddBookingModal";
+import AddPlayerModal from "./AddPlayerModal";
 import ConfirmRemoveModal from "./ConfirmRemoveModal";
 import ConfirmSelfCancelModal from "./ConfirmSelfCancelModal";
 import PostToDialog from "./PostToDialog";
@@ -32,6 +33,9 @@ export default function Bookings() {
   );
   const [postDialogChatId, setPostDialogChatId] = useState<number | undefined>(
     undefined
+  );
+  const [addPlayerBookingId, setAddPlayerBookingId] = useState<number | null>(
+    null
   );
 
   // Fetch all data using React Query
@@ -570,8 +574,31 @@ export default function Bookings() {
                         </span>
                       </div>
 
-                      {/* User Registration Control (available to all, including admins) */}
-                      <div className="sm:mt-0 mt-1">
+                      {/* Right-side Controls: Admin add + user self register/cancel */}
+                      <div className="sm:mt-0 mt-1 flex items-center gap-2">
+                        {isAdmin && (
+                          <button
+                            onClick={() => setAddPlayerBookingId(b.id)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                            style={styles.secondaryButton}
+                            title="Add player"
+                            aria-label="Add player"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                          </button>
+                        )}
                         {userRegistered ? (
                           <button
                             onClick={() => {
@@ -968,12 +995,28 @@ export default function Bookings() {
                                     {index + 1}
                                   </span>
                                   <div className="flex flex-col">
-                                    <span
-                                      className="text-sm font-medium"
-                                      style={styles.text}
-                                    >
-                                      Message {msg.message_id}
-                                    </span>
+                                    {(() => {
+                                      const chatIdStr = String(msg.chat_id);
+                                      const cleanedId = chatIdStr
+                                        .replace(/^-100/, "") // remove Telegram supergroup/channel prefix
+                                        .replace(/^-/, ""); // remove any remaining leading '-'
+                                      const deepLink = `https://t.me/c/${cleanedId}/${msg.message_id}`;
+                                      return (
+                                        <a
+                                          href={deepLink}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm font-medium"
+                                          style={{
+                                            ...(styles.link || styles.text),
+                                            textDecoration: "underline",
+                                          }}
+                                          title="Open message in Telegram"
+                                        >
+                                          Message {msg.message_id}
+                                        </a>
+                                      );
+                                    })()}
                                     <span
                                       className="text-xs"
                                       style={styles.secondaryText}
@@ -1200,6 +1243,18 @@ export default function Bookings() {
         locations={locations}
         onLocationUpdate={handleModalSuccess}
         editingBooking={editingBooking}
+      />
+
+      {/* Add Player Modal (Admin) */}
+      <AddPlayerModal
+        isOpen={addPlayerBookingId !== null}
+        bookingId={addPlayerBookingId}
+        excludeUserIds={
+          addPlayerBookingId !== null
+            ? getBookingRegistrations(addPlayerBookingId).map((r) => r.user_id)
+            : []
+        }
+        onClose={() => setAddPlayerBookingId(null)}
       />
     </div>
   );
