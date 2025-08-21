@@ -54,9 +54,25 @@ export const useUpdateUserSkillLevel = () => {
       }
       console.error("Update skill level error:", error);
     },
-    onSettled: (data, error, variables) => {
+    onSettled: async (data, error, variables) => {
       // Always refetch after error or success to ensure server state
       queryClient.invalidateQueries({ queryKey: ['user-profile', variables.userId] });
+      
+      // If the skill level update was successful, update related Telegram messages
+      if (data && !error) {
+        try {
+          await fetch('/api/telegram/update-messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: variables.userId }),
+          });
+        } catch (updateError) {
+          console.error("Failed to update Telegram messages after skill level change:", updateError);
+          // Don't throw here as the main mutation was successful
+        }
+      }
     },
   });
 };

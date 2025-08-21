@@ -20,7 +20,7 @@ import { useActiveChats } from "@/app/lib/hooks/db";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, telegramUserId } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -180,7 +180,7 @@ export default function Bookings() {
   const addRegistrationMutation = useAddRegistration();
 
   const handleRegister = (bookingId: number) => {
-    if (!user) {
+    if (!user || !telegramUserId) {
       alert("Please login to register for games");
       return;
     }
@@ -189,7 +189,7 @@ export default function Bookings() {
     addRegistrationMutation.mutate(
       {
         bookingId,
-        userId: parseInt(user.id),
+        userId: telegramUserId,
       },
       {
         onError: (error) => {
@@ -203,7 +203,7 @@ export default function Bookings() {
   const removeRegistrationMutation = useRemoveRegistration();
 
   const handleUnregister = (bookingId: number) => {
-    if (!user) return;
+    if (!user || !telegramUserId) return;
 
     if (!confirm("Cancel your registration?")) return;
 
@@ -211,7 +211,7 @@ export default function Bookings() {
     removeRegistrationMutation.mutate(
       {
         bookingId,
-        userId: parseInt(user.id),
+        userId: telegramUserId,
       },
       {
         onError: (error) => {
@@ -293,9 +293,9 @@ export default function Bookings() {
   };
 
   const isUserRegistered = (bookingId: number) => {
-    if (!user) return false;
+    if (!user || !telegramUserId) return false;
     return registrations.some(
-      (r) => r.booking_id === bookingId && r.user_id === parseInt(user.id)
+      (r) => r.booking_id === bookingId && r.user_id === telegramUserId
     );
   };
 
@@ -415,7 +415,7 @@ export default function Bookings() {
             const userOnWaitlist =
               userRegistered &&
               waitlistPlayers.some(
-                (r) => user && r.user_id === parseInt(user.id)
+                (r) => telegramUserId && r.user_id === telegramUserId
               );
 
             return (
@@ -645,8 +645,8 @@ export default function Bookings() {
                                   `User ${reg.user_id}`}
                               </span>
                               {userRegistered &&
-                                user &&
-                                reg.user_id === parseInt(user.id) &&
+                                telegramUserId &&
+                                reg.user_id === telegramUserId &&
                                 !userOnWaitlist && (
                                   <span
                                     className="text-xs text-white px-2 py-1 rounded-full"
@@ -738,8 +738,8 @@ export default function Bookings() {
                                   `User ${reg.user_id}`}
                               </span>
                               {userOnWaitlist &&
-                                user &&
-                                reg.user_id === parseInt(user.id) && (
+                                telegramUserId &&
+                                reg.user_id === telegramUserId && (
                                   <span
                                     className="text-xs text-white px-2 py-1 rounded-full"
                                     style={styles.primaryButton}
