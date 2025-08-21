@@ -9,6 +9,7 @@ import AddBookingModal from "./AddBookingModal";
 import AddPlayerModal from "./AddPlayerModal";
 import ConfirmRemoveModal from "./ConfirmRemoveModal";
 import ConfirmSelfCancelModal from "./ConfirmSelfCancelModal";
+import ConfirmPinModal from "./ConfirmPinModal";
 import PostToDialog from "./PostToDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -41,6 +42,15 @@ export default function Bookings() {
   const [addPlayerBookingId, setAddPlayerBookingId] = useState<number | null>(
     null
   );
+  // Themed dialogs for pin/unpin message actions
+  const [confirmPin, setConfirmPin] = useState<{
+    messageId: number;
+    chatId: number;
+  } | null>(null);
+  const [confirmUnpin, setConfirmUnpin] = useState<{
+    messageId: number;
+    chatId: number;
+  } | null>(null);
 
   // Fetch all data using React Query
   const { data, isLoading: loading, error: queryError } = useBookingsData();
@@ -205,31 +215,13 @@ export default function Bookings() {
   };
 
   const handlePinMessage = (messageId: number, chatId: number) => {
-    if (!confirm(`Pin message ${messageId} in this chat?`)) return;
     setError("");
-    pinMessageMutation.mutate(
-      { messageId, chatId, disableNotification: true },
-      {
-        onError: (error) => {
-          setError("Failed to pin message");
-          console.error("Pin message error:", error);
-        },
-      }
-    );
+    setConfirmPin({ messageId, chatId });
   };
 
   const handleUnpinMessage = (messageId: number, chatId: number) => {
-    if (!confirm(`Unpin message ${messageId} in this chat?`)) return;
     setError("");
-    unpinMessageMutation.mutate(
-      { messageId, chatId },
-      {
-        onError: (error) => {
-          setError("Failed to unpin message");
-          console.error("Unpin message error:", error);
-        },
-      }
-    );
+    setConfirmUnpin({ messageId, chatId });
   };
 
   // Use centralized registration mutations
@@ -1362,6 +1354,44 @@ export default function Bookings() {
         isPending={removeRegistrationMutation.isPending}
         onCancel={() => setConfirmSelfBookingId(null)}
         onConfirm={(bid) => handleUnregister(bid)}
+      />
+
+      {/* Pin/Unpin Confirmation Modals */}
+      <ConfirmPinModal
+        payload={confirmPin}
+        mode="pin"
+        isPending={pinMessageMutation.isPending}
+        onCancel={() => setConfirmPin(null)}
+        onConfirm={({ messageId, chatId }) => {
+          setConfirmPin(null);
+          pinMessageMutation.mutate(
+            { messageId, chatId, disableNotification: true },
+            {
+              onError: (error) => {
+                setError("Failed to pin message");
+                console.error("Pin message error:", error);
+              },
+            }
+          );
+        }}
+      />
+      <ConfirmPinModal
+        payload={confirmUnpin}
+        mode="unpin"
+        isPending={unpinMessageMutation.isPending}
+        onCancel={() => setConfirmUnpin(null)}
+        onConfirm={({ messageId, chatId }) => {
+          setConfirmUnpin(null);
+          unpinMessageMutation.mutate(
+            { messageId, chatId },
+            {
+              onError: (error) => {
+                setError("Failed to unpin message");
+                console.error("Unpin message error:", error);
+              },
+            }
+          );
+        }}
       />
 
       {/* Post To Dialog */}
