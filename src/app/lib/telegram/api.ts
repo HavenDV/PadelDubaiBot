@@ -17,17 +17,37 @@ export interface TelegramResponse {
   };
 }
 
+export type InlineKeyboardCallbackButton = {
+  readonly text: string;
+  readonly callback_data: string;
+};
+
+export type InlineKeyboardUrlButton = {
+  readonly text: string;
+  readonly url: string;
+};
+
+export type InlineKeyboardWebAppButton = {
+  readonly text: string;
+  readonly web_app: { readonly url: string };
+};
+
+export type InlineKeyboardButton =
+  | InlineKeyboardCallbackButton
+  | InlineKeyboardUrlButton
+  | InlineKeyboardWebAppButton;
+
+export interface InlineKeyboardMarkupGeneric {
+  inline_keyboard: ReadonlyArray<ReadonlyArray<InlineKeyboardButton>>;
+}
+
 export interface SendMessageParams {
   chat_id: string | number;
   text: string;
   parse_mode?: string;
   disable_web_page_preview?: boolean;
   reply_to_message_id?: number;
-  reply_markup?: {
-    inline_keyboard: ReadonlyArray<
-      ReadonlyArray<{ readonly text: string; readonly callback_data: string }>
-    >;
-  };
+  reply_markup?: InlineKeyboardMarkupGeneric;
 }
 
 export interface EditMessageParams {
@@ -36,21 +56,12 @@ export interface EditMessageParams {
   text: string;
   parse_mode?: string;
   disable_web_page_preview?: boolean;
-  reply_markup?: {
-    inline_keyboard: ReadonlyArray<
-      ReadonlyArray<{ readonly text: string; readonly callback_data: string }>
-    >;
-  };
+  reply_markup?: InlineKeyboardMarkupGeneric;
 }
 
 export interface DeleteMessageParams {
   chat_id: string | number;
   message_id: number;
-}
-
-export interface InlineKeyboardUrlButton {
-  text: string;
-  url: string;
 }
 
 export interface ReplyMarkupInlineUrl {

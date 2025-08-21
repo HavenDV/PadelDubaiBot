@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TelegramAPI } from "@lib/telegram/api";
+import type { InlineKeyboardMarkupGeneric } from "@/app/lib/telegram/api";
 import { validateAdminUser } from "@lib/supabase/auth";
 import { supabaseAdmin } from "@lib/supabase/admin";
 
@@ -9,11 +10,7 @@ interface SendMessageRequest {
   text: string;
   chatId: string | number; // Chat ID for sending message
   parseMode?: string;
-  replyMarkup?: {
-    inline_keyboard: ReadonlyArray<
-      ReadonlyArray<{ readonly text: string; readonly callback_data: string }>
-    >;
-  };
+  replyMarkup?: InlineKeyboardMarkupGeneric;
   bookingId?: number; // Optional booking ID to store the message relation
 }
 

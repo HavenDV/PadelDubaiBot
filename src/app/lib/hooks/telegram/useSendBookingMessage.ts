@@ -54,7 +54,15 @@ export const useSendBookingMessage = () => {
           replyMarkup: booking.cancelled
             ? undefined
             : {
-                inline_keyboard: REGISTRATION_BUTTONS,
+                inline_keyboard: [
+                  ...REGISTRATION_BUTTONS,
+                  [
+                    {
+                      text: "Open Settings",
+                      url: "https://t.me/padel_dubai_bot?startapp",
+                    },
+                  ],
+                ],
               },
           bookingId: booking.id, // Include booking ID for database storage
         }),

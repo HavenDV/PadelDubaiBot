@@ -101,9 +101,12 @@ bot.on("callback_query:data", async (ctx) => {
 
       if (dbResult.updatedMessage) {
         const replyMarkup: InlineKeyboardMarkup = {
-          inline_keyboard: REGISTRATION_BUTTONS.map((row) =>
-            row.map((b) => ({ text: b.text, callback_data: b.callback_data }))
-          ),
+          inline_keyboard: [
+            ...REGISTRATION_BUTTONS.map((row) =>
+              row.map((b) => ({ text: b.text, callback_data: b.callback_data }))
+            ),
+            [{ text: "Open Settings", url: "https://t.me/padel_dubai_bot?startapp" }],
+          ],
         };
         await ctx.api.editMessageText(
           chatId,

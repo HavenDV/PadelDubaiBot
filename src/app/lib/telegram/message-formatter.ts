@@ -69,6 +69,7 @@ export class MessageFormatter {
     const calendarSection = calendarLink
       ? `📅 <a href="${calendarLink}">Добавить в Google Calendar</a>`
       : "📅 Добавить в Google Calendar";
+    const settingsLink = `<a href="https://t.me/padel_dubai_bot?startapp">Open Settings</a>`;
 
     // Compose players and waitlist from registrations
     const maxPlayers = booking.courts * 4;
@@ -100,7 +101,7 @@ export class MessageFormatter {
     const playerSlots = this.formatPlayerSlots(registeredPlayers, maxPlayers);
     const waitlistSection = this.formatWaitlist(waitlist);
 
-    message += `\n\n${calendarSection}
+    message += `\n\n${calendarSection}\n⚙️ ${settingsLink}
 
 ${
   booking.cancelled
