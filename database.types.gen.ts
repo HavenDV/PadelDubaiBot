@@ -311,7 +311,9 @@ export type Database = {
           chat_id: number
           created_at: string | null
           id: number
+          is_pinned: boolean | null
           message_id: number
+          pinned_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -319,7 +321,9 @@ export type Database = {
           chat_id: number
           created_at?: string | null
           id?: number
+          is_pinned?: boolean | null
           message_id: number
+          pinned_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -327,7 +331,9 @@ export type Database = {
           chat_id?: number
           created_at?: string | null
           id?: number
+          is_pinned?: boolean | null
           message_id?: number
+          pinned_at?: string | null
           updated_at?: string | null
         }
         Relationships: [

@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS public.messages (
     message_id bigint NOT NULL,
     chat_id bigint NOT NULL,
 
+    -- Pin state
+    is_pinned boolean DEFAULT false,
+    pinned_at timestamp with time zone,
+
     -- Timestamps
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
@@ -30,7 +34,7 @@ GRANT ALL ON TABLE public.messages TO service_role;
 
 -- Allow public/client read access to safe columns
 GRANT SELECT (
-  id, booking_id, message_id, chat_id, created_at, updated_at
+  id, booking_id, message_id, chat_id, is_pinned, pinned_at, created_at, updated_at
 ) ON public.messages TO anon, authenticated;
 GRANT SELECT ON TABLE public.messages TO anon, authenticated;
 

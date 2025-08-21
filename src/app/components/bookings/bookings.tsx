@@ -19,7 +19,10 @@ import {
   useRemoveRegistrationById,
   useDeleteMessage,
   useSendBookingMessage,
+  usePinMessage,
+  useUnpinMessage,
 } from "@lib/hooks/db";
+import { PinIcon, PinOffIcon } from "@components/icons/Icons";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -75,6 +78,8 @@ export default function Bookings() {
   const deleteBookingMutation = useDeleteBooking();
   const deleteMessageMutation = useDeleteMessage();
   const sendBookingMessageMutation = useSendBookingMessage();
+  const pinMessageMutation = usePinMessage();
+  const unpinMessageMutation = useUnpinMessage();
 
   const handleDelete = (id: number) => {
     if (!confirm("Delete this booking?")) return;
@@ -101,10 +106,12 @@ export default function Bookings() {
 
         if (!response.ok) {
           // Try to surface server error details
-          const body = await response
-            .json()
-            .catch(async () => ({ error: await response.text().catch(() => "") }));
-          const msg = body?.error || `Failed to refresh message status (${response.status})`;
+          const body = await response.json().catch(async () => ({
+            error: await response.text().catch(() => ""),
+          }));
+          const msg =
+            body?.error ||
+            `Failed to refresh message status (${response.status})`;
           throw new Error(msg);
         }
 
@@ -190,6 +197,34 @@ export default function Bookings() {
         onError: (error) => {
           setError(`Failed to post: ${error.message}`);
           console.error("Post error:", error);
+        },
+      }
+    );
+  };
+
+  const handlePinMessage = (messageId: number, chatId: number) => {
+    if (!confirm(`Pin message ${messageId} in this chat?`)) return;
+    setError("");
+    pinMessageMutation.mutate(
+      { messageId, chatId, disableNotification: true },
+      {
+        onError: (error) => {
+          setError("Failed to pin message");
+          console.error("Pin message error:", error);
+        },
+      }
+    );
+  };
+
+  const handleUnpinMessage = (messageId: number, chatId: number) => {
+    if (!confirm(`Unpin message ${messageId} in this chat?`)) return;
+    setError("");
+    unpinMessageMutation.mutate(
+      { messageId, chatId },
+      {
+        onError: (error) => {
+          setError("Failed to unpin message");
+          console.error("Unpin message error:", error);
         },
       }
     );
@@ -1053,32 +1088,101 @@ export default function Bookings() {
                                     </span>
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteMessage(
-                                      msg.id,
-                                      msg.message_id,
-                                      msg.chat_id
-                                    )
-                                  }
-                                  className="w-6 h-6 transition-colors hover:brightness-110"
-                                  style={styles.destructiveText}
-                                  title="Delete message"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="w-4 h-4"
+                                <div className="flex items-center gap-2">
+                                  {(() => {
+                                    const chat =
+                                      chatLookup[msg.chat_id as number];
+                                    const canPin =
+                                      chat?.permissions?.can_pin_messages !==
+                                      false;
+                                    if (msg.is_pinned) {
+                                      return (
+                                        <button
+                                          onClick={() =>
+                                            canPin &&
+                                            handleUnpinMessage(
+                                              msg.message_id,
+                                              msg.chat_id
+                                            )
+                                          }
+                                          disabled={
+                                            !canPin ||
+                                            unpinMessageMutation.isPending
+                                          }
+                                          className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                            canPin
+                                              ? "hover:brightness-110"
+                                              : "opacity-60 cursor-not-allowed"
+                                          }`}
+                                          style={styles.iconButton}
+                                          title={
+                                            canPin
+                                              ? "Unpin message"
+                                              : "Bot lacks rights to manage pinned messages"
+                                          }
+                                          aria-disabled={!canPin}
+                                        >
+                                          <PinOffIcon size={14} className="w-3.5 h-3.5" strokeWidth={2} />
+                                        </button>
+                                      );
+                                    }
+                                    return (
+                                      <button
+                                        onClick={() =>
+                                          canPin &&
+                                          handlePinMessage(
+                                            msg.message_id,
+                                            msg.chat_id
+                                          )
+                                        }
+                                        disabled={
+                                          !canPin ||
+                                          pinMessageMutation.isPending
+                                        }
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                          canPin
+                                            ? "hover:brightness-110"
+                                            : "opacity-60 cursor-not-allowed"
+                                        }`}
+                                        style={styles.iconButton}
+                                        title={
+                                          canPin
+                                            ? "Pin message"
+                                            : "Bot lacks rights to manage pinned messages"
+                                        }
+                                        aria-disabled={!canPin}
+                                      >
+                                        <PinIcon size={14} className="w-3.5 h-3.5" strokeWidth={2} />
+                                      </button>
+                                    );
+                                  })()}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteMessage(
+                                        msg.id,
+                                        msg.message_id,
+                                        msg.chat_id
+                                      )
+                                    }
+                                    className="w-6 h-6 transition-colors hover:brightness-110"
+                                    style={styles.destructiveText}
+                                    title="Delete message"
                                   >
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                  </svg>
-                                </button>
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="w-4 h-4"
+                                    >
+                                      <line x1="18" y1="6" x2="6" y2="18" />
+                                      <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </>

@@ -31,7 +31,7 @@ export {
 } from "./useRegistrationMutations";
 
 // Message-related hooks
-export { useDeleteMessage } from "./useMessageMutations";
+export { useDeleteMessage, usePinMessage, useUnpinMessage } from "./useMessageMutations";
 
 // Chat-related hooks
 export { useChats, useActiveChats } from "./useChats";

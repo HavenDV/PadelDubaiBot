@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Themed scrollbars (WebKit) using Telegram theme vars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--tg-secondary-bg, var(--background));
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--tg-separator, #b0b0b0);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tg-link, var(--foreground));
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tg-separator, #b0b0b0) var(--tg-secondary-bg, var(--background));
+}

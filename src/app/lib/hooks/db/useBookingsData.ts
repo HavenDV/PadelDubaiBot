@@ -26,7 +26,7 @@ export const useBookingsData = () => {
           .order("created_at", { ascending: true }),
         supabase
           .from("chats")
-          .select("id, title, name, username, type")
+          .select("id, title, name, username, type, permissions")
           .order("updated_at", { ascending: false }),
       ]);
 
@@ -52,7 +52,17 @@ export const useBookingsData = () => {
       });
 
       // Build chat lookup
-      const chatLookup: Record<number, { id: number; title: string | null; name: string | null; username: string | null; type: string } > = {};
+      const chatLookup: Record<
+        number,
+        {
+          id: number;
+          title: string | null;
+          name: string | null;
+          username: string | null;
+          type: string;
+          permissions?: Record<string, unknown> | null;
+        }
+      > = {};
       for (const ch of chats) {
         chatLookup[ch.id] = ch as typeof chatLookup[number];
       }

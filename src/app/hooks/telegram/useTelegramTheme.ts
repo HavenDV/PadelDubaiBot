@@ -95,6 +95,7 @@ export interface TelegramThemeResult {
     border: React.CSSProperties;
     primaryButton: React.CSSProperties;
     secondaryButton: React.CSSProperties;
+    iconButton: React.CSSProperties;
     selectedBg: React.CSSProperties;
     link: React.CSSProperties;
   };
@@ -147,12 +148,28 @@ export function useTelegramTheme(): TelegramThemeResult {
   ) => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
-    if (params?.bg_color) {
+    if (params?.bg_color)
       root.style.setProperty("--background", params.bg_color);
-    }
-    if (params?.text_color) {
+    if (params?.text_color)
       root.style.setProperty("--foreground", params.text_color);
-    }
+    // Expose Telegram theme params as CSS variables for global styling (e.g., scrollbars)
+    if (params?.bg_color) root.style.setProperty("--tg-bg", params.bg_color);
+    if (params?.text_color)
+      root.style.setProperty("--tg-text", params.text_color);
+    if (params?.secondary_bg_color)
+      root.style.setProperty("--tg-secondary-bg", params.secondary_bg_color);
+    if (params?.section_separator_color)
+      root.style.setProperty("--tg-separator", params.section_separator_color);
+    if (params?.hint_color)
+      root.style.setProperty("--tg-hint", params.hint_color);
+    if (params?.link_color)
+      root.style.setProperty("--tg-link", params.link_color);
+    if (params?.button_color)
+      root.style.setProperty("--tg-button", params.button_color);
+    if (params?.button_text_color)
+      root.style.setProperty("--tg-button-text", params.button_text_color);
+    if (params?.header_bg_color)
+      root.style.setProperty("--tg-header-bg", params.header_bg_color);
     if (scheme) {
       root.style.setProperty("color-scheme", scheme);
     }
@@ -160,7 +177,10 @@ export function useTelegramTheme(): TelegramThemeResult {
 
   // Stable handler for theme changes in Telegram
   const onThemeChanged = useCallback(
-    ({ themeParams: newThemeParams, colorScheme: newColorScheme }: {
+    ({
+      themeParams: newThemeParams,
+      colorScheme: newColorScheme,
+    }: {
       themeParams: ThemeParams | null;
       colorScheme: "light" | "dark" | null;
     }) => {
@@ -191,6 +211,11 @@ export function useTelegramTheme(): TelegramThemeResult {
   // Use Telegram theme or fallback to predefined web themes
   const params = themeParams || (preferDark ? webDarkTheme : webLightTheme);
   const fallbackTheme = preferDark ? webDarkTheme : webLightTheme;
+
+  // In both Telegram and web modes, ensure CSS variables reflect current theme
+  useEffect(() => {
+    applyThemeToRoot(params, colorScheme || (preferDark ? "dark" : "light"));
+  }, [params, colorScheme, preferDark]);
 
   // Utility function for color opacity adjustment
   const adjustOpacity = useCallback(
@@ -263,6 +288,17 @@ export function useTelegramTheme(): TelegramThemeResult {
         borderColor:
           params.section_separator_color ||
           fallbackTheme.section_separator_color,
+      },
+      // High-contrast icon button for surfaces with selectedBg
+      iconButton: {
+        backgroundColor: "transparent",
+        color:
+          params.accent_text_color ||
+          params.link_color ||
+          params.button_color ||
+          fallbackTheme.accent_text_color ||
+          fallbackTheme.link_color ||
+          fallbackTheme.button_color,
       },
       selectedBg: {
         backgroundColor: adjustOpacity(

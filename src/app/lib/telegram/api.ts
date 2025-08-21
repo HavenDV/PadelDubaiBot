@@ -98,6 +98,11 @@ export interface PinMessageParams {
   disable_notification?: boolean;
 }
 
+export interface UnpinMessageParams {
+  chat_id: string | number;
+  message_id?: number; // when omitted, Bot API unpins the most recent pinned message? We'll target specific
+}
+
 export class TelegramAPI {
   private static get botToken(): string {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -202,6 +207,12 @@ export class TelegramAPI {
     params: PinMessageParams
   ): Promise<TelegramResponse> {
     return this.makeRequest(`${this.baseUrl}/pinChatMessage`, params);
+  }
+
+  static async unpinChatMessage(
+    params: UnpinMessageParams
+  ): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/unpinChatMessage`, params);
   }
 
   static async sendLocation(params: SendLocationParams): Promise<TelegramResponse> {
