@@ -590,7 +590,7 @@ export default function Bookings() {
                   </div>
 
                   {/* Note */}
-                  {b.note && (
+                  {((b.note || "").trim()) && (
                     <div
                       className="flex items-start gap-2 text-sm p-2 rounded-md border mb-2"
                       style={{ ...styles.card, ...styles.border }}
@@ -612,7 +612,7 @@ export default function Bookings() {
                         <line x1="16" y1="17" x2="8" y2="17" />
                         <polyline points="10,9 9,9 8,9" />
                       </svg>
-                      <span style={styles.secondaryText}>{b.note}</span>
+                      <span style={styles.secondaryText}>{(b.note || "").trim()}</span>
                     </div>
                   )}
 
