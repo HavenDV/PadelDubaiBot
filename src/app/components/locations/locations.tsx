@@ -110,61 +110,33 @@ export default function Locations() {
           {locations.map((loc) => (
             <div
               key={loc.id}
-              className="relative p-4 rounded-xl shadow-sm border flex flex-col sm:flex-row sm:items-start gap-2"
+              className="relative p-4 rounded-xl shadow-sm border flex flex-col gap-2"
               style={{ ...styles.card, ...styles.border }}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  {loc.url ? (
-                    <a
-                      href={loc.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:brightness-110"
-                      style={styles.secondaryButton}
-                      title="Open in Google Maps"
-                      aria-label="Open in Google Maps"
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={styles.secondaryButton}
+                    aria-hidden
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
+                      style={styles.text}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                        style={styles.text}
-                      >
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                    </a>
-                  ) : (
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={styles.secondaryButton}
-                      title="No map link"
-                      aria-label="No map link"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                        style={styles.text}
-                      >
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                    </div>
-                  )}
-                  <div className="font-medium" style={styles.text}>
-                    {loc.name && loc.name.length > 22 ? `${loc.name.slice(0, 19)}...` : loc.name}
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div className="font-medium break-words" style={styles.text}>
+                    {loc.name}
                   </div>
                 </div>
                 {openMapId === loc.id && (
@@ -189,7 +161,7 @@ export default function Locations() {
                       Opening hours
                     </div>
                     <div
-                      className="border rounded-lg shadow-sm overflow-hidden max-w-md"
+                      className="w-full border rounded-lg shadow-sm overflow-hidden"
                       style={{ ...styles.header, ...styles.border }}
                     >
                       <div>
@@ -258,105 +230,25 @@ export default function Locations() {
                   </div>
                 )}
               </div>
-              {isAdmin && (
-                <div className="absolute top-2 right-2 flex items-center gap-1">
-                  {/* Toggle Map */}
-                  <button
-                    onClick={() =>
-                      setOpenMapId((prev) => (prev === loc.id ? null : loc.id))
-                    }
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
-                    style={
-                      openMapId === loc.id
-                        ? styles.primaryButton
-                        : {
-                            backgroundColor: "transparent",
-                            color:
-                              (styles.link && styles.link.color) ||
-                              styles.primaryButton.backgroundColor,
-                            borderWidth: "1px",
-                            borderColor:
-                              (styles.link && styles.link.color) ||
-                              styles.primaryButton.backgroundColor,
-                          }
-                    }
-                    title={openMapId === loc.id ? "Hide map" : "Show map"}
-                    aria-label={openMapId === loc.id ? "Hide map" : "Show map"}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4"
-                      style={{ color: "inherit" }}
+              {(isAdmin || loc.url) && (
+                <div
+                  className="flex justify-end gap-1 mt-3 pt-3 border-t"
+                  style={styles.border}
+                >
+                  {/* Maps Link */}
+                  {loc.url && (
+                    <a
+                      href={loc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                      style={{
+                        ...styles.secondaryButton,
+                        ...styles.border,
+                      }}
+                      title="Open in Google Maps"
+                      aria-label="Open in Google Maps"
                     >
-                      <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
-                      <path d="M9 4v16" />
-                      <path d="M15 6v16" />
-                    </svg>
-                  </button>
-
-                  {/* Edit */}
-                  <button
-                    onClick={() => openEditModal(loc)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
-                    style={styles.primaryButton}
-                    title="Edit"
-                    aria-label="Edit"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4"
-                      style={styles.text}
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
-                    </svg>
-                  </button>
-
-                  {/* Remove */}
-                  <button
-                    onClick={() => handleDelete(loc.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
-                    style={
-                      deleteMutation.isPending
-                        ? {
-                            ...styles.secondaryButton,
-                            ...styles.border,
-                            opacity: 0.6,
-                          }
-                        : {
-                            backgroundColor: "transparent",
-                            color: styles.destructiveText.color,
-                            borderWidth: "1px",
-                            borderColor: styles.destructiveText.color,
-                          }
-                    }
-                    title={deleteMutation.isPending ? "Deleting..." : "Remove"}
-                    aria-label={
-                      deleteMutation.isPending ? "Deleting..." : "Remove"
-                    }
-                    disabled={deleteMutation.isPending}
-                  >
-                    {deleteMutation.isPending ? (
-                      <div
-                        className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
-                        style={{
-                          borderColor: styles.destructiveText.color,
-                          borderTopColor: "transparent",
-                        }}
-                      />
-                    ) : (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -366,16 +258,133 @@ export default function Locations() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         className="w-4 h-4"
-                        style={{ color: styles.destructiveText.color }}
                       >
-                        <path d="M3 6h18" />
-                        <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
                       </svg>
-                    )}
-                  </button>
+                    </a>
+                  )}
+
+                  {/* Admin Controls */}
+                  {isAdmin && (
+                    <>
+                      {/* Toggle Map */}
+                      <button
+                        onClick={() =>
+                          setOpenMapId((prev) =>
+                            prev === loc.id ? null : loc.id
+                          )
+                        }
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                        style={
+                          openMapId === loc.id
+                            ? styles.primaryButton
+                            : {
+                                backgroundColor: "transparent",
+                                color:
+                                  (styles.link && styles.link.color) ||
+                                  styles.primaryButton.backgroundColor,
+                                borderWidth: "1px",
+                                borderColor:
+                                  (styles.link && styles.link.color) ||
+                                  styles.primaryButton.backgroundColor,
+                              }
+                        }
+                        title={
+                          openMapId === loc.id ? "Hide map" : "Show map"
+                        }
+                        aria-label={
+                          openMapId === loc.id ? "Hide map" : "Show map"
+                        }
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-4 h-4"
+                          style={{ color: "inherit" }}
+                        >
+                          <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
+                          <path d="M9 4v16" />
+                          <path d="M15 6v16" />
+                        </svg>
+                      </button>
+
+                      {/* Edit */}
+                      <button
+                        onClick={() => openEditModal(loc)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                        style={styles.primaryButton}
+                        title="Edit"
+                        aria-label="Edit"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-4 h-4"
+                        >
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
+                      </button>
+
+                      {/* Remove */}
+                      <button
+                        onClick={() => handleDelete(loc.id)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
+                        style={{
+                          backgroundColor: "transparent",
+                          color: styles.destructiveText.color,
+                          borderWidth: "1px",
+                          borderColor: styles.destructiveText.color,
+                          opacity: deleteMutation.isPending ? 0.6 : 1,
+                        }}
+                        title={
+                          deleteMutation.isPending ? "Deleting..." : "Remove"
+                        }
+                        aria-label={
+                          deleteMutation.isPending ? "Deleting..." : "Remove"
+                        }
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <div
+                            className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
+                            style={{
+                              borderColor: styles.destructiveText.color,
+                              borderTopColor: "transparent",
+                            }}
+                          />
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                          </svg>
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
