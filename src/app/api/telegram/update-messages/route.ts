@@ -6,16 +6,32 @@ export const runtime = "edge";
 
 interface UpdateMessagesRequest {
   bookingId?: number;
+  chatId?: number;
+  messageId?: number;
   userId?: number; // reserved for future expansion
 }
 
 export async function POST(request: Request) {
   try {
-    const { bookingId }: UpdateMessagesRequest = await request.json();
+    const { bookingId, chatId, messageId }: UpdateMessagesRequest =
+      await request.json();
 
+    // If explicit chat/message provided, update that single message
+    if (chatId && messageId) {
+      const result = await updateTelegramMessageFromDatabase(chatId, messageId);
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || "Failed to update message" },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ success: true, processed: 1, failed: 0 });
+    }
+
+    // Otherwise, require bookingId to update all messages for that booking
     if (!bookingId) {
       return NextResponse.json(
-        { error: "bookingId is required" },
+        { error: "Provide bookingId or chatId+messageId" },
         { status: 400 }
       );
     }
@@ -74,4 +90,3 @@ export async function DELETE() {
 export async function PATCH() {
   return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
-

@@ -6,6 +6,9 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { Booking } from "../../../../database.types";
 import { CalendarIcon } from "@components/icons/Icons";
 import AddBookingModal from "./AddBookingModal";
+import ConfirmRemoveModal from "./ConfirmRemoveModal";
+import ConfirmSelfCancelModal from "./ConfirmSelfCancelModal";
+import PostToDialog from "./PostToDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useBookingsData,
@@ -16,7 +19,6 @@ import {
   useDeleteMessage,
   useSendBookingMessage,
 } from "@lib/hooks/db";
-import { useActiveChats } from "@/app/lib/hooks/db";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -205,9 +207,6 @@ export default function Bookings() {
 
   const handleUnregister = (bookingId: number) => {
     if (!user || !telegramUserId) return;
-
-    if (!confirm("Cancel your registration?")) return;
-
     setError("");
     removeRegistrationMutation.mutate(
       {
@@ -215,6 +214,10 @@ export default function Bookings() {
         userId: telegramUserId,
       },
       {
+        onSuccess: () => {
+          setConfirmSelfBookingId(null);
+          removeRegistrationMutation.reset();
+        },
         onError: (error) => {
           setError("Failed to cancel registration");
           console.error(error);
@@ -225,69 +228,36 @@ export default function Bookings() {
 
   const removeRegistrationByIdMutation = useRemoveRegistrationById();
 
-  const handleAdminRemoveRegistration = (registrationId: number, bookingId: number) => {
+  const handleAdminRemoveRegistration = (
+    registrationId: number,
+    bookingId: number
+  ) => {
     setError("");
-    removeRegistrationByIdMutation.mutate({ registrationId, bookingId }, {
-      onError: (error) => {
-        setError("Failed to remove registration");
-        console.error(error);
-      },
-    });
+    removeRegistrationByIdMutation.mutate(
+      { registrationId, bookingId },
+      {
+        onError: (error) => {
+          setError("Failed to remove registration");
+          console.error(error);
+        },
+      }
+    );
   };
 
   // Themed confirm dialog state for admin remove
-  const [confirmRemove, setConfirmRemove] = useState<
-    { id: number; bookingId: number } | null
+  const [confirmRemove, setConfirmRemove] = useState<{
+    id: number;
+    bookingId: number;
+  } | null>(null);
+  // Themed confirm dialog for self cancel
+  const [confirmSelfBookingId, setConfirmSelfBookingId] = useState<
+    number | null
   >(null);
 
-  const ConfirmRemoveModal = () => {
-    if (confirmRemove === null) return null;
-    return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      >
-        <div
-          className="w-full max-w-sm rounded-lg border shadow-sm"
-          style={{ ...styles.card, ...styles.border }}
-        >
-          <div className="p-4 space-y-3">
-            <div className="font-bold" style={styles.text}>
-              Remove player
-            </div>
-            <div className="text-sm" style={styles.secondaryText}>
-              Are you sure you want to remove this player&apos;s registration?
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-                style={styles.secondaryButton}
-                onClick={() => setConfirmRemove(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110"
-                style={{
-                  backgroundColor: "transparent",
-                  color: styles.destructiveText.color,
-                  borderWidth: "1px",
-                  borderColor: styles.destructiveText.color,
-                }}
-                onClick={() => {
-                  const payload = confirmRemove;
-                  setConfirmRemove(null);
-                  handleAdminRemoveRegistration(payload.id, payload.bookingId);
-                }}
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Note: we explicitly close the cancel modal in the onSuccess handler
+  // of the mutation to avoid accidental closes from stale success state.
+
+  // Inline ConfirmSelfCancelModal removed (moved to ./ConfirmSelfCancelModal)
 
   const getBookingRegistrations = (bookingId: number) => {
     return registrations.filter((r) => r.booking_id === bookingId);
@@ -592,7 +562,10 @@ export default function Bookings() {
                       <div className="sm:mt-0 mt-1">
                         {userRegistered ? (
                           <button
-                            onClick={() => handleUnregister(b.id)}
+                            onClick={() => {
+                              removeRegistrationMutation.reset();
+                              setConfirmSelfBookingId(b.id);
+                            }}
                             className="px-3 py-1.5 border rounded-md text-sm font-medium transition-colors hover:brightness-90"
                             style={{
                               ...styles.secondaryButton,
@@ -635,7 +608,10 @@ export default function Bookings() {
                               >
                                 {index + 1}
                               </span>
-                              <span className="text-sm font-medium" style={styles.text}>
+                              <span
+                                className="text-sm font-medium"
+                                style={styles.text}
+                              >
                                 {/* Username (link) or fallback */}
                                 {reg.user?.username ? (
                                   <a
@@ -647,7 +623,10 @@ export default function Bookings() {
                                     @{reg.user.username}
                                   </a>
                                 ) : (
-                                  <>{reg.user?.first_name || `User ${reg.user_id}`}</>
+                                  <>
+                                    {reg.user?.first_name ||
+                                      `User ${reg.user_id}`}
+                                  </>
                                 )}
                                 {/* Display name (explicit or first+last) */}
                                 {(() => {
@@ -657,13 +636,23 @@ export default function Bookings() {
                                       .filter(Boolean)
                                       .join(" ");
                                   return name ? (
-                                    <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                    <span
+                                      style={{
+                                        marginLeft: 6,
+                                        ...styles.secondaryText,
+                                      }}
+                                    >
                                       {name}
                                     </span>
                                   ) : null;
                                 })()}
                                 {/* Skill */}
-                                <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                <span
+                                  style={{
+                                    marginLeft: 6,
+                                    ...styles.secondaryText,
+                                  }}
+                                >
                                   ({reg.user?.skill_level || "E"})
                                 </span>
                               </span>
@@ -683,7 +672,12 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() => setConfirmRemove({ id: reg.id, bookingId: b.id })}
+                                onClick={() =>
+                                  setConfirmRemove({
+                                    id: reg.id,
+                                    bookingId: b.id,
+                                  })
+                                }
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"
@@ -752,7 +746,10 @@ export default function Bookings() {
                               >
                                 W{index + 1}
                               </span>
-                              <span className="text-sm font-medium" style={styles.text}>
+                              <span
+                                className="text-sm font-medium"
+                                style={styles.text}
+                              >
                                 {/* Username (link) or fallback */}
                                 {reg.user?.username ? (
                                   <a
@@ -764,7 +761,10 @@ export default function Bookings() {
                                     @{reg.user.username}
                                   </a>
                                 ) : (
-                                  <>{reg.user?.first_name || `User ${reg.user_id}`}</>
+                                  <>
+                                    {reg.user?.first_name ||
+                                      `User ${reg.user_id}`}
+                                  </>
                                 )}
                                 {/* Display name (explicit or first+last) */}
                                 {(() => {
@@ -774,13 +774,23 @@ export default function Bookings() {
                                       .filter(Boolean)
                                       .join(" ");
                                   return name ? (
-                                    <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                    <span
+                                      style={{
+                                        marginLeft: 6,
+                                        ...styles.secondaryText,
+                                      }}
+                                    >
                                       {name}
                                     </span>
                                   ) : null;
                                 })()}
                                 {/* Skill */}
-                                <span style={{ marginLeft: 6, ...styles.secondaryText }}>
+                                <span
+                                  style={{
+                                    marginLeft: 6,
+                                    ...styles.secondaryText,
+                                  }}
+                                >
                                   ({reg.user?.skill_level || "E"})
                                 </span>
                               </span>
@@ -799,7 +809,12 @@ export default function Bookings() {
                             {/* Admin Remove Control */}
                             {isAdmin && (
                               <button
-                                onClick={() => setConfirmRemove({ id: reg.id, bookingId: b.id })}
+                                onClick={() =>
+                                  setConfirmRemove({
+                                    id: reg.id,
+                                    bookingId: b.id,
+                                  })
+                                }
                                 className="w-6 h-6 transition-colors hover:brightness-110"
                                 style={styles.destructiveText}
                                 title="Remove player"
@@ -947,23 +962,37 @@ export default function Bookings() {
                                     >
                                       Message {msg.message_id}
                                     </span>
-                                    <span className="text-xs" style={styles.secondaryText}>
+                                    <span
+                                      className="text-xs"
+                                      style={styles.secondaryText}
+                                    >
                                       {(() => {
                                         const ch = chatLookup[msg.chat_id];
-                                        const title = ch?.title || ch?.name || (ch?.username ? `@${ch.username}` : `Chat ${msg.chat_id}`);
-                                        const d = msg.created_at ? new Date(msg.created_at) : null;
+                                        const title =
+                                          ch?.title ||
+                                          ch?.name ||
+                                          (ch?.username
+                                            ? `@${ch.username}`
+                                            : `Chat ${msg.chat_id}`);
+                                        const d = msg.created_at
+                                          ? new Date(msg.created_at)
+                                          : null;
                                         const date = d
                                           ? d
-                                              .toLocaleDateString('en-GB', {
-                                                day: '2-digit',
-                                                month: '2-digit',
-                                                year: 'numeric',
+                                              .toLocaleDateString("en-GB", {
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "numeric",
                                               })
-                                              .replace(/\//g, '.')
-                                          : '';
+                                              .replace(/\//g, ".")
+                                          : "";
                                         const time = d
-                                          ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
-                                          : '';
+                                          ? d.toLocaleTimeString("en-GB", {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                              hour12: false,
+                                            })
+                                          : "";
                                         return `${title} • ${date} • ${time}`;
                                       })()}
                                     </span>
@@ -1118,7 +1147,20 @@ export default function Bookings() {
         </div>
       )}
 
-      <ConfirmRemoveModal />
+      <ConfirmRemoveModal
+        payload={confirmRemove}
+        onCancel={() => setConfirmRemove(null)}
+        onConfirm={(p) => {
+          setConfirmRemove(null);
+          handleAdminRemoveRegistration(p.id, p.bookingId);
+        }}
+      />
+      <ConfirmSelfCancelModal
+        bookingId={confirmSelfBookingId}
+        isPending={removeRegistrationMutation.isPending}
+        onCancel={() => setConfirmSelfBookingId(null)}
+        onConfirm={(bid) => handleUnregister(bid)}
+      />
 
       {/* Post To Dialog */}
       {postDialogBooking && (
@@ -1147,141 +1189,6 @@ export default function Bookings() {
         onLocationUpdate={handleModalSuccess}
         editingBooking={editingBooking}
       />
-    </div>
-  );
-}
-
-// Themed Post dialog component
-function PostToDialog({
-  booking,
-  initialChatId,
-  onClose,
-  onPost,
-}: {
-  booking: Booking;
-  initialChatId?: number;
-  onClose: () => void;
-  onPost: (chatId: number) => void;
-}) {
-  const { styles } = useTelegramTheme();
-  const { data: chats = [], isLoading } = useActiveChats();
-  const [selectedId, setSelectedId] = useState<number | undefined>(
-    initialChatId
-  );
-
-  useEffect(() => {
-    if (!selectedId) setSelectedId(initialChatId);
-  }, [initialChatId, selectedId]);
-
-  // Auto-select first chat whose name/title/username doesn't contain "test"
-  useEffect(() => {
-    if (selectedId || isLoading || chats.length === 0) return;
-    const firstNonTest = chats.find((c) => {
-      const label = (c.name || c.title || c.username || "").toLowerCase();
-      return !label.includes("test");
-    });
-    if (firstNonTest) setSelectedId(firstNonTest.id);
-  }, [chats, isLoading, selectedId]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div
-        className="w-full max-w-md rounded-lg border shadow-sm"
-        style={{ ...styles.card, ...styles.border }}
-      >
-        <div className="p-4 space-y-3">
-          <div className="font-bold text-lg" style={styles.text}>
-            Post to
-          </div>
-          <div className="text-sm" style={styles.secondaryText}>
-            Choose a chat to post this booking to.
-          </div>
-
-          <div className="max-h-64 overflow-auto mt-2 space-y-2">
-            {isLoading ? (
-              <div
-                className="text-sm"
-                style={{ color: styles.secondaryText.color }}
-              >
-                Loading chats...
-              </div>
-            ) : chats.length === 0 ? (
-              <div className="text-sm" style={styles.secondaryText}>
-                No chats available.
-              </div>
-            ) : (
-              chats.map((chat) => {
-                const isSelected = selectedId === chat.id;
-                return (
-                  <button
-                    key={chat.id}
-                    type="button"
-                    onClick={() => setSelectedId(chat.id)}
-                    className="w-full text-left p-3 rounded-md border transition"
-                    style={{
-                      borderColor: isSelected
-                        ? styles.primaryButton.backgroundColor
-                        : (styles.border?.borderColor as string) || "#ccc",
-                      backgroundColor: isSelected
-                        ? (styles.selectedBg?.backgroundColor as string) ||
-                          "rgba(59,130,246,0.1)"
-                        : (styles.card?.backgroundColor as string),
-                      color: styles.text.color,
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {chat.name || chat.title || chat.username || chat.id}
-                        </span>
-                      </div>
-                      <span
-                        className={`w-4 h-4 rounded-full border inline-block ${
-                          isSelected ? "bg-current" : ""
-                        }`}
-                        style={{
-                          borderColor: styles.secondaryText.color,
-                          color: styles.text.color,
-                        }}
-                      />
-                    </div>
-                    {chat.description && (
-                      <div
-                        className="text-xs mt-1"
-                        style={styles.secondaryText}
-                      >
-                        {chat.description}
-                      </div>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button
-              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
-              style={styles.secondaryButton}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110"
-              style={styles.primaryButton}
-              onClick={() => selectedId && onPost(selectedId)}
-              disabled={!selectedId}
-              title={!selectedId ? "Select a chat" : "Post"}
-            >
-              Post
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
