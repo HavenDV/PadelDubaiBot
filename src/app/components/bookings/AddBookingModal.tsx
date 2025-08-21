@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTelegram, useTelegramTheme } from "@/app/hooks/telegram";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
 import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
+import TimeCrownPicker from "./TimeCrownPicker";
 
 interface AddBookingModalProps {
   isOpen: boolean;
@@ -41,6 +42,13 @@ function calculateDuration(startTime: string | null, endTime: string | null): nu
   return Math.round((end.getTime() - start.getTime()) / (1000 * 60));
 }
 
+function defaultDatePlusDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const pad = (n: number) => `${n}`.padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function AddBookingModal({
   isOpen,
   onClose,
@@ -60,6 +68,12 @@ export default function AddBookingModal({
   
   const loading = createBookingMutation.isPending || updateBookingMutation.isPending;
   const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    date?: string;
+    time?: string;
+    location?: string;
+    price?: string;
+  }>({});
   const [smartPasteText, setSmartPasteText] = useState<string>("");
   const [smartPasteLoading, setSmartPasteLoading] = useState<boolean>(false);
   const [showSmartPaste, setShowSmartPaste] = useState<boolean>(false);
@@ -71,7 +85,7 @@ export default function AddBookingModal({
     location_id: 0,
     price: 0,
     courts: 1,
-    note: "",
+    note: null,
     cancelled: false,
   });
 
@@ -92,7 +106,7 @@ export default function AddBookingModal({
         location_id: editingBooking.location_id || 0,
         price: editingBooking.price || 0,
         courts: editingBooking.courts || 1,
-        note: editingBooking.note || "",
+        note: editingBooking.note || null,
         cancelled: editingBooking.cancelled || false,
       });
       
@@ -103,6 +117,7 @@ export default function AddBookingModal({
       
       // Clear Smart Paste state
       setError("");
+      setFieldErrors({});
       setSmartPasteText("");
       setShowSmartPaste(false);
     } else if (!isEditMode && isOpen) {
@@ -119,8 +134,34 @@ export default function AddBookingModal({
   useEffect(() => {
     if (recentPrice && (!form.price || form.price === 0)) {
       setForm((f) => ({ ...f, price: recentPrice }));
+      setFieldErrors((prev) => ({ ...prev, price: undefined }));
     }
   }, [recentPrice, form.price]);
+
+  // Clear field errors reactively when values become valid (covers preselected/defaulted cases)
+  useEffect(() => {
+    setFieldErrors((prev) => ({
+      ...prev,
+      date: startDate ? undefined : prev.date,
+      time: startTime ? undefined : prev.time,
+      location: form.location_id ? undefined : prev.location,
+      price: form.price && form.price > 0 ? undefined : prev.price,
+    }));
+  }, [startDate, startTime, form.location_id, form.price]);
+
+  // When locations load in add mode, preselect the first and clear validation
+  useEffect(() => {
+    if (
+      isOpen &&
+      !isEditMode &&
+      (!form.location_id || form.location_id === 0) &&
+      Array.isArray(locations) &&
+      locations.length > 0
+    ) {
+      setForm((f) => ({ ...f, location_id: locations[0].id }));
+      setFieldErrors((prev) => ({ ...prev, location: undefined }));
+    }
+  }, [locations, isOpen, isEditMode, form.location_id]);
 
   // No Telegram clipboard integration; use manual paste or web clipboard
 
@@ -131,13 +172,14 @@ export default function AddBookingModal({
       location_id: 0,
       price: 0,
       courts: 1,
-      note: "",
+      note: null,
       cancelled: false,
     });
-    setStartDate("");
-    setStartTime("");
+    setStartDate(defaultDatePlusDays(7));
+    setStartTime("20:00");
     setDuration(90);
     setError("");
+    setFieldErrors({});
     setSmartPasteText("");
     setShowSmartPaste(false);
     setClipboardLoading(false);
@@ -145,8 +187,15 @@ export default function AddBookingModal({
 
   const handleSave = async () => {
     const startISO = combineLocalDateTimeToISO(startDate, startTime);
-    if (!startISO || !form.location_id || form.price <= 0) {
-      setError("Please fill in all required fields");
+    const errs: typeof fieldErrors = {};
+    if (!startDate) errs.date = "Required";
+    if (!startTime) errs.time = "Required";
+    if (!form.location_id) errs.location = "Required";
+    if (!form.price || form.price <= 0) errs.price = "Enter a positive amount";
+
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0 || !startISO) {
+      setError("Please correct the highlighted fields");
       return;
     }
     
@@ -156,6 +205,7 @@ export default function AddBookingModal({
     const endISO = endDateTime.toISOString();
     
     setError("");
+    setFieldErrors({});
     
     const payload = {
       start_time: startISO,
@@ -163,7 +213,7 @@ export default function AddBookingModal({
       location_id: form.location_id,
       price: form.price,
       courts: form.courts,
-      note: form.note,
+      note: (typeof form.note === 'string' ? form.note : '')?.trim() ? (form.note as string) : null,
       cancelled: editingBooking?.cancelled || false,
     };
 
@@ -264,6 +314,9 @@ export default function AddBookingModal({
         if (extractedData.location_id && onLocationUpdate) {
           onLocationUpdate();
         }
+
+        // Clear any previous field errors since values are now populated
+        setFieldErrors({});
       }
     } catch (e) {
       console.error("Smart paste error:", e);
@@ -403,74 +456,85 @@ export default function AddBookingModal({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Left column: Start date, Start time, Duration */}
+          {/* Left column: Date, Time, Duration (compact layout) */}
           <div className="space-y-4">
-            <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
-                Start date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{
-                  ...styles.card,
-                  ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
-                }}
-              />
-              <p className="text-xs mt-1" style={styles.secondaryText}>
-                The date players should arrive.
-              </p>
-            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+              <div>
+                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (fieldErrors.date) setFieldErrors((p) => ({ ...p, date: undefined }));
+                  }}
+                  aria-invalid={!!fieldErrors.date}
+                  className={`w-full h-10 px-3 border rounded-md text-sm`}
+                  style={{
+                    ...styles.card,
+                    ...styles.text,
+                    borderColor: fieldErrors.date
+                      ? '#ef4444'
+                      : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                    borderWidth: '1px',
+                  }}
+                />
+                {fieldErrors.date && (
+                  <p className="text-xs mt-1 text-red-500">{fieldErrors.date}</p>
+                )}
+              </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
-                Start time
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{
-                  ...styles.card,
-                  ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
-                }}
-              />
-              <p className="text-xs mt-1" style={styles.secondaryText}>
-                Local time the game starts.
-              </p>
-            </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                  Time
+                </label>
+                <div
+                  className="inline-flex rounded-md w-full items-center"
+                  style={{
+                    ...styles.card,
+                    ...styles.text,
+                    border: `1px solid ${fieldErrors.time ? '#ef4444' : ((styles.link && styles.link.color) || styles.primaryButton.backgroundColor)}`,
+                    height: 40,
+                  }}
+                >
+                  <TimeCrownPicker
+                    value={startTime || "20:00"}
+                    onChange={(v) => {
+                      setStartTime(v);
+                      if (fieldErrors.time) setFieldErrors((p) => ({ ...p, time: undefined }));
+                    }}
+                    minuteStep={5}
+                  />
+                </div>
+                {fieldErrors.time && (
+                  <p className="text-xs mt-1 text-red-500">{fieldErrors.time}</p>
+                )}
+              </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
-                Duration (minutes)
-              </label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{
-                  ...styles.card,
-                  ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
-                }}
-              >
-                <option value={60}>1 hour</option>
-                <option value={90}>1.5 hours</option>
-                <option value={120}>2 hours</option>
-                <option value={150}>2.5 hours</option>
-                <option value={180}>3 hours</option>
-              </select>
-              <p className="text-xs mt-1" style={styles.secondaryText}>
-                How long the game session lasts.
-              </p>
+              <div className="col-span-2 md:col-span-1">
+                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                  Duration (minutes)
+                </label>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className={`w-full h-10 px-3 border rounded-md text-sm`}
+                  style={{
+                    ...styles.card,
+                    ...styles.text,
+                    borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                    borderWidth: '1px',
+                  }}
+                >
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                  <option value={120}>2 hours</option>
+                  <option value={150}>2.5 hours</option>
+                  <option value={180}>3 hours</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -483,13 +547,19 @@ export default function AddBookingModal({
               <select
                 value={form.location_id ?? ""}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, location_id: Number(e.target.value) }))
+                  {
+                    setForm((f) => ({ ...f, location_id: Number(e.target.value) }));
+                    if (fieldErrors.location) setFieldErrors((p) => ({ ...p, location: undefined }));
+                  }
                 }
+                aria-invalid={!!fieldErrors.location}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
                 style={{
                   ...styles.card,
                   ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                  borderColor: fieldErrors.location
+                    ? '#ef4444'
+                    : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
                   borderWidth: '1px',
                 }}
               >
@@ -502,51 +572,107 @@ export default function AddBookingModal({
                   </option>
                 ))}
               </select>
-              <p className="text-xs mt-1" style={styles.secondaryText}>
-                Club where the game happens.
-              </p>
+              {fieldErrors.location ? (
+                <p className="text-xs mt-1 text-red-500">{fieldErrors.location}</p>
+              ) : (
+                <p className="text-xs mt-1" style={styles.secondaryText}>
+                  Club where the game happens.
+                </p>
+              )}
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
-                Price
-              </label>
-              <input
-                type="number"
-                min={0}
-                placeholder="e.g. 110"
-                value={Number(form.price) || 0}
-                onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
-                className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{
-                  ...styles.card,
-                  ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
-                }}
-              />
-              <p className="text-xs mt-1" style={styles.secondaryText}>Amount in AED per player.</p>
-            </div>
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div>
+                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                  Price
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 110"
+                  value={Number(form.price) || 0}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, price: Number(e.target.value) }));
+                    if (fieldErrors.price) setFieldErrors((p) => ({ ...p, price: undefined }));
+                  }}
+                  aria-invalid={!!fieldErrors.price}
+                  className={`w-full h-10 px-3 border rounded-md text-sm`}
+                  style={{
+                    ...styles.card,
+                    ...styles.text,
+                    borderColor: fieldErrors.price
+                      ? '#ef4444'
+                      : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                    borderWidth: '1px',
+                  }}
+                />
+                {fieldErrors.price ? (
+                  <p className="text-xs mt-1 text-red-500">{fieldErrors.price}</p>
+                ) : (
+                  <p className="text-xs mt-1" style={styles.secondaryText}>Amount in AED per player.</p>
+                )}
+              </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
-                Courts
-              </label>
-              <input
-                type="number"
-                min={1}
-                placeholder="1"
-                value={form.courts as number}
-                onChange={(e) => setForm((f) => ({ ...f, courts: Number(e.target.value) }))}
-                className={`w-full px-3 py-2 border rounded-md text-sm`}
-                style={{
-                  ...styles.card,
-                  ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
-                }}
-              />
-              <p className="text-xs mt-1" style={styles.secondaryText}>Number of courts reserved.</p>
+              <div>
+                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                  Courts
+                </label>
+                <div
+                  className="inline-flex items-center justify-between w-full h-10 px-2 border rounded-md"
+                  style={{
+                    ...styles.card,
+                    ...styles.text,
+                    borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
+                    borderWidth: '1px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <button
+                    type="button"
+                    aria-label="Decrease courts"
+                    disabled={(Number(form.courts) || 1) <= 1}
+                    onClick={() => {
+                      if ((Number(form.courts) || 1) <= 1) return;
+                      setForm((f) => ({ ...f, courts: Math.max(1, (Number(f.courts) || 1) - 1) }));
+                    }}
+                    className="h-10 w-12 flex items-center justify-center text-xl"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      opacity: (Number(form.courts) || 1) <= 1 ? 0.5 : (styles.secondaryButton as any)?.opacity || 1,
+                      cursor: (Number(form.courts) || 1) <= 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <span style={styles.text}>−</span>
+                  </button>
+
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={Number(form.courts) || 1}
+                    onChange={(e) => {
+                      const val = Math.max(1, Number(e.target.value) || 1);
+                      setForm((f) => ({ ...f, courts: val }));
+                    }}
+                    className="w-14 text-center bg-transparent outline-none"
+                    style={styles.text}
+                  />
+
+                  <button
+                    type="button"
+                    aria-label="Increase courts"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, courts: Math.max(1, (Number(f.courts) || 1) + 1) }))
+                    }
+                    className="h-10 w-12 flex items-center justify-center text-xl"
+                    style={{ background: 'transparent', border: 'none' }}
+                  >
+                    <span style={styles.text}>+</span>
+                  </button>
+                </div>
+                <p className="text-xs mt-1" style={styles.secondaryText}>Number of courts reserved.</p>
+              </div>
             </div>
           </div>
 
@@ -568,7 +694,7 @@ export default function AddBookingModal({
             }}
             />
             <p className="text-xs mt-1" style={styles.secondaryText}>
-              Extra info (parking, coach, etc.).
+              Optional: extra info (parking, coach, etc.).
             </p>
           </div>
 
