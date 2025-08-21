@@ -43,24 +43,37 @@ ON public.registrations FOR SELECT
 TO authenticated, anon
 USING (true);
 
--- Users can manage their own registration rows (optional; controlled by app logic)
+-- Users can manage their own registration rows using Telegram ID from JWT app_metadata
 CREATE POLICY "Users manage own registrations"
 ON public.registrations FOR INSERT TO authenticated
-WITH CHECK (auth.uid()::text = user_id::text);
+WITH CHECK ((select public.is_current_user(user_id)));
 
 CREATE POLICY "Users update own registrations"
 ON public.registrations FOR UPDATE TO authenticated
-USING (auth.uid()::text = user_id::text)
-WITH CHECK (auth.uid()::text = user_id::text);
+USING ((select public.is_current_user(user_id)))
+WITH CHECK ((select public.is_current_user(user_id)));
 
 CREATE POLICY "Users delete own registrations"
 ON public.registrations FOR DELETE TO authenticated
-USING (auth.uid()::text = user_id::text);
+USING ((select public.is_current_user(user_id)));
+
+-- Admins can manage registrations for moderation purposes
+CREATE POLICY "Admins manage registrations (insert)"
+ON public.registrations FOR INSERT TO authenticated
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Admins manage registrations (update)"
+ON public.registrations FOR UPDATE TO authenticated
+USING ((select public.is_admin()))
+WITH CHECK ((select public.is_admin()));
+
+CREATE POLICY "Admins manage registrations (delete)"
+ON public.registrations FOR DELETE TO authenticated
+USING ((select public.is_admin()));
 
 -- Trigger to keep updated_at current on row modification
 CREATE TRIGGER set_registrations_updated_at
 BEFORE UPDATE ON public.registrations
 FOR EACH ROW
 EXECUTE FUNCTION public.set_updated_at();
-
 
