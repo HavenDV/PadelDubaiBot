@@ -6,13 +6,13 @@ import { bot, ensureBotInit } from "@/app/lib/telegram/bot";
 // receive from url parameters as fallback
 export async function POST(req: NextRequest) {
   const secretToken = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
-  console.log("secretToken", secretToken);
+  console.log("secretToken (from header)", secretToken);
 
   if (secretToken !== process.env.TELEGRAM_WEBHOOK_SECRET) {
     const url = new URL(req.url);
     const secretTokenFromUrl = url.searchParams.get("secret_token");
 
-    console.log("secretTokenFromUrl", secretTokenFromUrl);
+    console.log("secretToken (from url)", secretTokenFromUrl);
 
     if (secretTokenFromUrl !== process.env.TELEGRAM_WEBHOOK_SECRET) {
       return NextResponse.json(
