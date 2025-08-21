@@ -7,31 +7,32 @@ function formatGameDateTime(
   startTime: Date,
   endTime: Date
 ): { day: string; date: string; time: string; title: string } {
-  const days = [
-    "Воскресенье",
-    "Понедельник",
-    "Вторник",
-    "Среда",
-    "Четверг",
-    "Пятница",
-    "Суббота",
-  ];
+  // Format using Dubai timezone regardless of server/runtime timezone
+  const timeZone = "Asia/Dubai" as const;
 
-  const day = days[startTime.getDay()];
-  const date = `${startTime.getDate().toString().padStart(2, "0")}.${(
-    startTime.getMonth() + 1
-  )
-    .toString()
-    .padStart(2, "0")}`;
+  // Weekday in Russian, capitalized (e.g., "Вторник")
+  const weekday = new Intl.DateTimeFormat("ru-RU", {
+    weekday: "long",
+    timeZone,
+  }).format(startTime);
+  const day = weekday.charAt(0).toUpperCase() + weekday.slice(1);
 
-  const startTimeStr = `${startTime.getHours()}:${startTime
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
-  const endTimeStr = `${endTime
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${endTime.getMinutes().toString().padStart(2, "0")}`;
+  // Date as DD.MM
+  const date = new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+  }).format(startTime);
+
+  // Times as HH:MM-HH:MM in Dubai time (24h)
+  const timeFormatter = new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  });
+  const startTimeStr = timeFormatter.format(startTime);
+  const endTimeStr = timeFormatter.format(endTime);
   const time = `${startTimeStr}-${endTimeStr}`;
 
   const title = `${day}, ${date}, ${time}`;
