@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTelegram, useTelegramTheme } from "@/app/hooks/telegram";
 import { BookingInsert, Location, Booking } from "../../../../database.types";
-import { useRecentPrice, useCreateBooking, useUpdateBooking } from "@lib/hooks/db";
+import {
+  useRecentPrice,
+  useCreateBooking,
+  useUpdateBooking,
+} from "@lib/hooks/db";
 import TimeCrownPicker from "./TimeCrownPicker";
 
 interface AddBookingModalProps {
@@ -35,7 +39,10 @@ function toTimeString(iso: string | null | undefined) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function calculateDuration(startTime: string | null, endTime: string | null): number {
+function calculateDuration(
+  startTime: string | null,
+  endTime: string | null
+): number {
   if (!startTime || !endTime) return 90; // Default to 90 minutes
   const start = new Date(startTime);
   const end = new Date(endTime);
@@ -59,14 +66,15 @@ export default function AddBookingModal({
 }: AddBookingModalProps) {
   const { styles } = useTelegramTheme();
   const { isTelegram } = useTelegram();
-  
+
   // Clipboard (web-only): in Telegram, clipboard is not available
-  
+
   // React Query mutations
   const createBookingMutation = useCreateBooking();
   const updateBookingMutation = useUpdateBooking();
-  
-  const loading = createBookingMutation.isPending || updateBookingMutation.isPending;
+
+  const loading =
+    createBookingMutation.isPending || updateBookingMutation.isPending;
   const [error, setError] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<{
     date?: string;
@@ -109,12 +117,14 @@ export default function AddBookingModal({
         note: editingBooking.note || null,
         cancelled: editingBooking.cancelled || false,
       });
-      
+
       // Populate date/time fields
       setStartDate(toDateString(editingBooking.start_time));
       setStartTime(toTimeString(editingBooking.start_time));
-      setDuration(calculateDuration(editingBooking.start_time, editingBooking.end_time));
-      
+      setDuration(
+        calculateDuration(editingBooking.start_time, editingBooking.end_time)
+      );
+
       // Clear Smart Paste state
       setError("");
       setFieldErrors({});
@@ -124,12 +134,12 @@ export default function AddBookingModal({
       // Reset for add mode
       resetForm();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingBooking, isOpen, isEditMode]);
 
   // Use React Query to get recent price for the selected location
   const { data: recentPrice } = useRecentPrice(form.location_id || undefined);
-  
+
   // Auto-populate price when location changes and no price is set
   useEffect(() => {
     if (recentPrice && (!form.price || form.price === 0)) {
@@ -198,22 +208,26 @@ export default function AddBookingModal({
       setError("Please correct the highlighted fields");
       return;
     }
-    
+
     // Calculate end time by adding duration to start time
     const startDateTime = new Date(startISO);
-    const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
+    const endDateTime = new Date(
+      startDateTime.getTime() + duration * 60 * 1000
+    );
     const endISO = endDateTime.toISOString();
-    
+
     setError("");
     setFieldErrors({});
-    
+
     const payload = {
       start_time: startISO,
       end_time: endISO,
       location_id: form.location_id,
       price: form.price,
       courts: form.courts,
-      note: (typeof form.note === 'string' ? form.note : '')?.trim() ? (form.note as string) : null,
+      note: (typeof form.note === "string" ? form.note : "")?.trim()
+        ? (form.note as string)
+        : null,
       cancelled: editingBooking?.cancelled || false,
     };
 
@@ -222,44 +236,48 @@ export default function AddBookingModal({
         // Update existing booking
         await updateBookingMutation.mutateAsync({
           id: editingBooking.id,
-          updates: payload
+          updates: payload,
         });
       } else {
         // Create new booking
         await createBookingMutation.mutateAsync(payload);
       }
-      
+
       resetForm();
       onSuccess();
       onClose();
     } catch (e) {
-      setError(isEditMode ? "Failed to update booking" : "Failed to create booking");
+      setError(
+        isEditMode ? "Failed to update booking" : "Failed to create booking"
+      );
       console.error(e);
     }
   };
 
   const handleSmartPaste = async () => {
     if (!smartPasteText.trim()) return;
-    
+
     setSmartPasteLoading(true);
     setError("");
-    
+
     try {
-      const response = await fetch('/api/auto-fill/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auto-fill/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: smartPasteText
-        })
+          text: smartPasteText,
+        }),
       });
 
       if (!response.ok) {
         try {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to process text');
+          throw new Error(errorData.error || "Failed to process text");
         } catch {
           // If we can't parse the error response, show a generic message
-          throw new Error('Failed to process text. Please check your input and try again.');
+          throw new Error(
+            "Failed to process text. Please check your input and try again."
+          );
         }
       }
 
@@ -267,11 +285,13 @@ export default function AddBookingModal({
       try {
         result = await response.json();
       } catch {
-        throw new Error('Received invalid response from server. Please try again.');
+        throw new Error(
+          "Received invalid response from server. Please try again."
+        );
       }
-      
+
       const extractedData = result.data;
-      
+
       if (extractedData && result.success) {
         // Auto-fill form fields
         if (extractedData.date) {
@@ -284,32 +304,37 @@ export default function AddBookingModal({
           setDuration(extractedData.duration);
         }
         if (extractedData.price) {
-          setForm(f => ({ ...f, price: extractedData.price as number }));
+          setForm((f) => ({ ...f, price: extractedData.price as number }));
         }
         if (extractedData.courts) {
-          setForm(f => ({ ...f, courts: extractedData.courts }));
+          setForm((f) => ({ ...f, courts: extractedData.courts }));
         }
         if (extractedData.note) {
-          setForm(f => ({ ...f, note: extractedData.note }));
+          setForm((f) => ({ ...f, note: extractedData.note }));
         }
-        
+
         // Handle location - API now provides location_id if matched/created
         if (extractedData.location_id) {
-          setForm(f => ({ ...f, location_id: extractedData.location_id }));
+          setForm((f) => ({ ...f, location_id: extractedData.location_id }));
         } else if (extractedData.location_name) {
           // Fallback: try to match location by name on frontend (shouldn't happen often)
-          const matchedLocation = locations.find(loc => 
-            loc.name.toLowerCase().includes(extractedData.location_name.toLowerCase()) ||
-            extractedData.location_name.toLowerCase().includes(loc.name.toLowerCase())
+          const matchedLocation = locations.find(
+            (loc) =>
+              loc.name
+                .toLowerCase()
+                .includes(extractedData.location_name.toLowerCase()) ||
+              extractedData.location_name
+                .toLowerCase()
+                .includes(loc.name.toLowerCase())
           );
           if (matchedLocation) {
-            setForm(f => ({ ...f, location_id: matchedLocation.id }));
+            setForm((f) => ({ ...f, location_id: matchedLocation.id }));
           }
         }
-        
+
         setSmartPasteText("");
         setShowSmartPaste(false);
-        
+
         // If a new location was created, refresh the locations list
         if (extractedData.location_id && onLocationUpdate) {
           onLocationUpdate();
@@ -320,7 +345,9 @@ export default function AddBookingModal({
       }
     } catch (e) {
       console.error("Smart paste error:", e);
-      setError(e instanceof Error ? e.message : "Failed to process pasted text");
+      setError(
+        e instanceof Error ? e.message : "Failed to process pasted text"
+      );
     } finally {
       setSmartPasteLoading(false);
     }
@@ -346,7 +373,9 @@ export default function AddBookingModal({
       }
     } catch (err) {
       console.error("Web clipboard read error:", err);
-      setError("Failed to read clipboard. Please grant permission or paste manually.");
+      setError(
+        "Failed to read clipboard. Please grant permission or paste manually."
+      );
     } finally {
       setClipboardLoading(false);
     }
@@ -381,23 +410,33 @@ export default function AddBookingModal({
         {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
 
         {/* Smart Paste Section */}
-        <div className="mb-6 border rounded-lg p-4" style={{ ...styles.header, ...styles.border }}>
+        <div
+          className="mb-6 border rounded-lg p-4"
+          style={{ ...styles.header, ...styles.border }}
+        >
           <button
             onClick={() => setShowSmartPaste(!showSmartPaste)}
             className="flex items-center gap-2 text-sm font-medium transition-colors hover:brightness-110"
-            style={{ color: styles.link?.color || styles.primaryButton.backgroundColor }}
+            style={{
+              color: styles.link?.color || styles.primaryButton.backgroundColor,
+            }}
           >
             <span>🪄</span>
             Smart Paste
-            <span className={`transition-transform ${showSmartPaste ? 'rotate-180' : ''}`}>
+            <span
+              className={`transition-transform ${
+                showSmartPaste ? "rotate-180" : ""
+              }`}
+            >
               ▼
             </span>
           </button>
-          
+
           {showSmartPaste && (
             <div className="mt-3 space-y-3">
               <p className="text-xs" style={styles.secondaryText}>
-                Paste booking details from messages, emails, or any text and we&apos;ll auto-fill the form fields.
+                Paste booking details from messages, emails, or any text and
+                we&apos;ll auto-fill the form fields.
               </p>
               <textarea
                 value={smartPasteText}
@@ -407,8 +446,10 @@ export default function AddBookingModal({
                 style={{
                   ...styles.card,
                   ...styles.text,
-                  borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
+                  borderColor:
+                    (styles.link && styles.link.color) ||
+                    styles.primaryButton.backgroundColor,
+                  borderWidth: "1px",
                 }}
                 rows={3}
               />
@@ -419,7 +460,9 @@ export default function AddBookingModal({
                     disabled={clipboardLoading}
                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors`}
                     style={{
-                      ...(clipboardLoading ? { ...styles.secondaryButton, opacity: 0.6 } : styles.secondaryButton),
+                      ...(clipboardLoading
+                        ? { ...styles.secondaryButton, opacity: 0.6 }
+                        : styles.secondaryButton),
                       ...(styles.border || {}),
                     }}
                     title="Paste from clipboard"
@@ -460,7 +503,10 @@ export default function AddBookingModal({
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
               <div>
-                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                <label
+                  className={`block text-sm font-medium mb-1`}
+                  style={styles.text}
+                >
                   Date
                 </label>
                 <input
@@ -468,7 +514,8 @@ export default function AddBookingModal({
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
-                    if (fieldErrors.date) setFieldErrors((p) => ({ ...p, date: undefined }));
+                    if (fieldErrors.date)
+                      setFieldErrors((p) => ({ ...p, date: undefined }));
                   }}
                   aria-invalid={!!fieldErrors.date}
                   className={`w-full h-10 px-3 border rounded-md text-sm`}
@@ -476,18 +523,24 @@ export default function AddBookingModal({
                     ...styles.card,
                     ...styles.text,
                     borderColor: fieldErrors.date
-                      ? '#ef4444'
-                      : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                    borderWidth: '1px',
+                      ? "#ef4444"
+                      : (styles.link && styles.link.color) ||
+                        styles.primaryButton.backgroundColor,
+                    borderWidth: "1px",
                   }}
                 />
                 {fieldErrors.date && (
-                  <p className="text-xs mt-1 text-red-500">{fieldErrors.date}</p>
+                  <p className="text-xs mt-1 text-red-500">
+                    {fieldErrors.date}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                <label
+                  className={`block text-sm font-medium mb-1`}
+                  style={styles.text}
+                >
                   Time
                 </label>
                 <div
@@ -495,7 +548,12 @@ export default function AddBookingModal({
                   style={{
                     ...styles.card,
                     ...styles.text,
-                    border: `1px solid ${fieldErrors.time ? '#ef4444' : ((styles.link && styles.link.color) || styles.primaryButton.backgroundColor)}`,
+                    border: `1px solid ${
+                      fieldErrors.time
+                        ? "#ef4444"
+                        : (styles.link && styles.link.color) ||
+                          styles.primaryButton.backgroundColor
+                    }`,
                     height: 40,
                   }}
                 >
@@ -503,18 +561,24 @@ export default function AddBookingModal({
                     value={startTime || "20:00"}
                     onChange={(v) => {
                       setStartTime(v);
-                      if (fieldErrors.time) setFieldErrors((p) => ({ ...p, time: undefined }));
+                      if (fieldErrors.time)
+                        setFieldErrors((p) => ({ ...p, time: undefined }));
                     }}
                     minuteStep={5}
                   />
                 </div>
                 {fieldErrors.time && (
-                  <p className="text-xs mt-1 text-red-500">{fieldErrors.time}</p>
+                  <p className="text-xs mt-1 text-red-500">
+                    {fieldErrors.time}
+                  </p>
                 )}
               </div>
 
               <div className="col-span-2 md:col-span-1">
-                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                <label
+                  className={`block text-sm font-medium mb-1`}
+                  style={styles.text}
+                >
                   Duration (minutes)
                 </label>
                 <select
@@ -524,8 +588,10 @@ export default function AddBookingModal({
                   style={{
                     ...styles.card,
                     ...styles.text,
-                    borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                    borderWidth: '1px',
+                    borderColor:
+                      (styles.link && styles.link.color) ||
+                      styles.primaryButton.backgroundColor,
+                    borderWidth: "1px",
                   }}
                 >
                   <option value={60}>1 hour</option>
@@ -541,26 +607,32 @@ export default function AddBookingModal({
           {/* Right column: Location, Price, Courts */}
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+              <label
+                className={`block text-sm font-medium mb-1`}
+                style={styles.text}
+              >
                 Location
               </label>
               <select
                 value={form.location_id ?? ""}
-                onChange={(e) =>
-                  {
-                    setForm((f) => ({ ...f, location_id: Number(e.target.value) }));
-                    if (fieldErrors.location) setFieldErrors((p) => ({ ...p, location: undefined }));
-                  }
-                }
+                onChange={(e) => {
+                  setForm((f) => ({
+                    ...f,
+                    location_id: Number(e.target.value),
+                  }));
+                  if (fieldErrors.location)
+                    setFieldErrors((p) => ({ ...p, location: undefined }));
+                }}
                 aria-invalid={!!fieldErrors.location}
                 className={`w-full px-3 py-2 border rounded-md text-sm`}
                 style={{
                   ...styles.card,
                   ...styles.text,
                   borderColor: fieldErrors.location
-                    ? '#ef4444'
-                    : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                  borderWidth: '1px',
+                    ? "#ef4444"
+                    : (styles.link && styles.link.color) ||
+                      styles.primaryButton.backgroundColor,
+                  borderWidth: "1px",
                 }}
               >
                 <option value="" disabled>
@@ -573,7 +645,9 @@ export default function AddBookingModal({
                 ))}
               </select>
               {fieldErrors.location ? (
-                <p className="text-xs mt-1 text-red-500">{fieldErrors.location}</p>
+                <p className="text-xs mt-1 text-red-500">
+                  {fieldErrors.location}
+                </p>
               ) : (
                 <p className="text-xs mt-1" style={styles.secondaryText}>
                   Club where the game happens.
@@ -583,7 +657,10 @@ export default function AddBookingModal({
 
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
-                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                <label
+                  className={`block text-sm font-medium mb-1`}
+                  style={styles.text}
+                >
                   Price
                 </label>
                 <input
@@ -593,7 +670,8 @@ export default function AddBookingModal({
                   value={Number(form.price) || 0}
                   onChange={(e) => {
                     setForm((f) => ({ ...f, price: Number(e.target.value) }));
-                    if (fieldErrors.price) setFieldErrors((p) => ({ ...p, price: undefined }));
+                    if (fieldErrors.price)
+                      setFieldErrors((p) => ({ ...p, price: undefined }));
                   }}
                   aria-invalid={!!fieldErrors.price}
                   className={`w-full h-10 px-3 border rounded-md text-sm`}
@@ -601,20 +679,28 @@ export default function AddBookingModal({
                     ...styles.card,
                     ...styles.text,
                     borderColor: fieldErrors.price
-                      ? '#ef4444'
-                      : (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                    borderWidth: '1px',
+                      ? "#ef4444"
+                      : (styles.link && styles.link.color) ||
+                        styles.primaryButton.backgroundColor,
+                    borderWidth: "1px",
                   }}
                 />
                 {fieldErrors.price ? (
-                  <p className="text-xs mt-1 text-red-500">{fieldErrors.price}</p>
+                  <p className="text-xs mt-1 text-red-500">
+                    {fieldErrors.price}
+                  </p>
                 ) : (
-                  <p className="text-xs mt-1" style={styles.secondaryText}>Amount in AED per player.</p>
+                  <p className="text-xs mt-1" style={styles.secondaryText}>
+                    Amount in AED per player.
+                  </p>
                 )}
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+                <label
+                  className={`block text-sm font-medium mb-1`}
+                  style={styles.text}
+                >
                   Courts
                 </label>
                 <div
@@ -622,9 +708,11 @@ export default function AddBookingModal({
                   style={{
                     ...styles.card,
                     ...styles.text,
-                    borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-                    borderWidth: '1px',
-                    overflow: 'hidden',
+                    borderColor:
+                      (styles.link && styles.link.color) ||
+                      styles.primaryButton.backgroundColor,
+                    borderWidth: "1px",
+                    overflow: "hidden",
                   }}
                 >
                   <button
@@ -633,14 +721,23 @@ export default function AddBookingModal({
                     disabled={(Number(form.courts) || 1) <= 1}
                     onClick={() => {
                       if ((Number(form.courts) || 1) <= 1) return;
-                      setForm((f) => ({ ...f, courts: Math.max(1, (Number(f.courts) || 1) - 1) }));
+                      setForm((f) => ({
+                        ...f,
+                        courts: Math.max(1, (Number(f.courts) || 1) - 1),
+                      }));
                     }}
                     className="h-10 w-12 flex items-center justify-center text-xl"
                     style={{
-                      background: 'transparent',
-                      border: 'none',
-                      opacity: (Number(form.courts) || 1) <= 1 ? 0.5 : (styles.secondaryButton as any)?.opacity || 1,
-                      cursor: (Number(form.courts) || 1) <= 1 ? 'not-allowed' : 'pointer',
+                      background: "transparent",
+                      border: "none",
+                      opacity:
+                        (Number(form.courts) || 1) <= 1
+                          ? 0.5
+                          : styles.secondaryButton?.opacity || 1,
+                      cursor:
+                        (Number(form.courts) || 1) <= 1
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     <span style={styles.text}>−</span>
@@ -663,21 +760,29 @@ export default function AddBookingModal({
                     type="button"
                     aria-label="Increase courts"
                     onClick={() =>
-                      setForm((f) => ({ ...f, courts: Math.max(1, (Number(f.courts) || 1) + 1) }))
+                      setForm((f) => ({
+                        ...f,
+                        courts: Math.max(1, (Number(f.courts) || 1) + 1),
+                      }))
                     }
                     className="h-10 w-12 flex items-center justify-center text-xl"
-                    style={{ background: 'transparent', border: 'none' }}
+                    style={{ background: "transparent", border: "none" }}
                   >
                     <span style={styles.text}>+</span>
                   </button>
                 </div>
-                <p className="text-xs mt-1" style={styles.secondaryText}>Number of courts reserved.</p>
+                <p className="text-xs mt-1" style={styles.secondaryText}>
+                  Number of courts reserved.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="md:col-span-2">
-            <label className={`block text-sm font-medium mb-1`} style={styles.text}>
+            <label
+              className={`block text-sm font-medium mb-1`}
+              style={styles.text}
+            >
               Note
             </label>
             <input
@@ -686,18 +791,19 @@ export default function AddBookingModal({
               value={(form.note as string) || ""}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               className={`w-full px-3 py-2 border rounded-md text-sm`}
-            style={{
-              ...styles.card,
-              ...styles.text,
-              borderColor: (styles.link && styles.link.color) || styles.primaryButton.backgroundColor,
-              borderWidth: '1px',
-            }}
+              style={{
+                ...styles.card,
+                ...styles.text,
+                borderColor:
+                  (styles.link && styles.link.color) ||
+                  styles.primaryButton.backgroundColor,
+                borderWidth: "1px",
+              }}
             />
             <p className="text-xs mt-1" style={styles.secondaryText}>
               Optional: extra info (parking, coach, etc.).
             </p>
           </div>
-
         </div>
 
         <div className="flex gap-3 mt-6">
@@ -705,12 +811,20 @@ export default function AddBookingModal({
             onClick={handleSave}
             disabled={loading}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors`}
-            style={loading ? { ...styles.primaryButton, opacity: 0.6 } : styles.primaryButton}
+            style={
+              loading
+                ? { ...styles.primaryButton, opacity: 0.6 }
+                : styles.primaryButton
+            }
           >
             <span style={{ color: styles.primaryButton.color }}>
-              {loading 
-                ? (isEditMode ? "Updating..." : "Creating...") 
-                : (isEditMode ? "Update booking" : "Add booking")}
+              {loading
+                ? isEditMode
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditMode
+                ? "Update booking"
+                : "Add booking"}
             </span>
           </button>
           <button

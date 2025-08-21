@@ -6,7 +6,6 @@ import { useActiveChats } from "@/app/lib/hooks/db";
 import type { Booking } from "../../../../database.types";
 
 export default function PostToDialog({
-  booking,
   initialChatId,
   onClose,
   onPost,
@@ -102,7 +101,10 @@ export default function PostToDialog({
                       />
                     </div>
                     {chat.description && (
-                      <div className="text-xs mt-1" style={styles.secondaryText}>
+                      <div
+                        className="text-xs mt-1"
+                        style={styles.secondaryText}
+                      >
                         {chat.description}
                       </div>
                     )}
@@ -135,4 +137,3 @@ export default function PostToDialog({
     </div>
   );
 }
-

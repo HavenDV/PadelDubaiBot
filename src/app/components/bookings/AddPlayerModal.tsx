@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTelegramTheme } from "@/app/hooks/telegram";
 import { supabase } from "@lib/supabase/client";
 import { User } from "../../../../database.types";
@@ -158,12 +158,19 @@ export default function AddPlayerModal({
               <ul className="divide-y overflow-x-hidden" style={styles.border}>
                 {users.map((u) => {
                   const name =
-                    u.explicit_name || [u.first_name, u.last_name].filter(Boolean).join(" ");
+                    u.explicit_name ||
+                    [u.first_name, u.last_name].filter(Boolean).join(" ");
                   const isRegistered = registeredIds.has(u.id);
                   return (
-                    <li key={u.id} className="flex items-center justify-between p-2">
+                    <li
+                      key={u.id}
+                      className="flex items-center justify-between p-2"
+                    >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium truncate" style={styles.text}>
+                        <div
+                          className="text-sm font-medium truncate"
+                          style={styles.text}
+                        >
                           {u.username ? (
                             <a
                               href={`https://t.me/${u.username}`}
@@ -189,7 +196,9 @@ export default function AddPlayerModal({
                       <div className="flex items-center gap-2">
                         <button
                           className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:brightness-110 ${
-                            pendingIds.has(u.id) ? "opacity-70 cursor-not-allowed" : ""
+                            pendingIds.has(u.id)
+                              ? "opacity-70 cursor-not-allowed"
+                              : ""
                           }`}
                           style={styles.primaryButton}
                           disabled={pendingIds.has(u.id)}
@@ -199,10 +208,18 @@ export default function AddPlayerModal({
                             try {
                               setPendingIds((prev) => new Set(prev).add(u.id));
                               if (!isRegistered) {
-                                await addRegistration.mutateAsync({ bookingId, userId: u.id });
-                                setRegisteredIds((prev) => new Set(prev).add(u.id));
+                                await addRegistration.mutateAsync({
+                                  bookingId,
+                                  userId: u.id,
+                                });
+                                setRegisteredIds((prev) =>
+                                  new Set(prev).add(u.id)
+                                );
                               } else {
-                                await removeRegistration.mutateAsync({ bookingId, userId: u.id });
+                                await removeRegistration.mutateAsync({
+                                  bookingId,
+                                  userId: u.id,
+                                });
                                 setRegisteredIds((prev) => {
                                   const next = new Set(prev);
                                   next.delete(u.id);
@@ -210,7 +227,11 @@ export default function AddPlayerModal({
                                 });
                               }
                             } catch (e) {
-                              const msg = (e as { message?: string })?.message || (isRegistered ? "Failed to remove player" : "Failed to add player");
+                              const msg =
+                                (e as { message?: string })?.message ||
+                                (isRegistered
+                                  ? "Failed to remove player"
+                                  : "Failed to add player");
                               setError(msg);
                             } finally {
                               setPendingIds((prev) => {
@@ -244,8 +265,12 @@ export default function AddPlayerModal({
                                 />
                                 <style jsx>{`
                                   @keyframes shimmer {
-                                    0% { transform: translateX(-100%) skewX(-12deg); }
-                                    100% { transform: translateX(200%) skewX(-12deg); }
+                                    0% {
+                                      transform: translateX(-100%) skewX(-12deg);
+                                    }
+                                    100% {
+                                      transform: translateX(200%) skewX(-12deg);
+                                    }
                                   }
                                 `}</style>
                               </>

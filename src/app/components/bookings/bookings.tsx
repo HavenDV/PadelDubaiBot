@@ -94,8 +94,9 @@ export default function Bookings() {
   const unpinMessageMutation = useUnpinMessage();
   const updateBookingMutation = useUpdateBooking();
 
-  const [confirmDeleteBookingId, setConfirmDeleteBookingId] =
-    useState<number | null>(null);
+  const [confirmDeleteBookingId, setConfirmDeleteBookingId] = useState<
+    number | null
+  >(null);
 
   const handleDelete = (id: number) => {
     setError("");
@@ -475,19 +476,35 @@ export default function Bookings() {
                                 style={{
                                   ...(b.courts > 1
                                     ? styles.secondaryButton
-                                    : { ...styles.secondaryButton, opacity: 0.5, cursor: "not-allowed" }),
+                                    : {
+                                        ...styles.secondaryButton,
+                                        opacity: 0.5,
+                                        cursor: "not-allowed",
+                                      }),
                                   ...(styles.border || {}),
                                 }}
                                 title="Decrease courts"
                                 aria-label="Decrease courts"
-                                disabled={updateBookingMutation.isPending || b.courts <= 1}
+                                disabled={
+                                  updateBookingMutation.isPending ||
+                                  b.courts <= 1
+                                }
                                 onClick={() =>
                                   updateBookingMutation.mutate(
                                     {
                                       id: b.id,
-                                      updates: { courts: Math.max(1, (b.courts || 1) - 1) },
+                                      updates: {
+                                        courts: Math.max(
+                                          1,
+                                          (b.courts || 1) - 1
+                                        ),
+                                      },
                                     },
-                                    { onSuccess: () => { refreshMessagesMutation.mutate(); } }
+                                    {
+                                      onSuccess: () => {
+                                        refreshMessagesMutation.mutate();
+                                      },
+                                    }
                                   )
                                 }
                               >
@@ -495,7 +512,10 @@ export default function Bookings() {
                               </button>
                               <button
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors hover:brightness-110"
-                                style={{ ...styles.secondaryButton, ...(styles.border || {}) }}
+                                style={{
+                                  ...styles.secondaryButton,
+                                  ...(styles.border || {}),
+                                }}
                                 title="Increase courts"
                                 aria-label="Increase courts"
                                 disabled={updateBookingMutation.isPending}
@@ -505,7 +525,11 @@ export default function Bookings() {
                                       id: b.id,
                                       updates: { courts: (b.courts || 1) + 1 },
                                     },
-                                    { onSuccess: () => { refreshMessagesMutation.mutate(); } }
+                                    {
+                                      onSuccess: () => {
+                                        refreshMessagesMutation.mutate();
+                                      },
+                                    }
                                   )
                                 }
                               >
@@ -594,7 +618,7 @@ export default function Bookings() {
                   </div>
 
                   {/* Note */}
-                  {((b.note || "").trim()) && (
+                  {(b.note || "").trim() && (
                     <div
                       className="flex items-start gap-2 text-sm p-2 rounded-md border mb-2"
                       style={{ ...styles.card, ...styles.border }}
@@ -616,7 +640,9 @@ export default function Bookings() {
                         <line x1="16" y1="17" x2="8" y2="17" />
                         <polyline points="10,9 9,9 8,9" />
                       </svg>
-                      <span style={styles.secondaryText}>{(b.note || "").trim()}</span>
+                      <span style={styles.secondaryText}>
+                        {(b.note || "").trim()}
+                      </span>
                     </div>
                   )}
 
@@ -1161,7 +1187,11 @@ export default function Bookings() {
                                           }
                                           aria-disabled={!canPin}
                                         >
-                                          <PinOffIcon size={14} className="w-3.5 h-3.5" strokeWidth={2} />
+                                          <PinOffIcon
+                                            size={14}
+                                            className="w-3.5 h-3.5"
+                                            strokeWidth={2}
+                                          />
                                         </button>
                                       );
                                     }
@@ -1191,7 +1221,11 @@ export default function Bookings() {
                                         }
                                         aria-disabled={!canPin}
                                       >
-                                        <PinIcon size={14} className="w-3.5 h-3.5" strokeWidth={2} />
+                                        <PinIcon
+                                          size={14}
+                                          className="w-3.5 h-3.5"
+                                          strokeWidth={2}
+                                        />
                                       </button>
                                     );
                                   })()}
@@ -1416,7 +1450,6 @@ export default function Bookings() {
       {/* Post To Dialog */}
       {postDialogBooking && (
         <PostToDialog
-          booking={postDialogBooking}
           initialChatId={postDialogChatId}
           onClose={() => {
             setPostDialogBooking(null);
