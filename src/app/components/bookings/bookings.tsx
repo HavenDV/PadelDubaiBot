@@ -23,6 +23,7 @@ import {
   useUnpinMessage,
 } from "@lib/hooks/db";
 import { PinIcon, PinOffIcon } from "@components/icons/Icons";
+import { useUpdateBooking } from "@lib/hooks/db";
 
 export default function Bookings() {
   const { styles } = useTelegramTheme();
@@ -80,6 +81,7 @@ export default function Bookings() {
   const sendBookingMessageMutation = useSendBookingMessage();
   const pinMessageMutation = usePinMessage();
   const unpinMessageMutation = useUnpinMessage();
+  const updateBookingMutation = useUpdateBooking();
 
   const handleDelete = (id: number) => {
     if (!confirm("Delete this booking?")) return;
@@ -469,11 +471,52 @@ export default function Bookings() {
                         <div className="font-bold text-lg" style={styles.text}>
                           {location?.name || `Location #${b.location_id}`}
                         </div>
-                        <div
-                          className="text-sm font-medium"
-                          style={styles.secondaryText}
-                        >
-                          Courts {b.courts}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-sm font-medium"
+                            style={styles.secondaryText}
+                          >
+                            Courts {b.courts}
+                          </span>
+                          {isAdmin && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors"
+                                style={{
+                                  ...(b.courts > 1
+                                    ? styles.secondaryButton
+                                    : { ...styles.secondaryButton, opacity: 0.5, cursor: "not-allowed" }),
+                                  ...(styles.border || {}),
+                                }}
+                                title="Decrease courts"
+                                aria-label="Decrease courts"
+                                disabled={updateBookingMutation.isPending || b.courts <= 1}
+                                onClick={() =>
+                                  updateBookingMutation.mutate({
+                                    id: b.id,
+                                    updates: { courts: Math.max(1, (b.courts || 1) - 1) },
+                                  })
+                                }
+                              >
+                                <span style={styles.text}>-</span>
+                              </button>
+                              <button
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors hover:brightness-110"
+                                style={{ ...styles.secondaryButton, ...(styles.border || {}) }}
+                                title="Increase courts"
+                                aria-label="Increase courts"
+                                disabled={updateBookingMutation.isPending}
+                                onClick={() =>
+                                  updateBookingMutation.mutate({
+                                    id: b.id,
+                                    updates: { courts: (b.courts || 1) + 1 },
+                                  })
+                                }
+                              >
+                                <span style={styles.text}>+</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
