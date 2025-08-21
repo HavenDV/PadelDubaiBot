@@ -88,7 +88,6 @@ All tables use RLS policies for secure data access. Admin users have elevated pe
 
 ```bash
 TELEGRAM_BOT_TOKEN=<bot_token_from_botfather>
-CHAT_ID=<telegram_group_chat_id>
 OPENAI_API_KEY=<openai_api_key>
 NEXT_PUBLIC_SUPABASE_URL=<supabase_project_url>
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<supabase_anon_key>

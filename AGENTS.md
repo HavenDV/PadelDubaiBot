@@ -42,5 +42,5 @@
 
 ## Security & Configuration
 
-- Secrets: Store in `.env` (e.g., `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `OPENAI_API_KEY`). Never commit secrets.
+- Secrets: Store in `.env` (e.g., `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`). Never commit secrets.
 - Webhooks/Tunneling: Use `npm run tunnel` or `npm run tunnel2` to expose `localhost:3000` when needed.

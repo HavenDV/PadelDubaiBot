@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
         error_code: response.error_code,
         chatId: chatId,
         originalChatId: chatId,
-        envChatId: process.env.CHAT_ID,
         textLength: text.length,
         fullResponse: response,
       });

@@ -56,7 +56,6 @@ Create a `.env.local` file with:
 
 ```bash
 TELEGRAM_BOT_TOKEN=123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
-CHAT_ID=-1001234567890
 OPENAI_API_KEY=sk-your-openai-api-key-here
 ```
 

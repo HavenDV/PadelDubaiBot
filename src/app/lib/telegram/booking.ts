@@ -292,7 +292,7 @@ export async function generateMessageFromDatabase(
 export async function updateTelegramMessageFromDatabase(
   chatId: number,
   messageId: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; removed?: boolean; error?: string; error_code?: number }> {
   try {
     const { data: telegramMessage, error: messageError } = await supabaseAdmin
       .from("messages")
@@ -349,7 +349,7 @@ export async function updateTelegramMessageFromDatabase(
       registrations || []
     );
 
-    await TelegramAPI.editMessageText({
+    const tgRes = await TelegramAPI.editMessageText({
       chat_id: chatId,
       message_id: messageId,
       text: updatedMessage,
@@ -361,6 +361,31 @@ export async function updateTelegramMessageFromDatabase(
             inline_keyboard: REGISTRATION_BUTTONS,
           },
     });
+
+    if (!tgRes?.ok) {
+      const desc = String(tgRes?.description || "").toLowerCase();
+      const code = tgRes?.error_code;
+      const notFound = code === 400 || /message to edit not found/.test(desc);
+      const rateLimited = code === 429 || /too many requests/.test(desc);
+
+      if (notFound && !rateLimited) {
+        try {
+          await supabaseAdmin
+            .from("messages")
+            .delete()
+            .match({ chat_id: chatId, message_id: messageId });
+        } catch (e) {
+          // ignore delete errors; we'll still report removed intent
+        }
+        return { success: true, removed: true };
+      }
+
+      return {
+        success: false,
+        error: tgRes?.description || "Telegram editMessageText failed",
+        error_code: tgRes?.error_code,
+      };
+    }
 
     return { success: true };
   } catch (error) {

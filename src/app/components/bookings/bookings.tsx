@@ -86,11 +86,12 @@ export default function Bookings() {
   // Refresh messages mutation
   const refreshMessagesMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/telegram/cleanup-messages", {
+      const response = await fetch("/api/telegram/update-messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        // No body to trigger full-scan cleanup mode
       });
 
       if (!response.ok) {

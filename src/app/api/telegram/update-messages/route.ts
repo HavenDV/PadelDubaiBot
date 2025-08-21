@@ -13,19 +13,54 @@ interface UpdateMessagesRequest {
 
 export async function POST(request: Request) {
   try {
-    const { bookingId, chatId, messageId }: UpdateMessagesRequest =
-      await request.json();
+    let payload: UpdateMessagesRequest = {};
+    try {
+      payload = await request.json();
+    } catch {
+      // allow empty body for full scan mode
+      payload = {};
+    }
+    const { bookingId, chatId, messageId } = payload;
 
     // If explicit chat/message provided, update that single message
     if (chatId && messageId) {
       const result = await updateTelegramMessageFromDatabase(chatId, messageId);
-      if (!result.success) {
+      if (result.success) {
+        return NextResponse.json({ success: true, processed: 1, failed: 0, removed: result.removed ? 1 : 0 });
+      }
+      return NextResponse.json(
+        { error: result.error || "Failed to update message" },
+        { status: 500 }
+      );
+    }
+
+    // If no filters provided, perform a full scan like cleanup-messages
+    if (!bookingId && !chatId && !messageId) {
+      const { data: allMessages, error: messagesError } = await supabaseAdmin
+        .from("messages")
+        .select("id, chat_id, message_id");
+
+      if (messagesError) {
+        console.error("Failed to fetch messages:", messagesError);
         return NextResponse.json(
-          { error: result.error || "Failed to update message" },
+          { error: "Failed to fetch messages" },
           { status: 500 }
         );
       }
-      return NextResponse.json({ success: true, processed: 1, failed: 0 });
+
+      let checked = 0;
+      let cleaned = 0;
+      let failed = 0;
+      for (const m of allMessages || []) {
+        const res = await updateTelegramMessageFromDatabase(m.chat_id, m.message_id);
+        checked++;
+        if (res.success && res.removed) cleaned++;
+        else if (!res.success) failed++;
+        // Small delay to avoid rate limiting
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
+      return NextResponse.json({ success: true, checked, cleaned, failed });
     }
 
     // Otherwise, require bookingId to update all messages for that booking
@@ -49,23 +84,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const updates = (messages || []).map((m) =>
-      updateTelegramMessageFromDatabase(m.chat_id, m.message_id)
-    );
-    const results = await Promise.allSettled(updates);
-
-    const failed = results.filter((r) => r.status === "rejected");
-    if (failed.length > 0) {
-      console.warn(
-        `Some Telegram message updates failed (${failed.length}/${results.length})`
-      );
+    let processed = 0;
+    let failed = 0;
+    let removed = 0;
+    for (const m of messages || []) {
+      const res = await updateTelegramMessageFromDatabase(m.chat_id, m.message_id);
+      processed++;
+      if (res.success && res.removed) removed++;
+      else if (!res.success) failed++;
+      // small delay to avoid rate limiting when multiple failures
+      if (!res.success || res.removed) await new Promise((r) => setTimeout(r, 100));
     }
 
-    return NextResponse.json({
-      success: true,
-      processed: results.length,
-      failed: failed.length,
-    });
+    return NextResponse.json({ success: true, processed, failed, removed });
   } catch (error) {
     console.error("Error updating telegram messages:", error);
     return NextResponse.json(
