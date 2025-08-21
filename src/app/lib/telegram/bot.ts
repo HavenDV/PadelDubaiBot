@@ -137,18 +137,12 @@ bot.on("message", async (ctx) => {
   const msg = ctx.message;
   const text = msg?.text || "";
   const isDirectMention = text.includes("@padel_dubai_bot");
-  const isReplyToBot =
-    msg?.reply_to_message?.from?.username === "padel_dubai_bot" ||
-    msg?.reply_to_message?.via_bot?.username === "padel_dubai_bot";
 
-  if (!isDirectMention && !isReplyToBot) return;
-  // Keep minimal echo to avoid coupling with OpenAI here
+  // Only respond to direct mentions; ignore replies to bot messages
+  if (!isDirectMention) return;
   try {
     if (msg?.pinned_message) return;
-    const promptText =
-      isReplyToBot && msg.reply_to_message?.text
-        ? `Предыдущее сообщение: ${msg.reply_to_message.text}\nОтвет игрока: ${text}`
-        : text;
+    const promptText = text;
 
     const joke = await OpenAIUtils.generateJoke(promptText);
     await ctx.api.sendMessage(msg.chat.id, joke, {
