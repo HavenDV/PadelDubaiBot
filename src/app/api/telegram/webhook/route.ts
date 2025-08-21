@@ -5,6 +5,15 @@ import { bot, ensureBotInit } from "@/app/lib/telegram/bot";
 
 // receive from url parameters as fallback
 export async function POST(req: NextRequest) {
+  const update = await req.json();
+  const timestamp = new Date().toISOString();
+
+  // Log every webhook message with full data for exploration
+  console.log(
+    `=== TELEGRAM WEBHOOK UPDATE [${timestamp}] ===`,
+    JSON.stringify(update, null, 2)
+  );
+
   const secretToken = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
   console.log("secretToken (from header)", secretToken);
 
@@ -21,15 +30,6 @@ export async function POST(req: NextRequest) {
       );
     }
   }
-
-  const update = await req.json();
-  const timestamp = new Date().toISOString();
-
-  // Log every webhook message with full data for exploration
-  console.log(
-    `=== TELEGRAM WEBHOOK UPDATE [${timestamp}] ===`,
-    JSON.stringify(update, null, 2)
-  );
 
   // Initialize bot once per cold start before handling updates
   await ensureBotInit();
