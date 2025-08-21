@@ -101,7 +101,9 @@ export class MessageFormatter {
     const playerSlots = this.formatPlayerSlots(registeredPlayers, maxPlayers);
     const waitlistSection = this.formatWaitlist(waitlist);
 
-    message += `\n\n${calendarSection}\n⚙️ ${settingsLink}
+    // Avoid extra blank line when there is no note
+    const beforeCalendar = booking.note ? "\n\n" : "\n";
+    message += `${beforeCalendar}${calendarSection}\n⚙️ ${settingsLink}
 
 ${
   booking.cancelled
