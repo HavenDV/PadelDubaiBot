@@ -29,7 +29,6 @@ export class OpenAIUtils {
           },
         ],
         max_completion_tokens: 60,
-        temperature: 0.9,
       }),
     });
 
