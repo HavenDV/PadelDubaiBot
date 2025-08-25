@@ -6,6 +6,7 @@ import {
   REGISTRATION_BUTTONS,
 } from "@/app/lib/telegram";
 import { OpenAIUtils } from "@/app/lib/openai";
+import { TelegramAPI } from "@/app/lib/telegram/api";
 import {
   handleDatabaseRegistration,
   isLateCancellationByMessage,
@@ -145,11 +146,27 @@ bot.on("message", async (ctx) => {
     const promptText = text;
 
     const joke = await OpenAIUtils.generateJoke(promptText);
-    await ctx.api.sendMessage(msg.chat.id, joke, {
+
+    // Send directly via Telegram API using bot token and chat id
+    const res = await TelegramAPI.sendMessage({
+      chat_id: msg.chat.id,
+      text: joke,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
       reply_to_message_id: msg.message_id,
-      link_preview_options: { is_disabled: true },
     });
-  } catch {}
+
+    if (!res?.ok) {
+      console.error("Telegram sendMessage failed for mention reply", {
+        chat_id: msg.chat.id,
+        message_id: msg.message_id,
+        error_code: res?.error_code,
+        description: res?.description,
+      });
+    }
+  } catch (e) {
+    console.error("Mention handler error:", e);
+  }
 });
 
 // Welcome new chat members

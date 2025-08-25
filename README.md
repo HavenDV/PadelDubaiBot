@@ -397,7 +397,7 @@ The bot uses OpenAI's [GPT-4.1 Nano](https://platform.openai.com/docs/models/gpt
 - **Model**: `gpt-4.1-nano-2025-04-14`
 - **System Prompt**: "Ты весёлый бот клуба мафии LaFamilia. Отвечай на сообщения короткой шуткой или дружеской подколкой на русском языке."
 - **Parameters**:
-  - `max_tokens`: 60
-  - `temperature`: 0.9
+  - `max_completion_tokens`: 60
+  - `temperature`: default (1)
 
 The bot provides contextual responses by including previous message content when users reply to bot messages, enabling more relevant humor generation.
