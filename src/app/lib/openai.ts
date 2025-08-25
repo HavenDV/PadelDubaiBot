@@ -28,7 +28,6 @@ export class OpenAIUtils {
             content: userText,
           },
         ],
-        max_completion_tokens: 60,
       }),
     });
 
@@ -46,7 +45,9 @@ export class OpenAIUtils {
     } catch {}
     const content: unknown = data?.choices?.[0]?.message?.content;
     const text =
-      typeof content === "string" ? content.trim() : String(content ?? "").trim();
+      typeof content === "string"
+        ? content.trim()
+        : String(content ?? "").trim();
     return text.length > 0 ? text : "😅";
   }
 }
