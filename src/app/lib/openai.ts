@@ -28,7 +28,7 @@ export class OpenAIUtils {
             content: userText,
           },
         ],
-        max_tokens: 60,
+        max_completion_tokens: 60,
         temperature: 0.9,
       }),
     });
