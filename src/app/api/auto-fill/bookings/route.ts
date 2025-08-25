@@ -217,6 +217,12 @@ ${availableLocations.map((loc) => `- ${loc}`).join("\n")}`;
         },
       },
     });
+    try {
+      console.log(
+        `[OpenAI] raw response (bookings extract) ${new Date().toISOString()} ::`,
+        JSON.stringify(response)
+      );
+    } catch {}
 
     const messageContent = response.choices[0]?.message?.content;
 

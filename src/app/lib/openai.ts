@@ -38,6 +38,12 @@ export class OpenAIUtils {
     }
 
     const data = await res.json();
+    try {
+      console.log(
+        `[OpenAI] raw response (generateJoke) ${new Date().toISOString()} ::`,
+        JSON.stringify(data)
+      );
+    } catch {}
     const content: unknown = data?.choices?.[0]?.message?.content;
     const text =
       typeof content === "string" ? content.trim() : String(content ?? "").trim();
