@@ -38,6 +38,9 @@ export class OpenAIUtils {
     }
 
     const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() ?? "🤣";
+    const content: unknown = data?.choices?.[0]?.message?.content;
+    const text =
+      typeof content === "string" ? content.trim() : String(content ?? "").trim();
+    return text.length > 0 ? text : "😅";
   }
 }
