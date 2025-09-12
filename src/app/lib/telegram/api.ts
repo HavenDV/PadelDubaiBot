@@ -242,6 +242,25 @@ export class TelegramAPI {
     return this.makeRequest(`${this.baseUrl}/deleteMessage`, params);
   }
 
+  // Chat actions (e.g., typing)
+  static async sendChatAction(params: {
+    chat_id: string | number;
+    action:
+      | "typing"
+      | "upload_photo"
+      | "record_video"
+      | "upload_video"
+      | "record_voice"
+      | "upload_voice"
+      | "upload_document"
+      | "choose_sticker"
+      | "find_location"
+      | "record_video_note"
+      | "upload_video_note";
+  }): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/sendChatAction`, params);
+  }
+
   // Reactions
   static async setMessageReaction(params: {
     chat_id: string | number;

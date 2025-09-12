@@ -178,7 +178,7 @@ bot.on("message", async (ctx) => {
       isAdmin = false;
     }
 
-    // React with eyes to indicate processing
+    // Indicate processing: try reaction (if permissions allow), fallback to typing action
     try {
       await TelegramAPI.setMessageReaction({
         chat_id: chatId,
@@ -187,7 +187,12 @@ bot.on("message", async (ctx) => {
         is_big: false,
       });
     } catch (e) {
-      console.warn("[BOT] setMessageReaction failed:", e);
+      console.warn("[BOT] setMessageReaction failed (likely permissions):", e);
+      try {
+        await TelegramAPI.sendChatAction({ chat_id: chatId, action: "typing" });
+      } catch (err) {
+        console.warn("[BOT] sendChatAction failed:", err);
+      }
     }
 
     const caller = {
