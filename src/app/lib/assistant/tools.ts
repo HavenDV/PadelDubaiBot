@@ -409,6 +409,20 @@ export async function updateUserSkillTool(
       .eq("id", targetId);
     if (updErr) return { success: false, error: "Failed to update skill" };
 
+    // Trigger message updates for bookings where this user is registered (optimize by userId)
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/telegram/update-messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: targetId }),
+        }
+      );
+    } catch (e) {
+      console.warn("Failed to trigger message updates for user:", targetId, e);
+    }
+
     return { success: true, user_id: targetId, new_skill: skill };
   } catch (e) {
     console.error("updateUserSkillTool error:", e);

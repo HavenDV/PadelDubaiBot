@@ -8,7 +8,7 @@ interface UpdateMessagesRequest {
   bookingId?: number;
   chatId?: number;
   messageId?: number;
-  userId?: number; // reserved for future expansion
+  userId?: number; // optimize by updating only messages where this user is registered
 }
 
 export async function POST(request: Request) {
@@ -20,18 +20,78 @@ export async function POST(request: Request) {
       // allow empty body for full scan mode
       payload = {};
     }
-    const { bookingId, chatId, messageId } = payload;
+    const { bookingId, chatId, messageId, userId } = payload;
 
     // If explicit chat/message provided, update that single message
     if (chatId && messageId) {
       const result = await updateTelegramMessageFromDatabase(chatId, messageId);
       if (result.success) {
-        return NextResponse.json({ success: true, processed: 1, failed: 0, removed: result.removed ? 1 : 0 });
+        return NextResponse.json({
+          success: true,
+          processed: 1,
+          failed: 0,
+          removed: result.removed ? 1 : 0,
+        });
       }
       return NextResponse.json(
         { error: result.error || "Failed to update message" },
         { status: 500 }
       );
+    }
+
+    // Optimize: if userId provided, update messages for bookings where this user is registered
+    if (userId && !bookingId && !chatId && !messageId) {
+      const { data: regs, error: regErr } = await supabaseAdmin
+        .from("registrations")
+        .select("booking_id")
+        .eq("user_id", userId);
+      if (regErr) {
+        console.error("Failed to fetch registrations:", regErr);
+        return NextResponse.json(
+          { error: "Failed to fetch registrations" },
+          { status: 500 }
+        );
+      }
+
+      const bookingIds = Array.from(
+        new Set((regs || []).map((r: { booking_id: number }) => r.booking_id))
+      ).filter(Boolean) as number[];
+      if (bookingIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          processed: 0,
+          failed: 0,
+          removed: 0,
+        });
+      }
+
+      const { data: msgs, error: msgErr } = await supabaseAdmin
+        .from("messages")
+        .select("chat_id, message_id")
+        .in("booking_id", bookingIds);
+      if (msgErr) {
+        console.error("Failed to fetch messages by user bookings:", msgErr);
+        return NextResponse.json(
+          { error: "Failed to fetch messages" },
+          { status: 500 }
+        );
+      }
+
+      let processed = 0;
+      let failed = 0;
+      let removed = 0;
+      for (const m of msgs || []) {
+        const res = await updateTelegramMessageFromDatabase(
+          m.chat_id,
+          m.message_id
+        );
+        processed++;
+        if (res.success && res.removed) removed++;
+        else if (!res.success) failed++;
+        await new Promise((r) => setTimeout(r, 80));
+      }
+
+      return NextResponse.json({ success: true, processed, failed, removed });
     }
 
     // If no filters provided, perform a full scan like cleanup-messages
@@ -52,7 +112,10 @@ export async function POST(request: Request) {
       let cleaned = 0;
       let failed = 0;
       for (const m of allMessages || []) {
-        const res = await updateTelegramMessageFromDatabase(m.chat_id, m.message_id);
+        const res = await updateTelegramMessageFromDatabase(
+          m.chat_id,
+          m.message_id
+        );
         checked++;
         if (res.success && res.removed) cleaned++;
         else if (!res.success) failed++;
@@ -88,12 +151,16 @@ export async function POST(request: Request) {
     let failed = 0;
     let removed = 0;
     for (const m of messages || []) {
-      const res = await updateTelegramMessageFromDatabase(m.chat_id, m.message_id);
+      const res = await updateTelegramMessageFromDatabase(
+        m.chat_id,
+        m.message_id
+      );
       processed++;
       if (res.success && res.removed) removed++;
       else if (!res.success) failed++;
       // small delay to avoid rate limiting when multiple failures
-      if (!res.success || res.removed) await new Promise((r) => setTimeout(r, 100));
+      if (!res.success || res.removed)
+        await new Promise((r) => setTimeout(r, 100));
     }
 
     return NextResponse.json({ success: true, processed, failed, removed });
