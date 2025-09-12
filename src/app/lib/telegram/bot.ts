@@ -106,7 +106,12 @@ bot.on("callback_query:data", async (ctx) => {
             ...REGISTRATION_BUTTONS.map((row) =>
               row.map((b) => ({ text: b.text, callback_data: b.callback_data }))
             ),
-            [{ text: "Open Settings", url: "https://t.me/padel_dubai_bot?startapp" }],
+            [
+              {
+                text: "Open Settings",
+                url: "https://t.me/padel_dubai_bot?startapp",
+              },
+            ],
           ],
         };
         await ctx.api.editMessageText(
@@ -143,14 +148,32 @@ bot.on("message", async (ctx) => {
   if (!isDirectMention) return;
   try {
     if (msg?.pinned_message) return;
-    const promptText = text;
+    const chatId = msg.chat.id;
 
-    const joke = await OpenAIUtils.generateJoke(promptText);
+    // Admin check by Telegram user id from users.admin column
+    let isAdmin = false;
+    try {
+      const userId = msg.from?.id;
+      if (userId) {
+        const { data, error } = await supabaseAdmin
+          .from("users")
+          .select("admin")
+          .eq("id", userId)
+          .maybeSingle();
+        if (!error && data?.admin === true) isAdmin = true;
+      }
+    } catch (e) {
+      // Fallback to non-admin behavior on error
+      isAdmin = false;
+    }
 
-    // Send directly via Telegram API using bot token and chat id
+    const replyText = isAdmin
+      ? await OpenAIUtils.handleTelegramCommand({ messageText: text, chatId })
+      : await OpenAIUtils.generateJoke(text);
+
     const res = await TelegramAPI.sendMessage({
-      chat_id: msg.chat.id,
-      text: joke,
+      chat_id: chatId,
+      text: replyText,
       parse_mode: "HTML",
       disable_web_page_preview: true,
       reply_to_message_id: msg.message_id,
@@ -158,7 +181,7 @@ bot.on("message", async (ctx) => {
 
     if (!res?.ok) {
       console.error("Telegram sendMessage failed for mention reply", {
-        chat_id: msg.chat.id,
+        chat_id: chatId,
         message_id: msg.message_id,
         error_code: res?.error_code,
         description: res?.description,
