@@ -171,12 +171,17 @@ ${recentExamples
   .join("\n")}`;
 
     // Iterative tool loop: allow the model to chain multiple tools
-    const messages: Array<{
-      role: string;
-      content?: string;
-      tool_call_id?: string;
-      name?: string;
-    }> = [
+    type ToolCall = {
+      id: string;
+      type: "function";
+      function: { name: string; arguments: string };
+    };
+    type ChatMessage =
+      | { role: "system" | "user"; content: string }
+      | { role: "assistant"; content?: string | null; tool_calls?: ToolCall[] }
+      | { role: "tool"; tool_call_id: string; name: string; content: string };
+
+    const messages: ChatMessage[] = [
       { role: "system", content: system },
       { role: "user", content: params.messageText },
     ];
@@ -215,6 +220,13 @@ ${recentExamples
         break;
       }
 
+      // Append assistant message carrying tool_calls, then execute and append tool results
+      messages.push({
+        role: "assistant",
+        content: msg.content ?? null,
+        tool_calls: msg.tool_calls as unknown as ToolCall[],
+      });
+
       // Execute each tool call and append tool results for the next round
       for (const call of msg.tool_calls) {
         const name: string = call.function?.name;
@@ -232,12 +244,14 @@ ${recentExamples
             params.caller
           );
           lastBookingId = res.booking_id ?? lastBookingId;
-          messages.push({
-            role: "tool",
-            tool_call_id: callId,
-            name,
-            content: JSON.stringify(res),
-          });
+          if (callId) {
+            messages.push({
+              role: "tool",
+              tool_call_id: callId,
+              name,
+              content: JSON.stringify(res),
+            });
+          }
         } else if (name === "publish_booking") {
           const fallbackChat = (parsed as { chat?: number | string | null })
             .chat;
@@ -261,12 +275,14 @@ ${recentExamples
                   params.caller
                 )
               : { success: false, error: "booking_id missing" };
-          messages.push({
-            role: "tool",
-            tool_call_id: callId,
-            name,
-            content: JSON.stringify(result),
-          });
+          if (callId) {
+            messages.push({
+              role: "tool",
+              tool_call_id: callId,
+              name,
+              content: JSON.stringify(result),
+            });
+          }
         } else if (name === "update_user_skill") {
           const res = await updateUserSkillTool(
             parsed as { [k: string]: unknown } as {
@@ -276,18 +292,22 @@ ${recentExamples
             },
             params.caller
           );
-          messages.push({
-            role: "tool",
-            tool_call_id: callId,
-            name,
-            content: JSON.stringify(res),
-          });
+          if (callId) {
+            messages.push({
+              role: "tool",
+              tool_call_id: callId,
+              name,
+              content: JSON.stringify(res),
+            });
+          }
         }
       }
     }
 
-    // Fallback to joke if no final content was produced
-    console.log("[AI] No tools used, fallback to joke");
-    return this.generateJoke(params.messageText);
+    // Admin-friendly fallback: if tools executed but model provided no content, return a concise confirmation
+    console.log(
+      "[AI] No final content from model; returning minimal confirmation"
+    );
+    return "Готово.";
   }
 }
