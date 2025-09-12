@@ -118,32 +118,55 @@ Keep messages concise. Return confirmations in Russian.`;
       for (const call of message.tool_calls) {
         const name: string = call.function?.name;
         const rawArgs: string = call.function?.arguments || "{}";
-        let args: any = {};
+        let parsed: unknown = {};
         try {
-          args = JSON.parse(rawArgs);
+          parsed = JSON.parse(rawArgs);
         } catch {}
 
         console.log("[AI] Tool call:", name, rawArgs);
         if (name === "add_booking") {
-          const res = await addBookingTool(args, params.caller);
+          const res = await addBookingTool(
+            parsed as { [k: string]: unknown },
+            params.caller
+          );
           lastBookingId = res.booking_id;
           lastText = res.success
             ? `Готово! Создал бронь №${res.booking_id}.`
             : `Не удалось создать бронь: ${res.error || "ошибка"}`;
         } else if (name === "publish_booking") {
+          const fallbackChat = (parsed as { chat?: number | string | null })
+            .chat;
+          const fallbackChatIdNum: number = (() => {
+            if (typeof params.chatId === "number") return params.chatId;
+            if (typeof fallbackChat === "number") return fallbackChat;
+            return 0;
+          })();
+          const bookingIdVal =
+            (parsed as { booking_id?: number }).booking_id ?? lastBookingId;
+          if (typeof bookingIdVal !== "number") {
+            lastText = "Не указан booking_id для публикации.";
+            continue;
+          }
           const res = await publishBookingTool(
             {
-              booking_id: args.booking_id ?? lastBookingId,
-              chat: args.chat ?? params.chatId,
+              booking_id: bookingIdVal,
+              chat:
+                (parsed as { chat?: number | string | null }).chat ??
+                params.chatId,
             },
-            params.chatId,
+            fallbackChatIdNum,
             params.caller
           );
           lastText = res.success
             ? `Опубликовал. Сообщение №${res.message_id}.`
             : `Не удалось опубликовать: ${res.error || "ошибка"}`;
         } else if (name === "update_user_skill") {
-          const res = await updateUserSkillTool(args, params.caller);
+          const skillArgs = parsed as {
+            skill: "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
+            user_id?: number;
+            username?: string | null;
+          };
+          const res = await updateUserSkillTool(skillArgs, params.caller);
           lastText = res.success
             ? `Обновил уровень: ${res.new_skill}.`
             : `Не удалось обновить уровень: ${res.error || "ошибка"}`;

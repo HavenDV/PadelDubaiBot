@@ -4,7 +4,7 @@ import {
   REGISTRATION_BUTTONS,
   TelegramAPI,
 } from "@/app/lib/telegram";
-import type { Booking, Location, User } from "../../../../database.types";
+import type { Booking, Location } from "../../../../database.types";
 
 export interface AddBookingArgs {
   location_id?: number | null;
@@ -174,7 +174,7 @@ export async function addBookingTool(
 
 export async function publishBookingTool(
   args: PublishBookingArgs,
-  fallbackChatId?: number,
+  fallbackChatId: number,
   caller?: ToolCallerContext
 ): Promise<PublishBookingResult> {
   try {
@@ -238,8 +238,12 @@ export async function publishBookingTool(
       registrations: [],
     });
 
-    const chatId: number | string | undefined = (args.chat ??
-      fallbackChatId) as any;
+    const chatParam =
+      args.chat ?? (fallbackChatId > 0 ? fallbackChatId : undefined);
+    const chatId: number | string | undefined =
+      typeof chatParam === "number" || typeof chatParam === "string"
+        ? chatParam
+        : undefined;
     if (!chatId) return { success: false, error: "chat is required" };
 
     const res = await TelegramAPI.sendMessage({
@@ -273,11 +277,13 @@ export async function publishBookingTool(
     const numericChatId = typeof chatId === "string" ? NaN : Number(chatId);
 
     try {
-      await supabaseAdmin.from("messages").insert({
-        booking_id: bookingId,
-        chat_id: isNaN(numericChatId) ? undefined : numericChatId,
-        message_id: messageId,
-      });
+      if (!isNaN(numericChatId)) {
+        await supabaseAdmin.from("messages").insert({
+          booking_id: bookingId,
+          chat_id: numericChatId,
+          message_id: messageId,
+        });
+      }
     } catch (e) {
       console.error("Failed to store message mapping:", e);
       // continue
@@ -328,7 +334,12 @@ export async function updateUserSkillTool(
     }
 
     if (!targetId) return { success: false, error: "No target user" };
-    if (!caller?.isAdmin && args.user_id && args.user_id !== caller.userId) {
+    if (
+      !caller?.isAdmin &&
+      args.user_id &&
+      caller &&
+      args.user_id !== caller.userId
+    ) {
       return { success: false, error: "You can only change your own skill" };
     }
 
@@ -344,11 +355,12 @@ export async function updateUserSkillTool(
     }
 
     if (!existing) {
-      const firstName = caller?.firstName || `User ${targetId}`;
+      const firstName = caller?.firstName ?? `User ${targetId}`;
+      const usernameVal = caller?.username ?? null;
       const { error: insErr } = await supabaseAdmin.from("users").insert({
         id: targetId,
         first_name: firstName,
-        username: caller?.username || null,
+        username: usernameVal,
         skill_level: skill,
       });
       if (insErr) return { success: false, error: "Failed to create user" };
