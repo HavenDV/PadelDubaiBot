@@ -5,6 +5,7 @@ import {
   updateUserSkillTool,
   type ToolCallerContext,
 } from "@/app/lib/assistant/tools";
+import { supabaseAdmin } from "@/app/lib/supabase/admin";
 
 export class OpenAIUtils {
   /**
@@ -71,7 +72,80 @@ export class OpenAIUtils {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return "OpenAI API key missing.";
 
-    // System prompt instructing the model to use tools for booking workflows
+    // System prompt instructing the model to use tools for booking workflows (with available locations and recent examples)
+    let locationsList: string[] = [];
+    let recentExamples: Array<{
+      location_name?: string | null;
+      location_id?: number | null;
+      date?: string | null;
+      time?: string | null;
+      duration?: number | null;
+      price?: number | null;
+      courts?: number | null;
+      note?: string | null;
+    }> = [];
+    try {
+      // Load locations list
+      const { data: locRows } = await supabaseAdmin
+        .from("locations")
+        .select("id, name")
+        .order("name");
+      if (locRows && Array.isArray(locRows)) {
+        locationsList = locRows.map((r) => `${r.name} (ID: ${r.id})`);
+      }
+
+      // Load last 3 bookings as examples
+      const { data: bookRows } = await supabaseAdmin
+        .from("bookings")
+        .select(
+          `
+          start_time,
+          end_time,
+          price,
+          courts,
+          note,
+          locations:location_id (
+            id,
+            name
+          )
+        `
+        )
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (bookRows && Array.isArray(bookRows)) {
+        type BookingRow = {
+          start_time: string;
+          end_time: string;
+          price: number | null;
+          courts: number | null;
+          note: string | null;
+          locations: { id: number; name: string } | null;
+        };
+        recentExamples = (bookRows as BookingRow[]).map((b) => ({
+          location_name: b.locations?.name ?? null,
+          location_id: b.locations?.id ?? null,
+          date: b.start_time
+            ? new Date(b.start_time).toISOString().split("T")[0]
+            : null,
+          time: b.start_time
+            ? new Date(b.start_time).toTimeString().substring(0, 5)
+            : null,
+          duration:
+            b.start_time && b.end_time
+              ? Math.round(
+                  (new Date(b.end_time).getTime() -
+                    new Date(b.start_time).getTime()) /
+                    (1000 * 60)
+                )
+              : null,
+          price: typeof b.price === "number" ? b.price : null,
+          courts: typeof b.courts === "number" ? b.courts : null,
+          note: b.note ?? null,
+        }));
+      }
+    } catch {}
+
     const system = `You are an assistant for Padel Dubai booking operations.
 When the user asks to create or publish a booking, use the provided tools strictly.
 - For creating: call add_booking with structured fields.
@@ -79,7 +153,22 @@ When the user asks to create or publish a booking, use the provided tools strict
 If both are needed, first add_booking, then publish_booking using the returned booking_id.
 Also support changing skill levels via update_user_skill; allow non-admins to update only their own skill.
 Prefer using tools rather than free-form text when possible.
-Keep messages concise. Return confirmations in Russian.`;
+Keep messages concise. Return confirmations in Russian.
+
+AVAILABLE LOCATIONS (prefer exact match, otherwise closest reasonable):
+${locationsList.map((l) => `- ${l}`).join("\n")}
+
+RECENT BOOKING EXAMPLES (learn patterns for price/note formatting):
+${recentExamples
+  .map(
+    (ex, i) =>
+      `- Example ${i + 1}: ${ex.location_name ?? ""}${
+        ex.location_id ? ` (ID: ${ex.location_id})` : ""
+      }; price=${ex.price ?? ""}; duration=${ex.duration ?? ""}; courts=${
+        ex.courts ?? ""
+      }; note=${ex.note ?? ""}`
+  )
+  .join("\n")}`;
 
     // Iterative tool loop: allow the model to chain multiple tools
     const messages: Array<{

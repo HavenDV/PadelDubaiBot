@@ -94,15 +94,32 @@ export async function addBookingTool(
     if (!caller?.isAdmin) {
       return { success: false, error: "Admins only" };
     }
-    // Validate minimum fields
+    // Validate minimum fields with tighter constraints
+    const allowedDurations = [60, 90, 120, 150, 180];
+    const durationRaw =
+      typeof args.duration === "number" ? args.duration : null;
+    const duration = durationRaw === null ? 90 : durationRaw;
+    if (!allowedDurations.includes(duration)) {
+      return {
+        success: false,
+        error: "Invalid duration. Allowed: 60, 90, 120, 150, 180",
+      };
+    }
+
+    const courts = typeof args.courts === "number" ? args.courts : null;
+    if (courts === null || courts < 1 || courts > 4) {
+      return { success: false, error: "Invalid courts. Allowed range: 1-4" };
+    }
+
     const price =
-      typeof args.price === "number" && args.price >= 0 ? args.price : null;
-    const courts =
-      typeof args.courts === "number" && args.courts >= 1 ? args.courts : null;
-    const duration =
-      typeof args.duration === "number" && args.duration > 0
-        ? args.duration
-        : 90;
+      typeof args.price === "number" ? Math.round(args.price) : null;
+    if (price === null || price < 0) {
+      return {
+        success: false,
+        error: "Invalid price. Must be a non-negative integer",
+      };
+    }
+
     const date = (args.date || "").trim() || null;
     const time = (args.time || "").trim() || null;
 
@@ -112,29 +129,46 @@ export async function addBookingTool(
         error: "date (YYYY-MM-DD) and time (HH:mm) are required",
       };
     }
-    if (price === null) return { success: false, error: "price is required" };
-    if (courts === null) return { success: false, error: "courts is required" };
 
     // Resolve location
     let locationId: number | null = args.location_id ?? null;
     if (!locationId) {
       const name = (args.location_name || "").trim();
-      if (!name)
+      if (!name) {
         return {
           success: false,
           error: "location_id or location_name is required",
         };
+      }
 
-      const { data: loc, error: locErr } = await supabaseAdmin
+      // Load all locations and match like smart paste
+      const { data: allLocations, error: locListErr } = await supabaseAdmin
         .from("locations")
-        .select("id")
-        .ilike("name", name)
-        .order("id")
-        .limit(1)
-        .maybeSingle();
-      if (locErr || !loc?.id)
-        return { success: false, error: "location not found" };
-      locationId = loc.id;
+        .select("id,name")
+        .order("name");
+      if (locListErr)
+        return { success: false, error: "Failed to load locations" };
+
+      const norm = name.toLowerCase();
+      const candidates = allLocations || [];
+      // 1) exact (case-insensitive)
+      let matched = candidates.find((l) => l.name.toLowerCase() === norm);
+      // 2) includes either way
+      if (!matched)
+        matched = candidates.find(
+          (l) =>
+            l.name.toLowerCase().includes(norm) ||
+            norm.includes(l.name.toLowerCase())
+        );
+      // 3) simple punctuation-insensitive equality
+      if (!matched) {
+        const strip = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const normStripped = strip(name);
+        matched = candidates.find((l) => strip(l.name) === normStripped);
+      }
+
+      if (!matched) return { success: false, error: "location not found" };
+      locationId = matched.id;
     }
 
     const { startISO, endISO } = parseDateTimeToIso(date, time, duration);
@@ -147,7 +181,7 @@ export async function addBookingTool(
         location_id: locationId,
         price,
         courts,
-        note: args.note ?? null,
+        note: args.note ?? null ? String(args.note).slice(0, 200) : null,
       })
       .select("id")
       .single();
