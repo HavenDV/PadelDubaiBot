@@ -81,42 +81,55 @@ Also support changing skill levels via update_user_skill; allow non-admins to up
 Prefer using tools rather than free-form text when possible.
 Keep messages concise. Return confirmations in Russian.`;
 
-    // First call
-    const initial = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07", // tools-capable model
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: params.messageText },
-        ],
-        tools: toolDefinitions,
-        tool_choice: "auto",
-      }),
-    });
+    // Iterative tool loop: allow the model to chain multiple tools
+    const messages: Array<{
+      role: string;
+      content?: string;
+      tool_call_id?: string;
+      name?: string;
+    }> = [
+      { role: "system", content: system },
+      { role: "user", content: params.messageText },
+    ];
 
-    if (!initial.ok) {
-      console.error("OpenAI tools call failed", await initial.text());
-      return "Не получилось понять запрос.";
-    }
+    let lastBookingId: number | undefined;
+    for (let step = 0; step < 4; step++) {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-5-2025-08-07", // advanced tools-capable model
+          messages,
+          tools: toolDefinitions,
+          tool_choice: "auto",
+        }),
+      });
+      if (!resp.ok) {
+        console.error("OpenAI tools call failed", await resp.text());
+        break;
+      }
+      const data2 = await resp.json();
+      const msg = data2?.choices?.[0]?.message;
+      try {
+        console.log("[AI] tools raw response:", JSON.stringify(data2));
+      } catch {}
 
-    const data = await initial.json();
-    try {
-      console.log("[AI] tools raw response:", JSON.stringify(data));
-    } catch {}
-    const message = data?.choices?.[0]?.message;
+      // If the model returns a final message with no tool calls, use it
+      if (!msg?.tool_calls?.length) {
+        const content = (
+          typeof msg?.content === "string" ? msg.content : ""
+        ).trim();
+        if (content.length) return content;
+        break;
+      }
 
-    // Tool loop (single step or two-step chain)
-    if (message?.tool_calls?.length) {
-      let lastText = "";
-      let lastBookingId: number | undefined;
-
-      for (const call of message.tool_calls) {
+      // Execute each tool call and append tool results for the next round
+      for (const call of msg.tool_calls) {
         const name: string = call.function?.name;
+        const callId: string | undefined = call.id;
         const rawArgs: string = call.function?.arguments || "{}";
         let parsed: unknown = {};
         try {
@@ -129,10 +142,13 @@ Keep messages concise. Return confirmations in Russian.`;
             parsed as { [k: string]: unknown },
             params.caller
           );
-          lastBookingId = res.booking_id;
-          lastText = res.success
-            ? `Готово! Создал бронь №${res.booking_id}.`
-            : `Не удалось создать бронь: ${res.error || "ошибка"}`;
+          lastBookingId = res.booking_id ?? lastBookingId;
+          messages.push({
+            role: "tool",
+            tool_call_id: callId,
+            name,
+            content: JSON.stringify(res),
+          });
         } else if (name === "publish_booking") {
           const fallbackChat = (parsed as { chat?: number | string | null })
             .chat;
@@ -143,40 +159,45 @@ Keep messages concise. Return confirmations in Russian.`;
           })();
           const bookingIdVal =
             (parsed as { booking_id?: number }).booking_id ?? lastBookingId;
-          if (typeof bookingIdVal !== "number") {
-            lastText = "Не указан booking_id для публикации.";
-            continue;
-          }
-          const res = await publishBookingTool(
-            {
-              booking_id: bookingIdVal,
-              chat:
-                (parsed as { chat?: number | string | null }).chat ??
-                params.chatId,
+          const result =
+            typeof bookingIdVal === "number"
+              ? await publishBookingTool(
+                  {
+                    booking_id: bookingIdVal,
+                    chat:
+                      (parsed as { chat?: number | string | null }).chat ??
+                      params.chatId,
+                  },
+                  fallbackChatIdNum,
+                  params.caller
+                )
+              : { success: false, error: "booking_id missing" };
+          messages.push({
+            role: "tool",
+            tool_call_id: callId,
+            name,
+            content: JSON.stringify(result),
+          });
+        } else if (name === "update_user_skill") {
+          const res = await updateUserSkillTool(
+            parsed as { [k: string]: unknown } as {
+              skill: "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
+              user_id?: number;
+              username?: string | null;
             },
-            fallbackChatIdNum,
             params.caller
           );
-          lastText = res.success
-            ? `Опубликовал. Сообщение №${res.message_id}.`
-            : `Не удалось опубликовать: ${res.error || "ошибка"}`;
-        } else if (name === "update_user_skill") {
-          const skillArgs = parsed as {
-            skill: "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
-            user_id?: number;
-            username?: string | null;
-          };
-          const res = await updateUserSkillTool(skillArgs, params.caller);
-          lastText = res.success
-            ? `Обновил уровень: ${res.new_skill}.`
-            : `Не удалось обновить уровень: ${res.error || "ошибка"}`;
+          messages.push({
+            role: "tool",
+            tool_call_id: callId,
+            name,
+            content: JSON.stringify(res),
+          });
         }
       }
-
-      if (lastText) return lastText;
     }
 
-    // Fallback to short joke reply if no tools used
+    // Fallback to joke if no final content was produced
     console.log("[AI] No tools used, fallback to joke");
     return this.generateJoke(params.messageText);
   }

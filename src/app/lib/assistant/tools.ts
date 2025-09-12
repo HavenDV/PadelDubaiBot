@@ -66,22 +66,24 @@ function parseDateTimeToIso(
   timeStr: string,
   durationMinutes: number
 ): { startISO: string; endISO: string } {
-  // Interpret as local time; store as UTC ISO strings
+  // Interpret user-provided date/time as Dubai time (UTC+4), then convert to UTC ISO
   const [year, month, day] = dateStr.split("-").map((v) => parseInt(v, 10));
   const [hour, minute] = timeStr.split(":").map((v) => parseInt(v, 10));
-  const start = new Date(
+  const dubaiUtcOffsetHours = 4; // Asia/Dubai UTC+4, no DST
+  const startUtcMs = Date.UTC(
     year,
     (month || 1) - 1,
     day || 1,
-    hour || 0,
+    (hour || 0) - dubaiUtcOffsetHours,
     minute || 0,
     0,
     0
   );
-  const end = new Date(
-    start.getTime() + Math.max(30, durationMinutes || 90) * 60 * 1000
-  );
-  return { startISO: start.toISOString(), endISO: end.toISOString() };
+  const endUtcMs = startUtcMs + Math.max(30, durationMinutes || 90) * 60 * 1000;
+  return {
+    startISO: new Date(startUtcMs).toISOString(),
+    endISO: new Date(endUtcMs).toISOString(),
+  };
 }
 
 export async function addBookingTool(
