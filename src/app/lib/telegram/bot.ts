@@ -154,22 +154,50 @@ bot.on("message", async (ctx) => {
     let isAdmin = false;
     try {
       const userId = msg.from?.id;
+      console.log("[BOT] Mention received:", {
+        chatId,
+        userId,
+        username: msg.from?.username,
+        first_name: msg.from?.first_name,
+      });
       if (userId) {
         const { data, error } = await supabaseAdmin
           .from("users")
           .select("admin")
           .eq("id", userId)
           .maybeSingle();
-        if (!error && data?.admin === true) isAdmin = true;
+        if (error) {
+          console.error("[BOT] Admin check query error:", error);
+        }
+        isAdmin = !!data?.admin;
+        console.log("[BOT] Admin check:", { userId, isAdmin });
       }
     } catch (e) {
       // Fallback to non-admin behavior on error
+      console.error("[BOT] Admin check failed:", e);
       isAdmin = false;
     }
 
-    const replyText = isAdmin
-      ? await OpenAIUtils.handleTelegramCommand({ messageText: text, chatId })
-      : await OpenAIUtils.generateJoke(text);
+    const caller = {
+      userId: msg.from?.id,
+      firstName: msg.from?.first_name || null,
+      username: msg.from?.username || null,
+      isAdmin,
+    } as const;
+
+    console.log("[BOT] Calling tool orchestrator with:", {
+      chatId,
+      isAdmin,
+      userId: caller.userId,
+    });
+
+    const replyText = await OpenAIUtils.handleTelegramCommand({
+      messageText: text,
+      chatId,
+      caller,
+    });
+
+    console.log("[BOT] Orchestrator reply:", replyText);
 
     const res = await TelegramAPI.sendMessage({
       chat_id: chatId,

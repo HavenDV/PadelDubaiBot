@@ -2,6 +2,8 @@ import {
   toolDefinitions,
   addBookingTool,
   publishBookingTool,
+  updateUserSkillTool,
+  type ToolCallerContext,
 } from "@/app/lib/assistant/tools";
 
 export class OpenAIUtils {
@@ -64,6 +66,7 @@ export class OpenAIUtils {
   static async handleTelegramCommand(params: {
     messageText: string;
     chatId?: number;
+    caller?: ToolCallerContext;
   }): Promise<string> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return "OpenAI API key missing.";
@@ -74,6 +77,8 @@ When the user asks to create or publish a booking, use the provided tools strict
 - For creating: call add_booking with structured fields.
 - For publishing: call publish_booking with booking_id and optional chat.
 If both are needed, first add_booking, then publish_booking using the returned booking_id.
+Also support changing skill levels via update_user_skill; allow non-admins to update only their own skill.
+Prefer using tools rather than free-form text when possible.
 Keep messages concise. Return confirmations in Russian.`;
 
     // First call
@@ -84,12 +89,13 @@ Keep messages concise. Return confirmations in Russian.`;
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-5.1-mini-tools", // tools-capable model
+        model: "gpt-5-mini-2025-08-07", // tools-capable model
         messages: [
           { role: "system", content: system },
           { role: "user", content: params.messageText },
         ],
         tools: toolDefinitions,
+        tool_choice: "auto",
       }),
     });
 
@@ -99,6 +105,9 @@ Keep messages concise. Return confirmations in Russian.`;
     }
 
     const data = await initial.json();
+    try {
+      console.log("[AI] tools raw response:", JSON.stringify(data));
+    } catch {}
     const message = data?.choices?.[0]?.message;
 
     // Tool loop (single step or two-step chain)
@@ -114,8 +123,9 @@ Keep messages concise. Return confirmations in Russian.`;
           args = JSON.parse(rawArgs);
         } catch {}
 
+        console.log("[AI] Tool call:", name, rawArgs);
         if (name === "add_booking") {
-          const res = await addBookingTool(args);
+          const res = await addBookingTool(args, params.caller);
           lastBookingId = res.booking_id;
           lastText = res.success
             ? `Готово! Создал бронь №${res.booking_id}.`
@@ -126,11 +136,17 @@ Keep messages concise. Return confirmations in Russian.`;
               booking_id: args.booking_id ?? lastBookingId,
               chat: args.chat ?? params.chatId,
             },
-            params.chatId
+            params.chatId,
+            params.caller
           );
           lastText = res.success
             ? `Опубликовал. Сообщение №${res.message_id}.`
             : `Не удалось опубликовать: ${res.error || "ошибка"}`;
+        } else if (name === "update_user_skill") {
+          const res = await updateUserSkillTool(args, params.caller);
+          lastText = res.success
+            ? `Обновил уровень: ${res.new_skill}.`
+            : `Не удалось обновить уровень: ${res.error || "ошибка"}`;
         }
       }
 
@@ -138,6 +154,7 @@ Keep messages concise. Return confirmations in Russian.`;
     }
 
     // Fallback to short joke reply if no tools used
+    console.log("[AI] No tools used, fallback to joke");
     return this.generateJoke(params.messageText);
   }
 }

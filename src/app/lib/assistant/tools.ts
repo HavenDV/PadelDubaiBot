@@ -41,6 +41,26 @@ export interface PublishBookingResult {
   error?: string;
 }
 
+export interface UpdateUserSkillArgs {
+  skill: "E" | "D-" | "D" | "D+" | "D++" | "C-" | "C" | "C+";
+  user_id?: number; // target user; defaults to caller
+  username?: string | null; // admins can specify @username instead of user_id
+}
+
+export interface UpdateUserSkillResult {
+  success: boolean;
+  user_id?: number;
+  new_skill?: string;
+  error?: string;
+}
+
+export interface ToolCallerContext {
+  userId: number | undefined;
+  firstName?: string | null;
+  username?: string | null;
+  isAdmin: boolean;
+}
+
 function parseDateTimeToIso(
   dateStr: string,
   timeStr: string,
@@ -65,9 +85,13 @@ function parseDateTimeToIso(
 }
 
 export async function addBookingTool(
-  args: AddBookingArgs
+  args: AddBookingArgs,
+  caller?: ToolCallerContext
 ): Promise<AddBookingResult> {
   try {
+    if (!caller?.isAdmin) {
+      return { success: false, error: "Admins only" };
+    }
     // Validate minimum fields
     const price =
       typeof args.price === "number" && args.price >= 0 ? args.price : null;
@@ -150,9 +174,13 @@ export async function addBookingTool(
 
 export async function publishBookingTool(
   args: PublishBookingArgs,
-  fallbackChatId?: number
+  fallbackChatId?: number,
+  caller?: ToolCallerContext
 ): Promise<PublishBookingResult> {
   try {
+    if (!caller?.isAdmin) {
+      return { success: false, error: "Admins only" };
+    }
     const bookingId = args.booking_id;
     if (!bookingId || typeof bookingId !== "number")
       return { success: false, error: "booking_id is required" };
@@ -245,13 +273,11 @@ export async function publishBookingTool(
     const numericChatId = typeof chatId === "string" ? NaN : Number(chatId);
 
     try {
-      await supabaseAdmin
-        .from("messages")
-        .insert({
-          booking_id: bookingId,
-          chat_id: isNaN(numericChatId) ? undefined : numericChatId,
-          message_id: messageId,
-        });
+      await supabaseAdmin.from("messages").insert({
+        booking_id: bookingId,
+        chat_id: isNaN(numericChatId) ? undefined : numericChatId,
+        message_id: messageId,
+      });
     } catch (e) {
       console.error("Failed to store message mapping:", e);
       // continue
@@ -264,6 +290,80 @@ export async function publishBookingTool(
     };
   } catch (e) {
     console.error("publishBookingTool error:", e);
+    return { success: false, error: "internal error" };
+  }
+}
+
+export async function updateUserSkillTool(
+  args: UpdateUserSkillArgs,
+  caller?: ToolCallerContext
+): Promise<UpdateUserSkillResult> {
+  try {
+    const allowed = ["E", "D-", "D", "D+", "D++", "C-", "C", "C+"] as const;
+    const skill = args.skill as UpdateUserSkillArgs["skill"];
+    if (!allowed.includes(skill)) {
+      return { success: false, error: "Invalid skill level" };
+    }
+
+    let targetId: number | null = null;
+
+    if (caller?.isAdmin && args.username) {
+      const uname = args.username.replace(/^@/, "").trim();
+      if (uname.length > 0) {
+        const { data: userByName, error: selByNameErr } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("username", uname)
+          .maybeSingle();
+        if (selByNameErr) return { success: false, error: "Database error" };
+        if (userByName?.id) targetId = userByName.id;
+      }
+    }
+
+    if (!targetId) {
+      if (args.user_id && caller?.isAdmin) targetId = args.user_id;
+      else if (args.user_id && caller && args.user_id === caller.userId)
+        targetId = args.user_id;
+      else if (caller?.userId) targetId = caller.userId;
+    }
+
+    if (!targetId) return { success: false, error: "No target user" };
+    if (!caller?.isAdmin && args.user_id && args.user_id !== caller.userId) {
+      return { success: false, error: "You can only change your own skill" };
+    }
+
+    // Ensure user exists; create minimal record if missing
+    const { data: existing, error: selErr } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("id", targetId)
+      .maybeSingle();
+
+    if (selErr) {
+      return { success: false, error: "Database error" };
+    }
+
+    if (!existing) {
+      const firstName = caller?.firstName || `User ${targetId}`;
+      const { error: insErr } = await supabaseAdmin.from("users").insert({
+        id: targetId,
+        first_name: firstName,
+        username: caller?.username || null,
+        skill_level: skill,
+      });
+      if (insErr) return { success: false, error: "Failed to create user" };
+      return { success: true, user_id: targetId, new_skill: skill };
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("users")
+      .update({ skill_level: skill })
+      .eq("id", targetId);
+    if (updErr) return { success: false, error: "Failed to update skill" };
+
+    return { success: true, user_id: targetId, new_skill: skill };
+  } catch (e) {
+    console.error("updateUserSkillTool error:", e);
     return { success: false, error: "internal error" };
   }
 }
@@ -329,6 +429,34 @@ export const toolDefinitions = [
           },
         },
         required: ["booking_id"],
+        additionalProperties: false,
+      },
+      strict: true,
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_user_skill",
+      description:
+        "Update Telegram user's skill level. Non-admins can update only their own skill.",
+      parameters: {
+        type: "object",
+        properties: {
+          skill: {
+            type: "string",
+            enum: ["E", "D-", "D", "D+", "D++", "C-", "C", "C+"],
+          },
+          user_id: {
+            type: ["number", "null"],
+            description: "Target user id; admins only. Defaults to caller.",
+          },
+          username: {
+            type: ["string", "null"],
+            description: "Admins: @username target instead of user_id",
+          },
+        },
+        required: ["skill"],
         additionalProperties: false,
       },
       strict: true,
