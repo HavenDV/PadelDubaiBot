@@ -4,6 +4,7 @@ import {
   REGISTRATION_BUTTONS,
   TelegramAPI,
 } from "@/app/lib/telegram";
+import { updateTelegramMessageFromDatabase } from "@/app/lib/telegram/booking";
 import type { Booking, Location } from "../../../../database.types";
 
 export interface AddBookingArgs {
@@ -409,18 +410,32 @@ export async function updateUserSkillTool(
       .eq("id", targetId);
     if (updErr) return { success: false, error: "Failed to update skill" };
 
-    // Trigger message updates for bookings where this user is registered (optimize by userId)
+    // Update only messages for bookings where this user is registered (inline, to reduce rate limits)
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/telegram/update-messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: targetId }),
+      const { data: regs, error: regErr } = await supabaseAdmin
+        .from("registrations")
+        .select("booking_id")
+        .eq("user_id", targetId);
+      if (!regErr && regs && regs.length > 0) {
+        const bookingIds = Array.from(
+          new Set((regs || []).map((r: { booking_id: number }) => r.booking_id))
+        ) as number[];
+
+        const { data: msgs, error: msgErr } = await supabaseAdmin
+          .from("messages")
+          .select("chat_id, message_id")
+          .in("booking_id", bookingIds);
+
+        if (!msgErr) {
+          for (const m of msgs || []) {
+            await updateTelegramMessageFromDatabase(m.chat_id, m.message_id);
+            // Small delay to be gentle with Telegram rate limits
+            await new Promise((r) => setTimeout(r, 80));
+          }
         }
-      );
+      }
     } catch (e) {
-      console.warn("Failed to trigger message updates for user:", targetId, e);
+      console.warn("Inline message updates on skill change failed:", e);
     }
 
     return { success: true, user_id: targetId, new_skill: skill };
