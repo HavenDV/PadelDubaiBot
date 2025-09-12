@@ -226,7 +226,9 @@ export class TelegramAPI {
     return this.makeRequest(`${this.baseUrl}/unpinChatMessage`, params);
   }
 
-  static async sendLocation(params: SendLocationParams): Promise<TelegramResponse> {
+  static async sendLocation(
+    params: SendLocationParams
+  ): Promise<TelegramResponse> {
     return this.makeRequest(`${this.baseUrl}/sendLocation`, params);
   }
 
@@ -238,6 +240,19 @@ export class TelegramAPI {
     params: DeleteMessageParams
   ): Promise<TelegramResponse> {
     return this.makeRequest(`${this.baseUrl}/deleteMessage`, params);
+  }
+
+  // Reactions
+  static async setMessageReaction(params: {
+    chat_id: string | number;
+    message_id: number;
+    reaction?: Array<
+      | { type: "emoji"; emoji: string }
+      | { type: "custom_emoji"; custom_emoji_id: string }
+    >;
+    is_big?: boolean;
+  }): Promise<TelegramResponse> {
+    return this.makeRequest(`${this.baseUrl}/setMessageReaction`, params);
   }
 
   // Fetch chat info for enrichment

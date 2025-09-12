@@ -178,6 +178,18 @@ bot.on("message", async (ctx) => {
       isAdmin = false;
     }
 
+    // React with eyes to indicate processing
+    try {
+      await TelegramAPI.setMessageReaction({
+        chat_id: chatId,
+        message_id: msg.message_id,
+        reaction: [{ type: "emoji", emoji: "\uD83D\uDC40" }],
+        is_big: false,
+      });
+    } catch (e) {
+      console.warn("[BOT] setMessageReaction failed:", e);
+    }
+
     const caller = {
       userId: msg.from?.id,
       firstName: msg.from?.first_name || null,

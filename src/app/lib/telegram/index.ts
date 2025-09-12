@@ -6,6 +6,7 @@ export type {
   EditMessageParams,
   AnswerCallbackQueryParams,
   PinMessageParams,
+  // Re-export reaction params for external use if needed
 } from "./api";
 
 export {
