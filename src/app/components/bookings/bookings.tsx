@@ -404,6 +404,7 @@ export default function Bookings() {
           {bookings.map((b) => {
             const start = new Date(b.start_time);
             const end = new Date(b.end_time);
+            const isCompleted = end.getTime() <= Date.now();
             const dateStr = start.toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
@@ -469,7 +470,7 @@ export default function Bookings() {
                           >
                             Courts {b.courts}
                           </span>
-                          {isAdmin && (
+                          {isAdmin && !isCompleted && (
                             <div className="flex items-center gap-1">
                               <button
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors"
@@ -576,6 +577,19 @@ export default function Bookings() {
                         <span className="font-bold text-lg" style={styles.text}>
                           {dateStr}
                         </span>
+                        {isCompleted && (
+                          <span
+                            className="ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                            style={{
+                              backgroundColor:
+                                styles.selectedBg.backgroundColor ||
+                                "rgba(125,125,125,0.2)",
+                              color: styles.text.color,
+                            }}
+                          >
+                            Completed
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -676,7 +690,7 @@ export default function Bookings() {
 
                       {/* Right-side Controls: Admin add + user self register/cancel */}
                       <div className="sm:mt-0 mt-1 flex items-center gap-2">
-                        {isAdmin && (
+                        {isAdmin && !isCompleted && (
                           <button
                             onClick={() => setAddPlayerBookingId(b.id)}
                             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:brightness-110"
@@ -699,7 +713,7 @@ export default function Bookings() {
                             </svg>
                           </button>
                         )}
-                        {userRegistered ? (
+                        {!isCompleted && userRegistered ? (
                           <button
                             onClick={() => {
                               removeRegistrationMutation.reset();
@@ -713,7 +727,7 @@ export default function Bookings() {
                           >
                             {userOnWaitlist ? "Leave Waitlist" : "Cancel"}
                           </button>
-                        ) : (
+                        ) : !isCompleted ? (
                           <button
                             onClick={() => handleRegister(b.id)}
                             className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
@@ -721,6 +735,18 @@ export default function Bookings() {
                           >
                             {isFull ? "Join Waitlist" : "Register"}
                           </button>
+                        ) : (
+                          <span
+                            className="px-3 py-1.5 text-xs rounded-md font-bold uppercase"
+                            style={{
+                              backgroundColor:
+                                styles.selectedBg.backgroundColor ||
+                                "rgba(125,125,125,0.2)",
+                              color: styles.text.color,
+                            }}
+                          >
+                            Completed
+                          </span>
                         )}
                       </div>
                     </div>
@@ -809,7 +835,7 @@ export default function Bookings() {
                             </div>
 
                             {/* Admin Remove Control */}
-                            {isAdmin && (
+                            {isAdmin && !isCompleted && (
                               <button
                                 onClick={() =>
                                   setConfirmRemove({
@@ -946,7 +972,7 @@ export default function Bookings() {
                             </div>
 
                             {/* Admin Remove Control */}
-                            {isAdmin && (
+                            {isAdmin && !isCompleted && (
                               <button
                                 onClick={() =>
                                   setConfirmRemove({
@@ -1040,31 +1066,35 @@ export default function Bookings() {
                                   ? "Checking..."
                                   : "Refresh"}
                               </button>
-                              <button
-                                onClick={() => {
-                                  setPostDialogBooking(b);
-                                  setPostDialogChatId(undefined);
-                                }}
-                                className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
-                                style={styles.primaryButton}
-                                title="Send new message"
-                              >
-                                Post New
-                              </button>
+                              {!isCompleted && (
+                                <button
+                                  onClick={() => {
+                                    setPostDialogBooking(b);
+                                    setPostDialogChatId(undefined);
+                                  }}
+                                  className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                                  style={styles.primaryButton}
+                                  title="Send new message"
+                                >
+                                  Post New
+                                </button>
+                              )}
                             </>
                           ) : (
                             <div className="flex items-center">
-                              <button
-                                onClick={() => {
-                                  setPostDialogBooking(b);
-                                  setPostDialogChatId(undefined);
-                                }}
-                                className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
-                                style={styles.primaryButton}
-                                title="Post to chat"
-                              >
-                                Post to
-                              </button>
+                              {!isCompleted && (
+                                <button
+                                  onClick={() => {
+                                    setPostDialogBooking(b);
+                                    setPostDialogChatId(undefined);
+                                  }}
+                                  className="px-3 py-1.5 text-white border rounded-md text-sm font-medium transition-colors hover:brightness-110"
+                                  style={styles.primaryButton}
+                                  title="Post to chat"
+                                >
+                                  Post to
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
