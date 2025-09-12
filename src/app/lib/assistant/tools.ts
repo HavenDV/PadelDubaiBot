@@ -450,7 +450,7 @@ export const toolDefinitions = [
               "Target chat ID or @username. Defaults to current chat.",
           },
         },
-        required: ["booking_id"],
+        required: ["booking_id", "chat"],
         additionalProperties: false,
       },
       strict: true,
