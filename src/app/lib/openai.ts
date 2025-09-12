@@ -155,6 +155,20 @@ Also support changing skill levels via update_user_skill; allow non-admins to up
 Prefer using tools rather than free-form text when possible.
 Keep messages concise. Return confirmations in Russian.
 
+CURRENT REQUEST CONTEXT:
+- caller_is_admin: ${params.caller?.isAdmin ? "true" : "false"}
+- caller_user_id: ${
+      typeof params.caller?.userId === "number"
+        ? params.caller?.userId
+        : "unknown"
+    }
+- caller_username: ${params.caller?.username ?? "unknown"}
+
+AUTHORIZATION RULES:
+- If caller_is_admin is true, you MAY perform admin-only actions (e.g., updating another user's skill) WITHOUT asking for confirmation.
+- If caller_is_admin is false, you MUST restrict actions accordingly (e.g., update only own skill).
+- Do NOT ask whether the caller is an admin; rely on caller_is_admin.
+
 AVAILABLE LOCATIONS (prefer exact match, otherwise closest reasonable):
 ${locationsList.map((l) => `- ${l}`).join("\n")}
 
