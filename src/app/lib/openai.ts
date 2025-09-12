@@ -72,8 +72,9 @@ export class OpenAIUtils {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return "OpenAI API key missing.";
 
-    // System prompt instructing the model to use tools for booking workflows (with available locations and recent examples)
+    // System prompt instructing the model to use tools for booking workflows (with available locations, chats, and recent examples)
     let locationsList: string[] = [];
+    let chatsList: string[] = [];
     let recentExamples: Array<{
       location_name?: string | null;
       location_id?: number | null;
@@ -92,6 +93,25 @@ export class OpenAIUtils {
         .order("name");
       if (locRows && Array.isArray(locRows)) {
         locationsList = locRows.map((r) => `${r.name} (ID: ${r.id})`);
+      }
+
+      // Load chats list for targeting
+      const { data: chatRows } = await supabaseAdmin
+        .from("chats")
+        .select("id, title, username, type, name, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (chatRows && Array.isArray(chatRows)) {
+        chatsList = chatRows.map((c) => {
+          const label =
+            c.title || c.name || (c.username ? `@${c.username}` : String(c.id));
+          const uname = c.username ? ` @${c.username}` : "";
+          const isCurrent =
+            typeof params.chatId === "number" && c.id === params.chatId
+              ? " [CURRENT]"
+              : "";
+          return `${label}${uname} (ID: ${c.id}, type: ${c.type})${isCurrent}`;
+        });
       }
 
       // Load last 3 bookings as examples
@@ -171,6 +191,9 @@ AUTHORIZATION RULES:
 
 AVAILABLE LOCATIONS (prefer exact match, otherwise closest reasonable):
 ${locationsList.map((l) => `- ${l}`).join("\n")}
+
+CURRENT CHATS (target by ID or @username; prefer explicit mentions like @channelusername. If user says "main group" or similar, choose an appropriate chat from this list. The one marked [CURRENT] is where the request was sent.):
+${chatsList.map((c) => `- ${c}`).join("\n")}
 
 RECENT BOOKING EXAMPLES (learn patterns for price/note formatting):
 ${recentExamples
