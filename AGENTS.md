@@ -44,3 +44,54 @@
 
 - Secrets: Store in `.env` (e.g., `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`). Never commit secrets.
 - Webhooks/Tunneling: Use `npm run tunnel` or `npm run tunnel2` to expose `localhost:3000` when needed.
+
+<!-- BEGIN GENERATED PORTFOLIO CONTEXT -->
+
+## Generated Repository Context
+
+This section was generated from the GitHub repository inventory and local checkout to support future Codex work and portfolio analysis.
+
+### Repository Metadata
+- Remote: https://github.com/HavenDV/PadelDubaiBot
+- Visibility: public
+- Type: original; active
+- Primary language: TypeScript
+- Topics: None detected
+- Last pushed: 2025-12-01T22:46:16Z
+- Local path: /Users/havendv/GitHub/HavenDV/PadelDubaiBot
+- Local note: standard checkout
+- Classification: Web or app project
+
+### Working Summary
+A Telegram bot for organizing Padel games in Dubai with weekly schedules and skill-based registration system. Built with Next.js 15 and deployed on Vercel.
+
+### Detected Structure
+- Top-level items: `.claude/`, `.cursor/`, `.github/`, `.swc/`, `docs/`, `public/`, `src/`, `supabase/`, `.env`, `.gitignore`, `AGENTS.md`, `CLAUDE.md`, `database.types.gen.ts`, `database.types.ts`, `eslint.config.mjs`, `LICENSE`
+- Sampled file count: 135
+- Common extensions: .ts (61), .tsx (25), .sql (24), .md (6), [no extension] (4), .json (4), .svg (4), .mjs (2)
+
+### Manifests And Commands
+- package.json
+- .github/workflows
+- vercel.json
+- supabase
+
+Suggested commands:
+- npm run dev
+- npm run build
+- npm run start
+- npm run lint
+
+Testing signal:
+- No automated test entry point was detected by the generator.
+
+### Portfolio Signals
+- Skills: Next.js, React, TypeScript, Telegram bot development, OpenAI API integration, Supabase, GitHub Actions, Vercel deployment
+- Portfolio angle: Good evidence for practical AI product integration and agent/chat workflow implementation.
+
+### Agent Notes
+- Prefer README and manifest instructions over generated assumptions when they disagree.
+- Keep generated context current when build tooling, test commands, or project scope changes.
+- Review private or client-specific details before copying portfolio claims into public material.
+
+<!-- END GENERATED PORTFOLIO CONTEXT -->
